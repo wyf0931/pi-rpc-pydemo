@@ -153,6 +153,11 @@ def title_for(content: str) -> str:
     return " ".join(content.split())[:48] or "New conversation"
 
 
+def visible_messages(messages: list[dict]) -> list[dict]:
+    """Hide process-only tool results from the conversation transcript."""
+    return [message for message in messages if message.get("role") != "toolResult"]
+
+
 @app.get("/api/chats")
 async def list_chats():
     return {"chats": store.list_chats()}
@@ -184,7 +189,7 @@ async def get_messages(chat_id: str):
     if not chat:
         raise HTTPException(404, "Chat not found")
     try:
-        return {"messages": await runtime.messages(chat)}
+        return {"messages": visible_messages(await runtime.messages(chat))}
     except PiRpcError as exc:
         store.update_chat(chat_id, {"status": "error"})
         raise HTTPException(503, str(exc)) from exc
@@ -217,7 +222,7 @@ async def send_message(chat_id: str, payload: MessageCreate):
                         final_event = event.get("event", {})
                     yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
                 updated = store.update_chat(chat_id, {"status": "ready"}) or chat
-                turn_messages = [message for message in final_event.get("messages", []) if message.get("role") in {"assistant", "toolResult"}]
+                turn_messages = visible_messages([message for message in final_event.get("messages", []) if message.get("role") == "assistant"])
                 yield f"data: {json.dumps({'type': 'complete', 'chat': updated, 'assistant': text, 'tools': tools, 'messages': turn_messages}, ensure_ascii=False)}\n\n"
             except PiRpcError as exc:
                 store.update_chat(chat_id, {"status": "error"})
