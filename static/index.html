@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pi studio</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260827" />
+  </head>
+  <body x-data="platform()" @keydown.escape="dialog = null">
+    <div class="app-shell" :class="{'sidebar-collapsed': sidebarCollapsed}">
+      <main class="workspace">
+        <aside class="history-panel">
+          <div class="sidebar-top"><a class="brand" href="#" @click.prevent="brandClick()"><img src="/static/oma-logo-light.png" alt="OhMyAgent logo" /><span>OMA studio</span></a><div class="sidebar-tools"><button type="button" class="sidebar-tool" @click="sidebarCollapsed = !sidebarCollapsed" :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'" :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"><span x-text="sidebarCollapsed ? '›' : '‹'"></span></button></div></div>
+          <nav class="sidebar-menu" aria-label="Workspace navigation">
+            <button class="new-chat menu-item primary-menu" :class="{active: page === 'chat' && !activeChat}" @click="newChat()"><span class="menu-icon">＋</span><span class="menu-label">New chat</span></button>
+            <button class="menu-item" :class="{active: page === 'agents'}" @click="go('agents')"><span class="menu-icon">◎</span><span class="menu-label">Agents</span></button>
+            <button class="menu-item" @click="comingSoon('Autopilots')"><span class="menu-icon">↻</span><span class="menu-label">Autopilots</span></button>
+            <button class="menu-item" @click="comingSoon('Projects')"><span class="menu-icon">□</span><span class="menu-label">Projects</span></button>
+            <button class="menu-item" @click="comingSoon('Market')"><span class="menu-icon">◇</span><span class="menu-label">Market</span></button>
+            <button class="menu-item" @click="comingSoon('Library')"><span class="menu-icon">▤</span><span class="menu-label">Library</span></button>
+          </nav>
+          <div class="history-area"><div class="sidebar-section-heading"><span>Chat history</span><div class="history-actions"><button type="button" class="sidebar-tool expanded-search" @click="showError(new Error('Search is reserved for the next iteration.'))" title="Search chats" aria-label="Search chats">⌕</button><button class="icon-btn" @click="newChat()" title="New chat">+</button></div></div>
+          <template x-if="chats.length === 0"><div class="empty-history">Your conversations<br>will appear here.</div></template>
+          <div class="history-list">
+            <template x-for="chat in chats" :key="chat.id">
+              <button class="history-item" :class="{selected: activeChat?.id === chat.id}" @click="openChat(chat)">
+                <span class="history-title" x-text="chat.title"></span>
+                <span class="history-meta"><span x-text="agentName(chat.agent_id)"></span><span x-text="relativeTime(chat.last_activity_at)"></span></span>
+              </button>
+            </template>
+          </div></div>
+          <div class="sidebar-footer"><label class="theme-picker"><span>Theme</span><select id="theme-select" name="theme" class="select select-bordered" x-model="theme" @change="setTheme(theme)" aria-label="Choose theme"><option value="light">Light</option><option value="cupcake">Cupcake</option><option value="lemonade">Lemonade</option><option value="dark">Dark</option></select></label><div class="sandbox-status"><span class="status-dot"></span><span>connected</span></div></div>
+        </aside>
+
+        <section class="content-panel" x-show="page === 'chat'" x-cloak>
+          <template x-if="!activeChat">
+            <div class="chat-empty">
+              <h1>Stay hungry. Stay foolish.</h1>
+              <div class="start-grid">
+                <div class="start-card">
+                  <textarea id="new-chat-message" name="message" class="textarea textarea-bordered start-input" x-model="draft" @keydown.enter.meta.prevent="sendFirst()" placeholder="What would you like to explore?"></textarea>
+                  <div class="start-composer-foot"><div class="agent-picker" @click.outside="agentPickerOpen = false"><button type="button" class="agent-picker-button" @click="agentPickerOpen = !agentPickerOpen" aria-haspopup="listbox" :aria-expanded="agentPickerOpen"><span class="agent-avatar" x-text="initials(agentName(selectedAgentId))"></span><span x-text="agentName(selectedAgentId)"></span><span class="picker-chevron">⌄</span></button><div class="agent-picker-menu" x-show="agentPickerOpen" x-cloak role="listbox"><template x-for="agent in agents" :key="agent.id"><button type="button" role="option" class="agent-picker-option" :aria-selected="selectedAgentId === agent.id" @click="chooseAgent(agent.id)"><span class="agent-avatar" x-text="initials(agent.name)"></span><span><b x-text="agent.name"></b><small x-text="agent.instruction"></small></span></button></template></div></div><button class="icon-send" @click="sendFirst()" :disabled="!draft.trim() || !selectedAgentId || loading" title="Start chat" aria-label="Start chat">↗</button></div>
+                </div>
+              </div>
+            </div>
+          </template>
+          <template x-if="activeChat">
+            <div class="conversation">
+              <div class="message-list" x-ref="messages"><template x-if="messagesLoading"><div class="loading-skeleton"><span></span><span></span><span></span></div></template>
+                <template x-for="message in messages" :key="message._key"><article class="message" :class="message.role"><div class="message-label" x-text="message.role === 'assistant' ? agentName(activeChat.agent_id) : message.role"></div><div class="message-body" x-html="renderMessage(message)"></div></article></template>
+              </div>
+              <div class="composer"><textarea id="conversation-message" name="message" class="textarea textarea-bordered" x-model="draft" @keydown.enter.meta.prevent="sendMessage()" :disabled="loading" placeholder="Message this agent…"></textarea><button class="icon-send conversation-send" @click="loading ? abort() : sendMessage()" :class="{abort: loading}" :disabled="!loading && !draft.trim()" :title="loading ? 'Abort' : 'Send'" :aria-label="loading ? 'Abort' : 'Send'"><span x-text="loading ? '×' : '↗'"></span></button></div>
+            </div>
+          </template>
+        </section>
+
+        <section class="content-panel agents-page" x-show="page === 'agents'" x-cloak>
+          <div class="page-heading"><div><h1>Agents</h1><p>Define the minds available to your conversations.</p></div><button class="send-btn" @click="newAgent()">+ New agent</button></div>
+          <div class="agent-grid"><template x-for="agent in agents" :key="agent.id"><div class="agent-card" role="button" tabindex="0" @click="dialog = agent" @keydown.enter="dialog = agent"><div class="card-top"><span class="agent-mark large" x-text="initials(agent.name)"></span><span class="card-status"><span class="status-dot"></span> ready</span></div><h3 x-text="agent.name"></h3><p class="agent-instruction" x-text="agent.instruction"></p><div class="card-bottom"><span class="agent-id" x-text="agent.id.slice(0, 8)"></span><span x-text="chatCount(agent.id) + ' chats' "></span></div><button type="button" class="trash-btn" x-show="!agent.protected" @click.stop="deleteAgent(agent)" title="Delete agent" aria-label="Delete agent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div></template><button class="agent-card add-card" @click="newAgent()"><span>＋</span><b>Define another agent</b><small>Give a new perspective a name.</small></button></div>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="agent-dialog" :open="!!dialog" x-show="dialog" x-cloak @click.self="dialog = null">
+      <template x-if="dialog"><div class="dialog-box"><div class="dialog-head"><div><div class="eyebrow">Agent details</div><h2 x-text="dialog.name"></h2></div><button class="icon-btn" @click="dialog = null">×</button></div><div class="detail-group"><div class="detail-heading">Basics</div><div class="detail-row"><span>Name</span><b x-text="dialog.name"></b></div><div class="detail-row instruction-detail"><span>Instruction</span><b class="detail-instruction" x-text="dialog.instruction" :title="dialog.instruction"></b></div><div class="detail-row"><span>Provider</span><b x-text="providerName(dialog.provider) || 'Pi default'"></b></div><div class="detail-row"><span>Model</span><b x-text="modelName(dialog.provider, dialog.model) || 'Pi default'" class="mono"></b></div><div class="detail-row"><span>Created</span><b x-text="formatDate(dialog.created_at)"></b></div></div><div class="detail-group"><div class="detail-heading">Extensions</div><div class="reserved-grid"><div><span>Extensions</span><b x-text="resourceNames(dialog.extensions, 'extensions')"></b></div><div><span>Skills</span><b x-text="resourceNames(dialog.skills, 'skills')"></b></div><div><span>Tools</span><b x-text="dialog.tools?.length ? dialog.tools.join(', ') : 'Disabled'"></b></div><div><span>MCP servers</span><b>Not configured</b></div></div></div><div class="dialog-actions"><button class="ghost-btn" @click="dialog = null">Close</button><button class="send-btn" @click="editAgent(dialog)">Edit agent</button></div></div></template>
+    </dialog>
+    <dialog class="modal" :open="!!confirmTarget" x-show="confirmTarget" x-cloak @click.self="confirmTarget = null">
+      <div class="modal-box confirm-box"><div class="dialog-head"><div><div class="eyebrow">Delete agent</div><h2>Remove <span x-text="confirmTarget?.name"></span>?</h2></div><button class="icon-btn" @click="confirmTarget = null" aria-label="Close">×</button></div><p class="confirm-copy">This agent definition will be removed. Existing chat sessions and their Pi history will remain available.</p><div class="dialog-actions"><button type="button" class="btn btn-ghost" @click="confirmTarget = null">Cancel</button><button type="button" class="btn btn-error" @click="confirmDelete()">Delete agent</button></div></div>
+    </dialog>
+    <dialog class="agent-dialog" :open="createDialog" x-show="createDialog" x-cloak @click.self="createDialog = false">
+      <div class="dialog-box"><div class="dialog-head"><div><h2 x-text="editingAgent ? 'Edit Agent' : 'New Agent'"></h2></div><button class="icon-btn" @click="createDialog = false">×</button></div><form @submit.prevent="submitAgent"><div class="form-field"><label for="new-agent-name">Agent name</label><input id="new-agent-name" class="input input-bordered" x-model="newAgentName" required maxlength="80" placeholder="e.g. researcher"></div><div class="form-field"><label for="new-agent-instruction">Instruction</label><textarea id="new-agent-instruction" class="textarea textarea-bordered" x-model="newAgentInstruction" required maxlength="10000" placeholder="Tell this agent how it should behave…"></textarea></div><div class="agent-model-fields"><div class="form-field"><label for="new-agent-provider">Provider</label><select id="new-agent-provider" class="select select-bordered" x-model="newAgentProvider" @change="changeAgentProvider()" required><template x-for="provider in resources.providers" :key="provider.id"><option :value="provider.id" x-text="provider.name"></option></template></select></div><div class="form-field"><label for="new-agent-model">Model</label><select id="new-agent-model" class="select select-bordered" x-model="newAgentModel" required><template x-for="model in modelsFor()" :key="model.id"><option :value="model.id" x-text="model.name"></option></template></select></div></div><div class="form-field"><label>Built-in tools</label><div class="tool-check-grid"><template x-for="tool in toolCatalog" :key="tool.name"><label class="tool-check"><input type="checkbox" :value="tool.name" :checked="newAgentTools.includes(tool.name)" @change="toggleAgentTool(tool.name)"><span><b x-text="tool.name"></b><small x-text="tool.description"></small></span></label></template></div></div><div class="form-field"><label>Extensions</label><div class="resource-check-grid"><template x-if="resources.extensions.length === 0"><span class="resource-empty">No extensions discovered</span></template><template x-for="item in resources.extensions" :key="item.id"><label class="resource-check" :title="item.description || item.path"><input type="checkbox" :value="item.path" :checked="newAgentExtensions.includes(item.path)" @change="toggleResource('extensions', item.path)"><span><b x-text="item.name"></b><small x-text="item.description || item.path"></small></span></label></template></div></div><div class="form-field"><label>Skills</label><div class="resource-check-grid"><template x-if="resources.skills.length === 0"><span class="resource-empty">No skills discovered</span></template><template x-for="item in resources.skills" :key="item.id"><label class="resource-check" :title="item.description || item.path"><input type="checkbox" :value="item.path" :checked="newAgentSkills.includes(item.path)" @change="toggleResource('skills', item.path)"><span><b x-text="item.name"></b><small x-text="item.description || item.path"></small></span></label></template></div></div><div class="form-field"><label>MCP servers</label><div class="resource-check-grid mcp-check-grid"><template x-if="resources.mcp_servers.length === 0"><span class="resource-empty">No MCP servers discovered</span></template><template x-for="server in resources.mcp_servers" :key="server.id"><label class="resource-check" :title="server.path"><input type="checkbox" :value="server.id" :checked="newAgentMcpServers.includes(server.id)" @change="toggleResource('mcp', server.id)"><span><b x-text="server.name"></b><small x-text="server.description || server.path"></small></span></label></template></div></div><div class="dialog-actions"><button type="button" class="ghost-btn" @click="createDialog = false">Cancel</button><button type="submit" class="send-btn" :disabled="creating"><span x-text="editingAgent ? 'Save' : 'Create agent'"></span> <span>↗</span></button></div></form></div>
+    </dialog>
+    <div class="toast" x-show="error" x-text="error" x-cloak></div>
+
+    <script src="/static/app.js?v=20260827"></script>
+  </body>
+</html>
