@@ -3,5 +3,6 @@
 .run/
 __pycache__/
 .pytest_cache/
+.playwright-cli/
 data/
 .superpowers/

@@ -10,6 +10,20 @@ OMA Studio explores a practical separation of concerns:
 
 > Status: MVP / active experiment. APIs, storage, and sandboxing integrations may change.
 
+## Screenshots
+
+### New chat
+
+![OMA Studio new chat page](docs/images/chat-page.png)
+
+Start a new Pi session by selecting an Agent once, then send the first message. An Agent is bound to the chat for its lifetime, so a conversation cannot silently switch instructions, tools, or models halfway through.
+
+### Agent library
+
+![OMA Studio agents page](docs/images/agents-page.png)
+
+Agents are reusable definitions. The card list is intentionally separate from the chat entry point: create or edit a definition first, then select it when starting a new chat.
+
 ## Features
 
 - Chat with Pi through RPC mode, including streamed assistant output.
@@ -19,6 +33,13 @@ OMA Studio explores a practical separation of concerns:
 - Read-only discovery of Pi resources from the configured Pi home directory.
 - Multiple DaisyUI-compatible themes: Light, Cupcake, Lemonade, and Dark.
 - A small operational CLI: `bin/ops.sh start|stop|restart|status`.
+
+## Design principles
+
+- **Pi is the source of truth for messages.** The platform does not copy message transcripts into TinyDB.
+- **One Agent per chat.** An Agent's instruction, Provider, Model, tool allowlist, extensions, skills, and MCP selection are fixed when a chat starts.
+- **Explicit capability selection.** Discovering a resource does not enable it. Agents must opt in to tools, extensions, skills, and MCP servers.
+- **Local-first, sandbox-ready.** The MVP runs locally for fast iteration, while its execution boundary is designed to move behind a future `SandboxRunner`.
 
 ## Architecture
 
@@ -38,6 +59,23 @@ FastAPI
   └── MCP adapter (optional)
 ```
 
+### Request flow
+
+```text
+New chat
+  → TinyDB creates a chat record using the chat UUID as Pi session ID
+  → first user message starts Pi RPC with that Agent configuration
+  → FastAPI proxies JSONL events as SSE to the browser
+  → Pi persists the transcript in its session directory
+
+Open history
+  → FastAPI starts a short Pi RPC process with --session <chat-id>
+  → asks Pi for get_messages
+  → renders the Pi-managed transcript
+```
+
+The session UUID is deliberately shared between platform metadata and Pi. This avoids a mapping layer and keeps Pi session files authoritative.
+
 ## Prerequisites
 
 - Python 3.11+
@@ -54,6 +92,13 @@ bin/ops.sh start
 ```
 
 Open <http://127.0.0.1:8000>.
+
+Use the operational helper after the initial setup:
+
+```bash
+bin/ops.sh status
+bin/ops.sh restart
+```
 
 Run the test suite:
 
@@ -80,6 +125,8 @@ PI_PROVIDER=deepseek
 
 Provider and model options are discovered from `~/.pi/agent/models.json`. An Agent can override the global `PI_PROVIDER` and `PI_MODEL` defaults. The platform validates that the selected model belongs to the selected provider before starting Pi.
 
+The Agent dialog presents a Provider select and a filtered Model select. Only names are shown in the UI; the stable Provider and Model IDs are retained in Agent metadata and passed to Pi as `--provider` and `--model`.
+
 ### Extensions, skills, and MCP
 
 The Agent form discovers resources without executing them:
@@ -90,6 +137,22 @@ The Agent form discovers resources without executing them:
 
 Enable only resources you trust. Extensions and MCP servers execute code or connect to external systems.
 
+### Built-in tools
+
+An Agent selects an allowlist from Pi's built-in tools:
+
+| Tool | Purpose |
+| --- | --- |
+| `read` | Read a file |
+| `write` | Create or overwrite a file |
+| `edit` | Apply exact text replacements |
+| `bash` | Run a shell command |
+| `grep` | Search file contents |
+| `find` | Find files |
+| `ls` | List a directory |
+
+If the `pi-mcp-adapter` extension is selected, its `mcp` and `mcpScript` tools are added to the Pi allowlist so enabled MCP servers can be called.
+
 ## Data ownership
 
 | Data | Owner | Default location |
@@ -98,17 +161,47 @@ Enable only resources you trust. Extensions and MCP servers execute code or conn
 | Pi session transcripts | Pi | `data/pi-sessions` |
 | Pi configuration, extensions, skills, models | Pi | `~/.pi/agent` |
 
+TinyDB records chat identity, title, Agent binding, timestamps, and status only. It is intentionally not a second message store.
+
+## HTTP surface
+
+This MVP is a single FastAPI application with a static frontend. The main endpoints are:
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/health` | Runtime health and active Pi process count |
+| `GET /api/agents` | List Agent definitions |
+| `POST /api/agents` | Create an Agent definition |
+| `PATCH /api/agents/{id}` | Update an Agent definition |
+| `DELETE /api/agents/{id}` | Delete a non-default Agent |
+| `GET /api/resources` | Discover extensions, skills, MCP servers, Providers, and Models |
+| `GET /api/chats` | List chat metadata |
+| `POST /api/chats` | Create a chat record and external Pi session ID |
+| `GET /api/chats/{id}/messages` | Read history from Pi |
+| `POST /api/chats/{id}/messages` | Stream a Pi response as server-sent events |
+
 ## Security and sandboxing
 
 Pi does not provide a built-in filesystem or process sandbox. This MVP should be run only with trusted agents, extensions, MCP servers, and workspaces.
 
+In particular:
+
+- `PI_CWD` is a default working directory, not an access-control boundary.
+- `bash` can access the same files and processes as the OS user running Pi.
+- A host `~/.pi/agent` directory may contain provider credentials and executable extensions.
+- Do not expose this development server directly to the internet.
+
 The planned production execution model is a pluggable `SandboxRunner`, beginning with an OpenShell integration. The goal is one policy-controlled sandbox per active chat or project, with explicit workspace, network, credential, CPU, and memory limits.
+
+See [OpenShell sandbox runner proposal](https://github.com/wyf0931/pi-rpc-pydemo/issues/1) for the intended integration and acceptance criteria.
 
 ## Development
 
 ```bash
 uv run uvicorn app.main:app --env-file .env --reload
 ```
+
+The page is plain static HTML, JavaScript, and CSS under `static/`; FastAPI serves it together with the API. No frontend build step is required.
 
 Useful commands:
 
@@ -118,6 +211,24 @@ bin/ops.sh status
 bin/ops.sh restart
 bin/ops.sh stop
 ```
+
+### Verification
+
+```bash
+uv run pytest -q
+```
+
+The test suite covers TinyDB persistence, Agent Provider/Model overrides, model catalog discovery, and basic API behavior. Browser screenshots in this README are captured with Playwright at 1600×1000.
+
+### Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| Pi process cannot start | Confirm `PI_CLI_PATH`, then run `pi --version` in the same shell. |
+| No models in Agent dialog | Confirm `PI_HOME/models.json` is valid JSON with a `providers` object. |
+| Provider request fails | Confirm the Provider credential is configured for Pi and the selected Model belongs to that Provider. |
+| MCP tool is unavailable | Select `pi-mcp-adapter`, enable the intended MCP server, and allow the associated tool capability. |
+| History is empty | Confirm the Pi session directory is retained and the chat session ID has not been removed. |
 
 ## Roadmap
 
