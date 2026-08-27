@@ -62,7 +62,7 @@
         </section>
 
         <section class="content-panel agents-page" x-show="page === 'agents'" x-cloak>
-          <div class="page-heading"><div><h1>Agents</h1><p>Define the minds available to your conversations.</p></div><button class="send-btn" @click="newAgent()">+ New agent</button></div>
+          <div class="page-heading"><div><h1>Agents</h1><p>Define the minds available to your conversations.</p></div><button class="send-btn" @click="newAgent()">+ New</button></div>
           <div class="agent-grid"><template x-for="agent in agents" :key="agent.id"><div class="agent-card" role="button" tabindex="0" @click="dialog = agent" @keydown.enter="dialog = agent"><div class="card-top"><span class="agent-mark large" x-text="initials(agent.name)"></span><span class="card-status"><span class="status-dot"></span> ready</span></div><h3 x-text="agent.name"></h3><p class="agent-instruction" x-text="agent.instruction"></p><div class="card-bottom"><span class="agent-id" x-text="agent.id.slice(0, 8)"></span><span x-text="chatCount(agent.id) + ' chats' "></span></div><button type="button" class="trash-btn" x-show="!agent.protected" @click.stop="deleteAgent(agent)" title="Delete agent" aria-label="Delete agent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div></template></div>
         </section>
       </main>
