@@ -3,6 +3,25 @@ from pathlib import Path
 import os
 
 
+def _env_file_values() -> dict[str, str]:
+    """Read simple dotenv values so reload workers pick up local configuration."""
+    path = Path.cwd() / ".env"
+    if not path.is_file():
+        return {}
+    values: dict[str, str] = {}
+    for raw_line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, value = line.split("=", 1)
+        values[name.strip()] = value.strip().strip("\"'")
+    return values
+
+
+def _csv(value: str | None) -> tuple[str, ...]:
+    return tuple(item.strip() for item in (value or "").split(",") if item.strip())
+
+
 @dataclass(frozen=True)
 class Settings:
     data_dir: Path
@@ -13,17 +32,30 @@ class Settings:
     pi_model: str | None
     pi_tools: str | None
     pi_home: Path
+    pi_default_tools: tuple[str, ...]
+    pi_default_extensions: tuple[str, ...]
+    pi_default_skills: tuple[str, ...]
+    pi_default_mcp_servers: tuple[str, ...]
 
 
 def get_settings() -> Settings:
-    data_dir = Path(os.getenv("PI_PLATFORM_DATA_DIR", "data"))
+    dotenv = _env_file_values()
+
+    def value(name: str, default: str | None = None) -> str | None:
+        return os.environ.get(name, dotenv.get(name, default))
+
+    data_dir = Path(value("PI_PLATFORM_DATA_DIR", "data") or "data")
     return Settings(
         data_dir=data_dir,
-        pi_cli_path=os.getenv("PI_CLI_PATH", "pi"),
-        pi_session_dir=Path(os.getenv("PI_SESSION_DIR", str(data_dir / "pi-sessions"))),
-        pi_cwd=Path(os.getenv("PI_CWD", str(Path.cwd()))),
-        pi_provider=os.getenv("PI_PROVIDER") or None,
-        pi_model=os.getenv("PI_MODEL") or None,
-        pi_tools=os.getenv("PI_TOOLS") or None,
-        pi_home=Path(os.getenv("PI_HOME", str(Path.home() / ".pi" / "agent"))).expanduser(),
+        pi_cli_path=value("PI_CLI_PATH", "pi") or "pi",
+        pi_session_dir=Path(value("PI_SESSION_DIR", str(data_dir / "pi-sessions")) or str(data_dir / "pi-sessions")),
+        pi_cwd=Path(value("PI_CWD", str(Path.cwd())) or str(Path.cwd())),
+        pi_provider=value("PI_PROVIDER") or None,
+        pi_model=value("PI_MODEL") or None,
+        pi_tools=value("PI_TOOLS") or None,
+        pi_home=Path(value("PI_HOME", str(Path.home() / ".pi" / "agent")) or str(Path.home() / ".pi" / "agent")).expanduser(),
+        pi_default_tools=_csv(value("PI_DEFAULT_TOOLS")),
+        pi_default_extensions=_csv(value("PI_DEFAULT_EXTENSIONS")),
+        pi_default_skills=_csv(value("PI_DEFAULT_SKILLS")),
+        pi_default_mcp_servers=_csv(value("PI_DEFAULT_MCP_SERVERS")),
     )

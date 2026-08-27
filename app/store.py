@@ -19,11 +19,11 @@ class Store:
         self.agents = self.db.table("agents")
         self.chats = self.db.table("chats")
 
-    def ensure_default_agent(self) -> dict:
+    def ensure_default_agent(self, default_tools: list[str] | None = None) -> dict:
         agent = self.agents.get(Query().id == "default-assistant")
         if agent:
             if "tools_configured" not in agent or "provider" not in agent:
-                values = {"tools": agent.get("tools") or DEFAULT_TOOLS, "tools_configured": True,
+                values = {"tools": agent.get("tools") or default_tools or [], "tools_configured": True,
                           "provider": agent.get("provider")}
                 self.agents.update(values, Query().id == agent["id"])
                 agent.update(values)
@@ -36,7 +36,7 @@ class Store:
             "model": None,
             "extensions": [],
             "skills": [],
-            "tools": DEFAULT_TOOLS, "tools_configured": True,
+            "tools": default_tools or [], "tools_configured": True,
             "mcp_servers": [],
             "protected": True,
             "created_at": now_iso(),

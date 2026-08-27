@@ -16,7 +16,7 @@ settings = get_settings()
 settings.data_dir.mkdir(parents=True, exist_ok=True)
 settings.pi_session_dir.mkdir(parents=True, exist_ok=True)
 store = Store(settings.data_dir / "platform.json")
-store.ensure_default_agent()
+store.ensure_default_agent(list(settings.pi_default_tools))
 runtime = PiRuntimeManager(settings, store)
 app = FastAPI(title="Pi Agent Platform")
 
@@ -73,6 +73,10 @@ async def list_resources():
     catalog = discover_resources(settings.pi_home, settings.pi_cwd)
     catalog["default_provider"] = settings.pi_provider
     catalog["default_model"] = settings.pi_model
+    catalog["default_tools"] = list(settings.pi_default_tools)
+    catalog["default_extensions"] = list(settings.pi_default_extensions)
+    catalog["default_skills"] = list(settings.pi_default_skills)
+    catalog["default_mcp_servers"] = list(settings.pi_default_mcp_servers)
     return catalog
 
 
@@ -80,7 +84,7 @@ async def list_resources():
 async def create_agent(payload: AgentCreate):
     if any(agent["name"].casefold() == payload.name.strip().casefold() for agent in store.list_agents()):
         raise HTTPException(409, "Agent name already exists")
-    tools = payload.tools if payload.tools is not None else BUILTIN_TOOLS
+    tools = payload.tools if payload.tools is not None else list(settings.pi_default_tools)
     if any(tool not in BUILTIN_TOOLS for tool in tools):
         raise HTTPException(400, "Unsupported built-in tool")
     catalog = discover_resources(settings.pi_home, settings.pi_cwd)

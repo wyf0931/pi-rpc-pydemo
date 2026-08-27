@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from app.config import get_settings
 from app.resources import discover_models
 
 
@@ -19,3 +20,21 @@ def test_discovers_pi_model_catalog(tmp_path: Path):
             {"id": "example-id-only", "name": "example-id-only"},
         ],
     }]
+
+
+def test_reads_agent_defaults_from_dotenv(tmp_path: Path, monkeypatch):
+    (tmp_path / ".env").write_text(
+        "PI_DEFAULT_TOOLS=read,write\nPI_DEFAULT_EXTENSIONS=pi-mcp-adapter\n"
+        "PI_DEFAULT_SKILLS=human-writing\nPI_DEFAULT_MCP_SERVERS=browser\n",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+    for name in ("PI_DEFAULT_TOOLS", "PI_DEFAULT_EXTENSIONS", "PI_DEFAULT_SKILLS", "PI_DEFAULT_MCP_SERVERS"):
+        monkeypatch.delenv(name, raising=False)
+
+    settings = get_settings()
+
+    assert settings.pi_default_tools == ("read", "write")
+    assert settings.pi_default_extensions == ("pi-mcp-adapter",)
+    assert settings.pi_default_skills == ("human-writing",)
+    assert settings.pi_default_mcp_servers == ("browser",)
