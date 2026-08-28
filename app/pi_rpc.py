@@ -226,17 +226,26 @@ class PiRuntimeManager:
         if any(tool in tools for tool in PLATFORM_TOOLS):
             extension = Path(__file__).parent.parent / "extensions" / "oma-web-tools.ts"
             command += ["--extension", str(extension)]
-        if any("pi-mcp-adapter" in path for path in agent.get("extensions", [])):
+        extension_paths = [self._resource_path(path) for path in agent.get("extensions", [])]
+        if any("pi-mcp-adapter" in path for path in extension_paths):
             for tool in ("mcp", "mcpScript"):
                 if tool not in tools:
                     tools.append(tool)
         if tools:
             command += ["--tools", ",".join(tools)]
-        for path in agent.get("extensions", []):
+        for path in extension_paths:
             command += ["--extension", path]
         for path in agent.get("skills", []):
-            command += ["--skill", path]
+            command += ["--skill", self._resource_path(path)]
         return command
+
+    def _resource_path(self, value: str) -> str:
+        """Map absolute host Pi-home paths to the mounted container Pi home."""
+        marker = "/.pi/agent"
+        if marker in value:
+            suffix = value.split(marker, 1)[1].lstrip("/")
+            return str(Path(self.settings.pi_home) / suffix)
+        return value
 
     def _environment(self) -> dict[str, str]:
         environment = os.environ.copy()
@@ -250,7 +259,7 @@ class PiRuntimeManager:
         return environment
 
     def _mcp_override(self, agent: dict) -> tuple[str | None, list[Path]]:
-        if not any("pi-mcp-adapter" in path for path in agent.get("extensions", [])):
+        if not any("pi-mcp-adapter" in self._resource_path(path) for path in agent.get("extensions", [])):
             return None, []
         discovered = discover_resources(self.settings.pi_home, self.settings.pi_cwd)[
             "mcp_servers"

@@ -46,3 +46,24 @@ def test_platform_web_tools_load_the_first_party_extension():
 
     assert "--extension" in command
     assert command[command.index("--tools") + 1] == "read,web_fetch,web_search"
+
+
+def test_container_maps_host_pi_home_resource_paths():
+    settings = SimpleNamespace(
+        pi_cli_path="pi",
+        pi_session_dir="sessions",
+        pi_provider=None,
+        pi_model=None,
+        pi_thinking_level="low",
+        pi_home="/home/node/.pi/agent",
+    )
+    runtime = PiRuntimeManager(settings, store=None)
+    command = runtime._command({
+        "instruction": "Use the selected extension.",
+        "tools": ["read"],
+        "extensions": ["/Users/scott/.pi/agent/npm/node_modules/pi-mcp-adapter/index.ts"],
+        "skills": ["/Users/scott/.pi/agent/skills/human-writing"],
+    }, "chat-1", create=False)
+
+    assert "/home/node/.pi/agent/npm/node_modules/pi-mcp-adapter/index.ts" in command
+    assert "/home/node/.pi/agent/skills/human-writing" in command
