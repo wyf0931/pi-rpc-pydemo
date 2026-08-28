@@ -114,7 +114,10 @@ docker compose up --build
 Compose reads `.env` for `PI_PROVIDER`, `PI_MODEL`, the resource defaults, and the
 workspace path; container-internal paths are fixed in `docker-compose.yml` and always
 override `.env` values. No reverse proxy or extra services — FastAPI serves the API and
-UI directly, and `init: true` reaps the short-lived Pi subprocesses the app spawns.
+UI directly, and `init: true` reaps the short-lived Pi subprocesses the app spawns. When the
+host reaches model providers through a VPN/proxy, set `OMA_PROXY` (e.g. with
+Colima: `http://192.168.5.2:7897`) and the container pins its outbound model
+calls to it via Node 24 proxy support.
 
 Notes:
 

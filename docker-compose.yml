@@ -32,6 +32,12 @@ services:
       PI_PLATFORM_DATA_DIR: /app/data
       PI_SESSION_DIR: /app/data/pi-sessions
       PI_CWD: /workspace
+      # Node 24 honors proxy env for outbound model-API calls. Set OMA_PROXY
+      # in .env (e.g. http://192.168.5.2:7897 with Colima) when the host
+      # reaches model providers through a VPN/proxy; empty means direct.
+      NODE_USE_ENV_PROXY: "1"
+      HTTPS_PROXY: ${OMA_PROXY:-}
+      HTTP_PROXY: ${OMA_PROXY:-}
     volumes:
       # Normalized storage home, decoupled from any repo. Platform metadata
       # and Pi session transcripts. Must match PI_PLATFORM_DATA_DIR/PI_SESSION_DIR
