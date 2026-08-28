@@ -77,6 +77,7 @@ async def list_resources():
     catalog["default_extensions"] = list(settings.pi_default_extensions)
     catalog["default_skills"] = list(settings.pi_default_skills)
     catalog["default_mcp_servers"] = list(settings.pi_default_mcp_servers)
+    catalog["mode"] = settings.mode
     return catalog
 
 

@@ -54,7 +54,7 @@
           <template x-if="activeChat">
             <div class="conversation">
               <div class="message-list" x-ref="messages"><template x-if="messagesLoading"><div class="loading-skeleton"><span></span><span></span><span></span></div></template>
-                <template x-for="message in messages" :key="message._key"><article class="message" :class="message.role"><div class="message-label" x-text="message.role === 'assistant' ? agentName(activeChat.agent_id) : message.role"></div><div class="message-body" x-html="renderMessage(message)"></div></article></template>
+                <template x-for="message in messages" :key="message._key"><article class="message" :class="message.role" x-show="messageVisible(message)"><div class="message-label" x-text="message.role === 'assistant' ? agentName(activeChat.agent_id) : message.role"></div><div class="message-body" x-html="renderMessage(message)"></div></article></template>
               </div>
               <div class="composer"><textarea id="conversation-message" name="message" class="textarea textarea-bordered" x-model="draft" @keydown.enter.meta.prevent="sendMessage()" :disabled="loading" placeholder="Message this agent…"></textarea><button class="icon-send conversation-send" @click="loading ? abort() : sendMessage()" :class="{abort: loading}" :disabled="!loading && !draft.trim()" :title="loading ? 'Abort' : 'Send'" :aria-label="loading ? 'Abort' : 'Send'"><span x-text="loading ? '×' : '↗'"></span></button></div>
             </div>

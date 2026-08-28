@@ -36,6 +36,7 @@ class Settings:
     pi_default_extensions: tuple[str, ...]
     pi_default_skills: tuple[str, ...]
     pi_default_mcp_servers: tuple[str, ...]
+    mode: str
 
 
 def get_settings() -> Settings:
@@ -45,6 +46,9 @@ def get_settings() -> Settings:
         return os.environ.get(name, dotenv.get(name, default))
 
     data_dir = Path(value("PI_PLATFORM_DATA_DIR", "data") or "data")
+    mode = (value("PI_MODE", "production") or "production").lower()
+    if mode not in {"development", "production"}:
+        mode = "production"
     return Settings(
         data_dir=data_dir,
         pi_cli_path=value("PI_CLI_PATH", "pi") or "pi",
@@ -58,4 +62,5 @@ def get_settings() -> Settings:
         pi_default_extensions=_csv(value("PI_DEFAULT_EXTENSIONS")),
         pi_default_skills=_csv(value("PI_DEFAULT_SKILLS")),
         pi_default_mcp_servers=_csv(value("PI_DEFAULT_MCP_SERVERS")),
+        mode=mode,
     )

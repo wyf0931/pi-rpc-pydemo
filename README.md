@@ -117,6 +117,7 @@ PI_SESSION_DIR=data/pi-sessions
 PI_CWD=/absolute/path/to/a-safe-workspace
 PI_HOME=~/.pi/agent
 PI_PROVIDER=deepseek
+PI_MODE=production
 ```
 
 `PI_CWD` is Pi's working directory. It is **not** a filesystem security boundary: Pi can access anything available to the operating-system user when tools such as `bash` are enabled.
@@ -126,6 +127,8 @@ PI_PROVIDER=deepseek
 Provider and model options are discovered from `~/.pi/agent/models.json`. An Agent can override the global `PI_PROVIDER` and `PI_MODEL` defaults. The platform validates that the selected model belongs to the selected provider before starting Pi.
 
 The Agent dialog presents a Provider select and a filtered Model select. Only names are shown in the UI; the stable Provider and Model IDs are retained in Agent metadata and passed to Pi as `--provider` and `--model`.
+
+`PI_MODE=production` applies the quiet conversation view, retaining only `read`, `write`, `edit`, and collapsed `Thinking` calls. For temporary diagnostics, append `?mode=development` to a chat URL; the URL value takes precedence over the environment setting.
 
 ### Extensions, skills, and MCP
 
