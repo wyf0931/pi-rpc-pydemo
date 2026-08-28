@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css" />
@@ -53,6 +54,7 @@
           </template>
           <template x-if="activeChat">
             <div class="conversation">
+              <div class="conversation-toolbar"><button type="button" class="icon-btn files-toggle" @click="toggleFiles()" title="Generated files" aria-label="Generated files">▤</button></div>
               <div class="message-list" x-ref="messages"><template x-if="messagesLoading"><div class="loading-skeleton"><span></span><span></span><span></span></div></template>
                 <template x-for="message in messages" :key="message._key"><article class="message" :class="message.role" x-show="messageVisible(message)"><div class="message-label" x-text="message.role === 'assistant' ? agentName(activeChat.agent_id) : message.role"></div><div class="message-body" x-html="renderMessage(message)"></div></article></template>
               </div>
@@ -61,11 +63,17 @@
           </template>
         </section>
 
+        <section class="content-panel file-view-page" x-show="page === 'file'" x-cloak>
+          <template x-if="fileViewer"><div class="file-view-header"><span class="file-view-path" x-text="fileViewer.path"></span><span class="file-view-chat" x-text="fileViewer.chatId"></span></div></template>
+          <template x-if="fileViewer"><article class="file-markdown markdown-part" x-html="renderMarkdown(fileViewer.content)"></article></template>
+        </section>
+
         <section class="content-panel agents-page" x-show="page === 'agents'" x-cloak>
           <div class="page-heading"><div><h1>Agents</h1><p>Define the minds available to your conversations.</p></div><button class="send-btn" @click="newAgent()">+ New</button></div>
           <div class="agent-grid"><template x-for="agent in agents" :key="agent.id"><div class="agent-card" role="button" tabindex="0" @click="dialog = agent" @keydown.enter="dialog = agent"><div class="card-top"><span class="agent-mark large" x-text="initials(agent.name)"></span><span class="card-status"><span class="status-dot"></span> ready</span></div><h3 x-text="agent.name"></h3><p class="agent-instruction" x-text="agent.instruction"></p><div class="card-bottom"><span class="agent-id" x-text="agent.id.slice(0, 8)"></span><span x-text="chatCount(agent.id) + ' chats' "></span></div><button type="button" class="trash-btn" x-show="!agent.protected" @click.stop="deleteAgent(agent)" title="Delete agent" aria-label="Delete agent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div></template></div>
         </section>
       </main>
+      <aside class="files-drawer" x-show="filesOpen" x-cloak x-transition aria-label="Generated files"><div class="files-drawer-header"><div><h2>Generated files</h2><p x-text="files.length + ' file' + (files.length === 1 ? '' : 's')"></p></div><button type="button" class="icon-btn" @click="filesOpen = false" aria-label="Close files">×</button></div><div class="files-drawer-body"><template x-if="filesLoading"><div class="files-empty"><span class="loading loading-dots loading-sm"></span></div></template><template x-if="!filesLoading && files.length === 0"><div class="files-empty">No generated files</div></template><template x-for="file in files" :key="file.id"><button type="button" class="file-card" @click="openFile(file)"><span class="file-type" x-text="file.extension || 'file'"></span><span class="file-card-copy"><b x-text="file.name"></b><small x-text="file.path"></small><small x-text="formatDate(file.generated_at) + ' · ' + formatBytes(file.size)"></small></span><span class="file-open">↗</span></button></template></div></aside>
     </div>
 
     <dialog class="agent-dialog" :open="!!dialog" x-show="dialog" x-cloak @click.self="dialog = null">
