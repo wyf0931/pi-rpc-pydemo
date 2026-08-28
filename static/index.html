@@ -13,7 +13,7 @@
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css" />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260909" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260910" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null">
     <div class="app-shell" :class="{'sidebar-collapsed': sidebarCollapsed}">
@@ -21,12 +21,12 @@
         <aside class="history-panel">
           <div class="sidebar-top"><a class="brand" href="#" @click.prevent="brandClick()"><img src="/static/oma-logo-light.png" alt="OhMyAgent logo" /><span>OMA studio</span></a><div class="sidebar-tools"><button type="button" class="sidebar-tool" @click="sidebarCollapsed = !sidebarCollapsed" :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'" :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"><span x-text="sidebarCollapsed ? '›' : '‹'"></span></button></div></div>
           <nav class="sidebar-menu" aria-label="Workspace navigation">
-            <button class="new-chat menu-item primary-menu" :class="{active: page === 'chat' && !activeChat}" @click="newChat()"><span class="menu-icon">＋</span><span class="menu-label">New chat</span></button>
-            <button class="menu-item" :class="{active: page === 'agents'}" @click="go('agents')"><span class="menu-icon">◎</span><span class="menu-label">Agents</span></button>
-            <button class="menu-item" @click="comingSoon('Autopilots')"><span class="menu-icon">↻</span><span class="menu-label">Autopilots</span></button>
-            <button class="menu-item" @click="comingSoon('Projects')"><span class="menu-icon">□</span><span class="menu-label">Projects</span></button>
-            <button class="menu-item" @click="comingSoon('Market')"><span class="menu-icon">◇</span><span class="menu-label">Market</span></button>
-            <button class="menu-item" :class="{active: page === 'library'}" @click="go('library')"><span class="menu-icon">▤</span><span class="menu-label">Library</span></button>
+            <button class="new-chat menu-item primary-menu" :class="{active: page === 'chat' && !activeChat}" @click="newChat()"><span class="menu-icon"><svg class="menu-svg" viewBox="0 0 42 42" aria-hidden="true"><path d="M6.5625 7H30.625V9.40625H7.65625V32.5938H32.5938V21H35V33.6875C35 34.4124 34.4124 35 33.6875 35H6.5625C5.83763 35 5.25 34.4124 5.25 33.6875V8.3125C5.25 7.58763 5.83763 7 6.5625 7Z"></path><path d="M36.187 8.438L37.8885 10.1395L21.778 26.25H20.125V24.5L36.187 8.438Z"></path></svg></span><span class="menu-label">New chat</span></button>
+            <button class="menu-item" :class="{active: page === 'agents'}" @click="go('agents')"><span class="menu-icon"><svg class="menu-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></span><span class="menu-label">Agents</span></button>
+            <button class="menu-item" @click="comingSoon('Autopilots')"><span class="menu-icon"><svg class="menu-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2"></path><path d="M5 3 2 6"></path><path d="m22 6-3-3"></path><path d="M6.38 18.7 4 21"></path><path d="M17.64 18.67 20 21"></path></svg></span><span class="menu-label">Autopilots</span></button>
+            <button class="menu-item" @click="comingSoon('Projects')"><span class="menu-icon"><svg class="menu-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v8A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z"></path><path d="M3 9h18"></path></svg></span><span class="menu-label">Projects</span></button>
+            <button class="menu-item" @click="comingSoon('Market')"><span class="menu-icon"><svg class="menu-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"></path><path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 1-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"></path><path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"></path></svg></span><span class="menu-label">Market</span></button>
+            <button class="menu-item" :class="{active: page === 'library'}" @click="go('library')"><span class="menu-icon"><svg class="menu-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"></path><path d="M4 5v14a2 2 0 0 0 2 2"></path><path d="M8 7h7M8 11h7M8 15h5"></path></svg></span><span class="menu-label">Library</span></button>
           </nav>
           <div class="history-area"><div class="sidebar-section-heading"><span>Chat history</span><div class="history-actions"><button type="button" class="sidebar-tool expanded-search" @click="showError(new Error('Search is reserved for the next iteration.'))" title="Search chats" aria-label="Search chats">⌕</button><button class="icon-btn" @click="newChat()" title="New chat">+</button></div></div>
           <template x-if="chats.length === 0"><div class="empty-history">Your conversations<br>will appear here.</div></template>
