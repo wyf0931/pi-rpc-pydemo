@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import sys
 import tempfile
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -56,10 +57,14 @@ class PiRpcClient:
         return await self.request("get_state")
 
     async def _drain_stderr(self) -> None:
+        """Forward Pi stderr to the process log instead of discarding it."""
         if not self.process or not self.process.stderr:
             return
-        while await self.process.stderr.readline():
-            pass
+        while True:
+            raw = await self.process.stderr.readline()
+            if not raw:
+                break
+            print(f"[pi rpc] {raw.decode(errors='replace').rstrip()}", file=sys.stderr, flush=True)
 
     async def _read_stdout(self) -> None:
         assert self.process and self.process.stdout

@@ -108,7 +108,7 @@ docker compose up --build
 | Mount | Container path | Purpose |
 | --- | --- | --- |
 | `./data` | `/app/data` | Platform metadata + Pi session transcripts |
-| `${PI_CWD:-./workspace}` | `/workspace` | Agent working directory |
+| `${PI_CWD:-/workspace}` host mount of `~/.oma-studio/workspace` | `/workspace` | Agent working directory |
 | `~/.pi/agent` | `/home/node/.pi/agent` | Extensions, skills, MCP config, model catalog, provider auth |
 
 Compose reads `.env` for `PI_PROVIDER`, `PI_MODEL`, the resource defaults, and the
@@ -144,9 +144,9 @@ Create `.env` from the example and adjust paths for your machine:
 
 ```dotenv
 PI_CLI_PATH=pi
-PI_PLATFORM_DATA_DIR=data
-PI_SESSION_DIR=data/pi-sessions
-PI_CWD=/absolute/path/to/a-safe-workspace
+PI_PLATFORM_DATA_DIR=/absolute/path/to/.oma-studio/data
+PI_SESSION_DIR=/absolute/path/to/.oma-studio/data/pi-sessions
+PI_CWD=/absolute/path/to/.oma-studio/workspace
 PI_HOME=~/.pi/agent
 PI_PROVIDER=deepseek
 PI_MODE=production
@@ -204,8 +204,9 @@ If the `pi-mcp-adapter` extension is selected, its `mcp` and `mcpScript` tools a
 
 | Data | Owner | Default location |
 | --- | --- | --- |
-| Agent definitions and chat metadata | OMA Studio / TinyDB | `data/platform.json` |
-| Pi session transcripts | Pi | `data/pi-sessions` |
+| Agent definitions and chat metadata | OMA Studio / TinyDB | `~/.oma-studio/data/platform.json` |
+| Pi session transcripts | Pi | `~/.oma-studio/data/pi-sessions` |
+| Agent working directory | Pi / platform | `~/.oma-studio/workspace` |
 | Pi configuration, extensions, skills, models | Pi | `~/.pi/agent` |
 
 TinyDB records chat identity, title, Agent binding, timestamps, and status only. It is intentionally not a second message store.

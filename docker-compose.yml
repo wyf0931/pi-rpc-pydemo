@@ -33,10 +33,12 @@ services:
       PI_SESSION_DIR: /app/data/pi-sessions
       PI_CWD: /workspace
     volumes:
-      # Platform metadata + Pi session transcripts (host-persistent).
-      - ./data:/app/data
-      # Agent working directory. Reuses PI_CWD from .env when set.
-      - ${PI_CWD:-./workspace}:/workspace
+      # Normalized storage home, decoupled from any repo. Platform metadata
+      # and Pi session transcripts. Must match PI_PLATFORM_DATA_DIR/PI_SESSION_DIR
+      # in .env for local runs so both modes share one storage location.
+      - ~/.oma-studio/data:/app/data
+      # Agent working directory (PI_CWD for local runs).
+      - ~/.oma-studio/workspace:/workspace
       # Pi home: extensions, skills, mcp.json, models.json, provider auth.
       - ~/.pi/agent:/home/node/.pi/agent
     healthcheck:
