@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from app.files import discover_chat_files, resolve_chat_file
+from app.files import delete_chat_files, discover_chat_files, resolve_chat_file
 
 
 def test_discovers_only_workspace_files_written_by_chat(tmp_path: Path):
@@ -23,3 +23,4 @@ def test_discovers_only_workspace_files_written_by_chat(tmp_path: Path):
     assert [item["path"] for item in files] == ["research/report.md"]
     assert resolve_chat_file(messages, tmp_path, "research/report.md") == report.resolve()
     assert resolve_chat_file(messages, tmp_path, "../outside.md") is None
+    assert delete_chat_files(messages, tmp_path, {"research/report.md"}) == []

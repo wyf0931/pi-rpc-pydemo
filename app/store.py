@@ -103,3 +103,6 @@ class Store:
         if self.chats.update(values, Query().id == chat_id):
             return self.get_chat(chat_id)
         return None
+
+    def delete_chat(self, chat_id: str) -> bool:
+        return bool(self.chats.remove(Query().id == chat_id))

@@ -13,7 +13,7 @@
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css" />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260910" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260911" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null">
     <div class="app-shell" :class="{'sidebar-collapsed': sidebarCollapsed}">
@@ -32,10 +32,11 @@
           <template x-if="chats.length === 0"><div class="empty-history">Your conversations<br>will appear here.</div></template>
           <div class="history-list">
             <template x-for="chat in chats" :key="chat.id">
-              <button class="history-item" :class="{selected: activeChat?.id === chat.id}" @click="openChat(chat)">
+              <div class="history-item" :class="{selected: activeChat?.id === chat.id}" @click="openChat(chat)" @keydown.enter="openChat(chat)" tabindex="0" role="button">
                 <span class="history-title" x-text="chat.title"></span>
                 <span class="history-meta"><span x-text="agentName(chat.agent_id)"></span><span x-text="relativeTime(chat.last_activity_at)"></span></span>
-              </button>
+                <button type="button" class="history-trash" @click.stop="deleteChat(chat)" title="Delete chat" aria-label="Delete chat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
+              </div>
             </template>
           </div></div>
           <div class="sidebar-footer"><label class="swap swap-rotate theme-toggle" title="Toggle theme"><input type="checkbox" class="theme-controller" :checked="theme === 'dark'" @change="toggleTheme()" aria-label="Toggle dark mode" /><svg class="swap-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2m0 14v2M5.64 5.64l1.42 1.42m9.9 9.9 1.4 1.4M3 12h2m14 0h2M5.64 18.36l1.42-1.42m9.9-9.9 1.4-1.4M17.5 12a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0Z"/></svg><svg class="swap-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15.2A8.5 8.5 0 0 1 8.8 3 8.5 8.5 0 1 0 21 15.2Z"/></svg></label><div class="sandbox-status"><span class="status-dot"></span><span>connected</span></div></div>
@@ -47,7 +48,7 @@
               <h1>Stay hungry. Stay foolish.</h1>
               <div class="start-grid">
                 <div class="start-card">
-                  <textarea id="new-chat-message" name="message" class="textarea textarea-bordered start-input" x-model="draft" @keydown.enter.meta.prevent="sendFirst()" placeholder="What would you like to explore?"></textarea>
+                  <textarea id="new-chat-message" name="message" rows="3" class="textarea textarea-bordered start-input" x-model="draft" @input="resizeStartInput($event)" @keydown.enter.meta.prevent="sendFirst()" placeholder="What would you like to explore?"></textarea>
                   <div class="start-composer-foot"><div class="agent-picker" @click.outside="agentPickerOpen = false"><button type="button" class="agent-picker-button" @click="agentPickerOpen = !agentPickerOpen" aria-haspopup="listbox" :aria-expanded="agentPickerOpen"><span class="agent-avatar" x-text="initials(agentName(selectedAgentId))"></span><span x-text="agentName(selectedAgentId)"></span><span class="picker-chevron">⌄</span></button><div class="agent-picker-menu" x-show="agentPickerOpen" x-cloak role="listbox"><template x-for="agent in agents" :key="agent.id"><button type="button" role="option" class="agent-picker-option" :aria-selected="selectedAgentId === agent.id" @click="chooseAgent(agent.id)"><span class="agent-avatar" x-text="initials(agent.name)"></span><span><b x-text="agent.name"></b><small x-text="agent.instruction"></small></span></button></template></div></div><button class="icon-send" @click="sendFirst()" :disabled="!draft.trim() || !selectedAgentId || loading" title="Start chat" aria-label="Start chat">↗</button></div>
                 </div>
               </div>
@@ -87,6 +88,9 @@
     <dialog class="agent-dialog" :open="!!dialog" x-show="dialog" x-cloak @click.self="dialog = null">
       <template x-if="dialog"><div class="dialog-box"><div class="dialog-head"><div><div class="eyebrow">Agent details</div><h2 x-text="dialog.name"></h2></div><button class="icon-btn" @click="dialog = null">×</button></div><div class="detail-group"><div class="detail-heading">Basics</div><div class="detail-row"><span>Name</span><b x-text="dialog.name"></b></div><div class="detail-row instruction-detail"><span>Instruction</span><b class="detail-instruction" x-text="dialog.instruction" :title="dialog.instruction"></b></div><div class="detail-row"><span>Provider</span><b x-text="providerName(dialog.provider) || 'Pi default'"></b></div><div class="detail-row"><span>Model</span><b x-text="modelName(dialog.provider, dialog.model) || 'Pi default'" class="mono"></b></div><div class="detail-row"><span>Created</span><b x-text="formatDate(dialog.created_at)"></b></div></div><div class="detail-group"><div class="detail-heading">Extensions</div><div class="reserved-grid"><div><span>Extensions</span><b x-text="resourceNames(dialog.extensions, 'extensions')"></b></div><div><span>Skills</span><b x-text="resourceNames(dialog.skills, 'skills')"></b></div><div><span>Tools</span><b x-text="dialog.tools?.length ? dialog.tools.join(', ') : 'Disabled'"></b></div><div><span>MCP servers</span><b>Not configured</b></div></div></div><div class="dialog-actions"><button class="btn btn-sm btn-ghost" @click="dialog = null">Close</button><button class="btn btn-sm btn-primary" @click="editAgent(dialog)">Edit</button></div></div></template>
     </dialog>
+    <dialog class="modal" :open="!!deleteChatTarget" x-show="deleteChatTarget" x-cloak @click.self="deleteChatTarget = null">
+      <div class="modal-box confirm-box"><div class="dialog-head"><div><div class="eyebrow">Delete chat</div><h2>Remove conversation?</h2></div><button class="icon-btn" @click="deleteChatTarget = null" aria-label="Close">×</button></div><p class="confirm-copy">This removes the Pi session and files generated by this chat. The Agent definition will remain.</p><div class="dialog-actions"><button type="button" class="btn btn-sm btn-ghost" @click="deleteChatTarget = null">Cancel</button><button type="button" class="btn btn-sm btn-error" @click="confirmDeleteChat()">Delete</button></div></div>
+    </dialog>
     <dialog class="modal" :open="!!confirmTarget" x-show="confirmTarget" x-cloak @click.self="confirmTarget = null">
       <div class="modal-box confirm-box"><div class="dialog-head"><div><div class="eyebrow">Delete agent</div><h2>Remove <span x-text="confirmTarget?.name"></span>?</h2></div><button class="icon-btn" @click="confirmTarget = null" aria-label="Close">×</button></div><p class="confirm-copy">This agent definition will be removed. Existing chat sessions and their Pi history will remain available.</p><div class="dialog-actions"><button type="button" class="btn btn-ghost" @click="confirmTarget = null">Cancel</button><button type="button" class="btn btn-error" @click="confirmDelete()">Delete agent</button></div></div>
     </dialog>
@@ -95,6 +99,6 @@
     </dialog>
     <div class="toast" x-show="error" x-text="error" x-cloak></div>
 
-    <script src="/static/app.js?v=20260908"></script>
+    <script src="/static/app.js?v=20260911"></script>
   </body>
 </html>

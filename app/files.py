@@ -64,3 +64,22 @@ def resolve_chat_file(messages: list[dict], workspace: Path, relative_path: str)
     if not resolved.is_file() or resolved.stat().st_size > MAX_VIEW_BYTES:
         return None
     return resolved
+
+
+def delete_chat_files(messages: list[dict], workspace: Path, protected_paths: set[str] | None = None) -> list[str]:
+    deleted: list[str] = []
+    protected_paths = protected_paths or set()
+    for item in discover_chat_files(messages, workspace):
+        if item["path"] in protected_paths:
+            continue
+        file_path = (workspace.expanduser().resolve() / item["path"]).resolve()
+        try:
+            file_path.relative_to(workspace.expanduser().resolve())
+        except ValueError:
+            continue
+        try:
+            file_path.unlink()
+            deleted.append(item["path"])
+        except OSError:
+            continue
+    return deleted

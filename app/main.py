@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .config import get_settings
-from .files import discover_chat_files, resolve_chat_file
+from .files import delete_chat_files, discover_chat_files, resolve_chat_file
 from .pi_rpc import PiRpcError, PiRuntimeManager
 from .resources import discover_resources
 from .store import BUILTIN_TOOLS, Store
@@ -195,6 +195,40 @@ async def get_chat(chat_id: str):
     if not chat:
         raise HTTPException(404, "Chat not found")
     return chat
+
+
+@app.delete("/api/chats/{chat_id}")
+async def delete_chat(chat_id: str):
+    chat = store.get_chat(chat_id)
+    if not chat:
+        raise HTTPException(404, "Chat not found")
+    await runtime.close_chat(chat_id)
+    messages: list[dict] = []
+    try:
+        messages = await runtime.messages(chat)
+    except PiRpcError:
+        pass
+    protected_paths: set[str] = set()
+    for other_chat in store.list_chats():
+        if other_chat["id"] == chat_id:
+            continue
+        try:
+            other_messages = await runtime.messages(other_chat)
+        except PiRpcError:
+            continue
+        protected_paths.update(item["path"] for item in discover_chat_files(other_messages, settings.pi_cwd))
+    deleted_files = delete_chat_files(messages, settings.pi_cwd, protected_paths)
+    deleted_sessions = []
+    session_id = chat.get("session_id") or chat_id
+    for session_path in settings.pi_session_dir.iterdir():
+        if session_path.is_file() and session_path.name.endswith(f"_{session_id}.jsonl"):
+            try:
+                session_path.unlink()
+                deleted_sessions.append(session_path.name)
+            except OSError:
+                continue
+    store.delete_chat(chat_id)
+    return {"ok": True, "deleted_files": deleted_files, "deleted_sessions": deleted_sessions}
 
 
 @app.get("/api/chats/{chat_id}/messages")

@@ -266,5 +266,11 @@ class PiRuntimeManager:
             await client.abort()
             self.store.update_chat(chat_id, {"status": "stopped"})
 
+    async def close_chat(self, chat_id: str) -> None:
+        client = self.clients.get(chat_id)
+        if client:
+            await client.close()
+            self.clients.pop(chat_id, None)
+
     async def close(self) -> None:
         await asyncio.gather(*(self._close_client(chat_id) for chat_id in list(self.clients)), return_exceptions=True)
