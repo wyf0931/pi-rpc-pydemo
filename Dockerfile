@@ -31,6 +31,7 @@ ARG UV_PROXY=""
 RUN UV_PYTHON=/usr/bin/python3 sh -c '[ -z "$UV_PROXY" ] || export HTTPS_PROXY="$UV_PROXY" HTTP_PROXY="$UV_PROXY"; exec uv sync --frozen --no-dev'
 
 COPY app ./app
+COPY extensions ./extensions
 COPY static ./static
 
 # Non-root: keeps bind-mounted file ownership predictable
