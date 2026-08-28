@@ -36,3 +36,13 @@ def test_chat_index_does_not_store_messages(tmp_path: Path):
     assert chat["session_id"] == "session-1"
     assert "messages" not in chat
     assert "session_file" not in chat
+
+
+def test_autopilot_and_run_metadata(tmp_path: Path):
+    store = Store(tmp_path / "db.json")
+    agent = store.ensure_default_agent()
+    autopilot = store.create_autopilot("Daily brief", "Summarize today", agent["id"], "0 9 * * *")
+    assert store.list_autopilots()[0]["name"] == "Daily brief"
+    run = store.create_autopilot_run(autopilot["id"], "chat-1", "session-1")
+    store.update_autopilot_run(run["id"], {"status": "success", "duration_ms": 123})
+    assert store.list_autopilot_runs(autopilot["id"])[0]["status"] == "success"

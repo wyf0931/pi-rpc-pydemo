@@ -21,6 +21,8 @@ class Store:
         self.db = TinyDB(path)
         self.agents = self.db.table("agents")
         self.chats = self.db.table("chats")
+        self.autopilots = self.db.table("autopilots")
+        self.autopilot_runs = self.db.table("autopilot_runs")
 
     def ensure_default_agent(self, default_tools: list[str] | None = None) -> dict:
         agent = self.agents.get(Query().id == "default-assistant")
@@ -140,3 +142,47 @@ class Store:
 
     def delete_chat(self, chat_id: str) -> bool:
         return bool(self.chats.remove(Query().id == chat_id))
+
+    def list_autopilots(self) -> list[dict]:
+        return sorted(self.autopilots.all(), key=lambda item: item.get("updated_at", ""), reverse=True)
+
+    def get_autopilot(self, autopilot_id: str) -> dict | None:
+        return self.autopilots.get(Query().id == autopilot_id)
+
+    def create_autopilot(self, name: str, instruction: str, agent_id: str, cron: str,
+                         starts_at: str | None = None, ends_at: str | None = None) -> dict:
+        timestamp = now_iso()
+        item = {
+            "id": str(uuid4()), "name": name.strip(), "instruction": instruction.strip(),
+            "agent_id": agent_id, "cron": cron.strip(), "enabled": False,
+            "starts_at": starts_at, "ends_at": ends_at,
+            "created_at": timestamp, "updated_at": timestamp, "last_run_at": None,
+        }
+        self.autopilots.insert(item)
+        return item
+
+    def update_autopilot(self, autopilot_id: str, values: dict) -> dict | None:
+        values = {**values, "updated_at": now_iso()}
+        if self.autopilots.update(values, Query().id == autopilot_id):
+            return self.get_autopilot(autopilot_id)
+        return None
+
+    def delete_autopilot(self, autopilot_id: str) -> bool:
+        return bool(self.autopilots.remove(Query().id == autopilot_id))
+
+    def create_autopilot_run(self, autopilot_id: str, chat_id: str, session_id: str) -> dict:
+        item = {"id": str(uuid4()), "autopilot_id": autopilot_id, "chat_id": chat_id,
+                "session_id": session_id, "status": "running", "started_at": now_iso(),
+                "finished_at": None, "duration_ms": None, "error": None}
+        self.autopilot_runs.insert(item)
+        return item
+
+    def update_autopilot_run(self, run_id: str, values: dict) -> dict | None:
+        if self.autopilot_runs.update(values, Query().id == run_id):
+            return self.autopilot_runs.get(Query().id == run_id)
+        return None
+
+    def list_autopilot_runs(self, autopilot_id: str) -> list[dict]:
+        return sorted((item for item in self.autopilot_runs.all()
+                       if item.get("autopilot_id") == autopilot_id),
+                      key=lambda item: item.get("started_at", ""), reverse=True)
