@@ -31,7 +31,7 @@ Agents are reusable definitions. The card list is intentionally separate from th
 - Markdown rendering for assistant messages, code blocks, tables, lists, thinking, tool calls, and collapsible tool results.
 - Agent definitions with instruction, Provider, Model, built-in tool allowlist, extensions, skills, and MCP servers.
 - Read-only discovery of Pi resources from the configured Pi home directory.
-- Multiple DaisyUI-compatible themes: Light, Cupcake, Lemonade, and Dark.
+- Light and Dark themes with a DaisyUI `swap swap-rotate` control.
 - A small operational CLI: `bin/ops.sh start|stop|restart|status`.
 
 ## Design principles
