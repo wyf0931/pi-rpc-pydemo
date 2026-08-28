@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260904" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260905" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null">
     <div class="app-shell" :class="{'sidebar-collapsed': sidebarCollapsed}">
@@ -36,7 +36,7 @@
               </button>
             </template>
           </div></div>
-          <div class="sidebar-footer"><label class="theme-picker"><span>Theme</span><select id="theme-select" name="theme" class="select select-bordered" x-model="theme" @change="setTheme(theme)" aria-label="Choose theme"><option value="light">Light</option><option value="cupcake">Cupcake</option><option value="lemonade">Lemonade</option><option value="dark">Dark</option></select></label><div class="sandbox-status"><span class="status-dot"></span><span>connected</span></div></div>
+          <div class="sidebar-footer"><label class="swap swap-rotate theme-toggle" title="Toggle theme"><input type="checkbox" class="theme-controller" :checked="theme === 'dark'" @change="toggleTheme()" aria-label="Toggle dark mode" /><svg class="swap-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2m0 14v2M5.64 5.64l1.42 1.42m9.9 9.9 1.4 1.4M3 12h2m14 0h2M5.64 18.36l1.42-1.42m9.9-9.9 1.4-1.4M17.5 12a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0Z"/></svg><svg class="swap-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15.2A8.5 8.5 0 0 1 8.8 3 8.5 8.5 0 1 0 21 15.2Z"/></svg></label><div class="sandbox-status"><span class="status-dot"></span><span>connected</span></div></div>
         </aside>
 
         <section class="content-panel" x-show="page === 'chat'" x-cloak>
