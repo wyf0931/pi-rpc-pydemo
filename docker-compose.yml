@@ -1,0 +1,52 @@
+# yaml-language-server: $schema=./schemas/compose-spec.json
+---
+# One command: docker compose up --build
+#
+# Layered layout (simple-architecture principle):
+#   app layer     -> image (Python + FastAPI + static UI)
+#   process layer -> image (pi CLI + rg/fd/git), spawned as subprocesses
+#                    by the app layer — one pi process per chat operation,
+#                    possibly many concurrently
+#   state         -> host bind mounts only; nothing baked into the image
+#
+# `init: true` is required: the app is PID 1 and spawns/exits many pi
+# subprocesses; tini reaps them. `stop_grace_period` gives active pi
+# processes time to shut down on container stop.
+
+services:
+  oma-studio:
+    build: .
+    image: oma-studio:latest
+    container_name: oma-studio
+    init: true
+    stop_grace_period: 20s
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Container-internal paths always override host .env values.
+      PI_CLI_PATH: pi
+      PI_HOME: /home/node/.pi/agent
+      PI_PLATFORM_DATA_DIR: /app/data
+      PI_SESSION_DIR: /app/data/pi-sessions
+      PI_CWD: /workspace
+    volumes:
+      # Platform metadata + Pi session transcripts (host-persistent).
+      - ./data:/app/data
+      # Agent working directory. Reuses PI_CWD from .env when set.
+      - ${PI_CWD:-./workspace}:/workspace
+      # Pi home: extensions, skills, mcp.json, models.json, provider auth.
+      - ~/.pi/agent:/home/node/.pi/agent
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - |-
+          python3 -c "import urllib.request as u; u.urlopen(
+          'http://127.0.0.1:8000/api/health', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped

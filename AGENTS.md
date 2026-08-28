@@ -30,10 +30,13 @@ cp .env.example .env      # then set PI_CWD to an absolute workspace path
 uv sync                   # Python deps (also creates .venv)
 pi --version              # Pi CLI must be on PATH, with a provider credential configured
 
-# Run
+# Run (host)
 bin/ops.sh start          # background dev server (uvicorn --reload), logs in .run/uvicorn.log
 bin/ops.sh status|restart|stop
 # or foreground: uv run uvicorn app.main:app --env-file .env --reload
+
+# Run (Docker — app layer + process layer in one container, state via bind mounts)
+docker compose up --build
 
 # Test (run before declaring any work done)
 uv run pytest -q
@@ -57,6 +60,9 @@ static/         index.html, app.js (one Alpine component), styles.css, typograph
 frontend/       input.css — Tailwind source for static/typography.css
 tests/          Mirrors app modules; conftest provides `client` and `temporary_agent` fixtures
 bin/ops.sh      Process management (start/stop/restart/status)
+Dockerfile      Single image: app layer (Python/FastAPI) + process layer (pi, rg, fd, git)
+docker-compose.yml  One-command run; bind mounts for data, workspace, and Pi home
+schemas/        Vendored compose-spec JSON schema for offline YAML validation
 docs/           Design spec (docs/superpowers/specs/) + README screenshots
 data/           Gitignored runtime data: platform.json, pi-sessions/
 ```

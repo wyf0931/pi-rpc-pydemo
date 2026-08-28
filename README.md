@@ -95,6 +95,36 @@ bin/ops.sh start
 
 Open <http://127.0.0.1:8000>.
 
+### Docker
+
+Run the whole platform in one lightweight container — the app layer (FastAPI + web UI)
+and the process layer (Pi CLI, ripgrep, fd, git) share a single image; all state stays
+on the host through bind mounts:
+
+```bash
+docker compose up --build
+```
+
+| Mount | Container path | Purpose |
+| --- | --- | --- |
+| `./data` | `/app/data` | Platform metadata + Pi session transcripts |
+| `${PI_CWD:-./workspace}` | `/workspace` | Agent working directory |
+| `~/.pi/agent` | `/home/node/.pi/agent` | Extensions, skills, MCP config, model catalog, provider auth |
+
+Compose reads `.env` for `PI_PROVIDER`, `PI_MODEL`, the resource defaults, and the
+workspace path; container-internal paths are fixed in `docker-compose.yml` and always
+override `.env` values. No reverse proxy or extra services — FastAPI serves the API and
+UI directly, and `init: true` reaps the short-lived Pi subprocesses the app spawns.
+
+Notes:
+
+- Mounting `~/.pi/agent` exposes provider credentials and executable extensions to the
+  container. Only mount a Pi home you trust.
+- The container is a process boundary, not a security sandbox: the `PI_CWD` caveats from
+  [Security and sandboxing](#security-and-sandboxing) apply unchanged.
+- On Linux hosts where bind-mount ownership matters, add `user: "1000:1000"` (or your
+  UID) to the service in `docker-compose.yml`.
+
 Use the operational helper after the initial setup:
 
 ```bash

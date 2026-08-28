@@ -2,18 +2,15 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
-# pi-lens-ignore: reportMissingImports
-from tinydb import Query, TinyDB
+from tinydb import Query, TinyDB  # pyright: ignore[reportMissingImports]
 
 DEFAULT_TOOLS = ["read", "write", "edit", "bash"]
 BUILTIN_TOOLS = DEFAULT_TOOLS + ["grep", "find", "ls"]
 PLATFORM_TOOLS = ["web_fetch", "web_search"]
 SUPPORTED_TOOLS = BUILTIN_TOOLS + PLATFORM_TOOLS
 
-
 def now_iso() -> str:
     return datetime.now(UTC).isoformat()
-
 
 class Store:
     def __init__(self, path: Path):
