@@ -273,9 +273,7 @@ async def create_chat(payload: ChatCreate):
         raise HTTPException(404, "Agent not found")
     # Pi accepts an externally supplied session id. The platform chat id is a UUID
     # and is therefore also a valid Pi session id.
-    chat = store.create_chat(payload.agent_id, "pending", status="created")
-    store.update_chat(chat["id"], {"session_id": chat["id"], "status": "created"})
-    return store.get_chat(chat["id"]) or chat
+    return store.create_chat(payload.agent_id, status="created")
 
 
 @app.get("/api/chats/{chat_id}")

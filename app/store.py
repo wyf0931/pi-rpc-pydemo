@@ -116,12 +116,13 @@ class Store:
         return self.chats.get(Query().id == chat_id)
 
     def create_chat(
-        self, agent_id: str, session_id: str, status: str = "starting"
+        self, agent_id: str, session_id: str | None = None, status: str = "starting"
     ) -> dict:
         timestamp = now_iso()
+        chat_id = str(uuid4())
         item = {
-            "id": str(uuid4()),
-            "session_id": session_id,
+            "id": chat_id,
+            "session_id": session_id or chat_id,
             "agent_id": agent_id,
             "title": "New conversation",
             "status": status,
@@ -134,11 +135,8 @@ class Store:
 
     def create_autopilot_chat(self, agent_id: str, title: str) -> dict:
         """Create a fresh chat whose Pi session ID is unique to this run."""
-        chat = self.create_chat(agent_id, "", status="starting")
-        return self.update_chat(chat["id"], {
-            "session_id": chat["id"],
-            "title": title,
-        }) or chat
+        chat = self.create_chat(agent_id, status="starting")
+        return self.update_chat(chat["id"], {"title": title}) or chat
 
     def update_chat(self, chat_id: str, values: dict) -> dict | None:
         values = {**values, "updated_at": now_iso()}

@@ -48,6 +48,14 @@ def test_autopilot_chats_always_get_fresh_session_ids(tmp_path: Path):
     assert second["session_id"] == second["id"]
 
 
+def test_new_chat_defaults_to_its_own_session_id(tmp_path: Path):
+    store = Store(tmp_path / "db.json")
+    agent = store.ensure_default_agent()
+    chat = store.create_chat(agent["id"], status="created")
+    assert chat["session_id"] == chat["id"]
+    assert chat["session_id"] != "pending"
+
+
 def test_autopilot_and_run_metadata(tmp_path: Path):
     store = Store(tmp_path / "db.json")
     agent = store.ensure_default_agent()
