@@ -110,14 +110,15 @@ docker compose up --build
 
 | Mount | Container path | Purpose |
 | --- | --- | --- |
-| `./data` | `/app/data` | Platform metadata + Pi session transcripts |
-| `${PI_CWD:-/workspace}` host mount of `~/.oma-studio/workspace` | `/workspace` | Agent working directory |
+| `${PI_PLATFORM_DATA_DIR:-./data}` | `/app/data` | Platform metadata + Pi session transcripts |
+| `${PI_CWD:-./workspace}` | `/workspace` | Agent working directory |
 | `~/.pi/agent` | `/home/node/.pi/agent` | Extensions, skills, MCP config, model catalog, provider auth |
 
-Compose reads `.env` for `PI_PROVIDER`, `PI_MODEL`, the resource defaults, and the
-workspace path; container-internal paths are fixed in `docker-compose.yml` and always
-override `.env` values. No reverse proxy or extra services — FastAPI serves the API and
-UI directly, and `init: true` reaps the short-lived Pi subprocesses the app spawns. When the
+Compose reads `.env` for `PI_PROVIDER`, `PI_MODEL`, the resource defaults, `PI_PLATFORM_DATA_DIR`,
+and `PI_CWD`; container-internal paths are fixed in `docker-compose.yml`. This means a local
+`.env` with `PI_PLATFORM_DATA_DIR=data` shares the repository's existing metadata and Pi
+sessions with Docker. No reverse proxy or extra services — FastAPI serves the API and UI
+directly, and `init: true` reaps the short-lived Pi subprocesses the app spawns. When the
 host reaches model providers through a VPN/proxy, set `OMA_PROXY` (e.g. with
 Colima: `http://192.168.5.2:7897`) and the container pins its outbound model
 calls to it via Node 24 proxy support.
