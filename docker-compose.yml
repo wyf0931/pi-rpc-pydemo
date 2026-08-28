@@ -17,7 +17,6 @@ services:
   oma-studio:
     build: .
     image: oma-studio:latest
-    container_name: oma-studio
     init: true
     stop_grace_period: 20s
     ports:

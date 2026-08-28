@@ -34,7 +34,7 @@ Agents are reusable definitions. The card list is intentionally separate from th
 - Agent definitions with instruction, Provider, Model, built-in tool allowlist, extensions, skills, and MCP servers.
 - Read-only discovery of Pi resources from the configured Pi home directory.
 - Light and Dark themes with a DaisyUI `swap swap-rotate` control.
-- A small operational CLI: `bin/ops.sh start|stop|restart|status`.
+- A small operational CLI: `bin/ops.sh start|stop|restart|status|logs` (Docker Compose mode).
 
 ## Design principles
 
@@ -89,9 +89,12 @@ The session UUID is deliberately shared between platform metadata and Pi. This a
 
 ```bash
 cp .env.example .env
-uv sync
 bin/ops.sh start
 ```
+
+`ops.sh` runs the platform in Docker Compose (app layer + process layer in one
+container, storage on host mounts — see [Docker](#docker)); no `uv sync` required for
+this path.
 
 Open <http://127.0.0.1:8000>.
 
@@ -258,6 +261,8 @@ See [OpenShell sandbox runner proposal](https://github.com/wyf0931/pi-rpc-pydemo
 
 ## Development
 
+Local development server with hot reload (no Docker):
+
 ```bash
 uv run uvicorn app.main:app --env-file .env --reload
 ```
@@ -278,6 +283,7 @@ bin/ops.sh start
 bin/ops.sh status
 bin/ops.sh restart
 bin/ops.sh stop
+bin/ops.sh logs
 ```
 
 ### Verification

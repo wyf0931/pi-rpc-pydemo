@@ -1,92 +1,81 @@
 #!/usr/bin/env bash
+# OMA Studio operations — Docker Compose mode.
+#   bin/ops.sh start|stop|restart|status|logs
+# The container serves the API and UI on ${OMA_PORT:-8000}; storage lives in
+# ~/.oma-studio/ and ~/.pi/agent via the mounts in docker-compose.yml.
+#
+# Local development with hot reload (no Docker):
+#   uv run uvicorn app.main:app --env-file .env --reload
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-RUN_DIR="$ROOT_DIR/.run"
-PID_FILE="$RUN_DIR/uvicorn.pid"
-LOG_FILE="$RUN_DIR/uvicorn.log"
-ENV_FILE="$ROOT_DIR/.env"
+cd "$ROOT_DIR"
 
-mkdir -p "$RUN_DIR"
-
-if [[ -f "$ENV_FILE" ]]; then
-  set -a
-  # shellcheck disable=SC1090
-  source "$ENV_FILE"
-  set +a
+# Prefer the compose plugin, fall back to the standalone binary.
+if docker compose version >/dev/null 2>&1; then
+  DC=(docker compose)
+else
+  DC=(docker-compose)
 fi
 
-HOST="${PI_PLATFORM_HOST:-127.0.0.1}"
-PORT="${PI_PLATFORM_PORT:-8000}"
-
-read_pid() {
-  [[ -f "$PID_FILE" ]] && tr -d '[:space:]' < "$PID_FILE" || true
-}
-
-is_running() {
-  local pid="$1"
-  [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null
-}
+PORT="${OMA_PORT:-8000}"
+SERVICE="oma-studio"
 
 start() {
-  local pid
-  pid="$(read_pid)"
-  if is_running "$pid"; then
-    echo "pi studio is already running (pid $pid) at http://$HOST:$PORT"
-    return 0
-  fi
-
-  cd "$ROOT_DIR"
-  nohup uv run uvicorn app.main:app --env-file .env --host "$HOST" --port "$PORT" --reload \
-    >> "$LOG_FILE" 2>&1 &
-  echo "$!" > "$PID_FILE"
-  echo "started pi studio (pid $!)"
-  echo "url: http://$HOST:$PORT"
+  "${DC[@]}" up -d --build
+  wait_healthy || true
+  status
 }
 
-stop() {
-  local pid
-  pid="$(read_pid)"
-  if ! is_running "$pid"; then
-    rm -f "$PID_FILE"
-    echo "pi studio is not running"
-    return 0
-  fi
-
-  kill "$pid"
-  for _ in {1..20}; do
-    if ! is_running "$pid"; then
-      rm -f "$PID_FILE"
-      echo "stopped pi studio"
+# Wait for the app to answer /api/health (image build + uvicorn boot take a moment).
+wait_healthy() {
+  local i
+  for i in $(seq 1 15); do
+    if curl --silent --fail --max-time 2 "http://127.0.0.1:${PORT}/api/health" >/dev/null 2>&1; then
       return 0
     fi
-    sleep 0.25
+    sleep 2
   done
-
-  echo "pi studio did not stop within 5 seconds (pid $pid)" >&2
   return 1
 }
 
+stop() {
+  "${DC[@]}" down
+}
+
+restart() {
+  stop || true
+  start
+}
+
 status() {
-  local pid
-  pid="$(read_pid)"
-  if is_running "$pid"; then
-    if curl --silent --show-error --fail --max-time 2 "http://$HOST:$PORT/api/health" >/dev/null; then
-      echo "pi studio is running (pid $pid) and healthy at http://$HOST:$PORT"
+  if "${DC[@]}" ps --status running --services 2>/dev/null | grep -qx "$SERVICE"; then
+    if curl --silent --show-error --fail --max-time 3 "http://127.0.0.1:${PORT}/api/health" >/dev/null; then
+      echo "oma-studio is running (docker) and healthy at http://127.0.0.1:${PORT}"
     else
-      echo "pi studio process is running (pid $pid), health endpoint unavailable"
+      echo "oma-studio container is up but the health endpoint is unreachable on port ${PORT}"
+      echo "check: ${DC[*]} logs ${SERVICE}"
       return 1
     fi
   else
-    echo "pi studio is stopped"
+    echo "oma-studio is stopped"
     return 1
   fi
+}
+
+logs() {
+  "${DC[@]}" logs -f --tail 100 "$SERVICE"
 }
 
 case "${1:-}" in
   start) start ;;
   stop) stop ;;
-  restart) stop || true; start ;;
+  restart) restart ;;
   status) status ;;
-  *) echo "Usage: $0 {start|stop|restart|status}" >&2; exit 2 ;;
+  logs) logs ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|status|logs}" >&2
+    echo "  Local dev server (hot reload): uv run uvicorn app.main:app --env-file .env --reload" >&2
+    exit 2
+    ;;
 esac

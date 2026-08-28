@@ -30,10 +30,12 @@ cp .env.example .env      # then set the three storage paths (see file comments)
 uv sync                   # Python deps (also creates .venv)
 pi --version              # Pi CLI must be on PATH, with a provider credential configured
 
-# Run (host)
-bin/ops.sh start          # background dev server (uvicorn --reload), logs in .run/uvicorn.log
-bin/ops.sh status|restart|stop
-# or foreground: uv run uvicorn app.main:app --env-file .env --reload
+# Run (Docker Compose — app layer + process layer in one container, state via bind mounts)
+bin/ops.sh start          # up -d --build; also: status|stop|restart|logs
+# or foreground: docker compose up --build
+
+# Run (local dev server with hot reload, no Docker)
+uv run uvicorn app.main:app --env-file .env --reload
 
 # Run (Docker — app layer + process layer in one container, state via bind mounts)
 docker compose up --build
@@ -59,7 +61,7 @@ app/
 static/         index.html, app.js (one Alpine component), styles.css, typography.css (generated)
 frontend/       input.css — Tailwind source for static/typography.css
 tests/          Mirrors app modules; conftest provides `client` and `temporary_agent` fixtures
-bin/ops.sh      Process management (start/stop/restart/status)
+bin/ops.sh      Container operations (start/stop/restart/status/logs) via Docker Compose
 Dockerfile      Single image: app layer (Python/FastAPI) + process layer (pi, rg, fd, git)
 docker-compose.yml  One-command run; bind mounts for data, workspace, and Pi home
 schemas/        Vendored compose-spec JSON schema for offline YAML validation
