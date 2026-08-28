@@ -521,8 +521,7 @@ def _autopilot_view(item: dict) -> dict:
 
 
 async def execute_autopilot(autopilot: dict) -> None:
-    chat = store.create_chat(autopilot["agent_id"], "pending", status="starting")
-    chat = store.update_chat(chat["id"], {"session_id": chat["id"], "title": autopilot["name"]}) or chat
+    chat = store.create_autopilot_chat(autopilot["agent_id"], autopilot["name"])
     run = store.create_autopilot_run(autopilot["id"], chat["id"], chat["id"])
     started = time.monotonic()
     prompt = f'{autopilot["instruction"].strip()}\n\nCurrent time: {datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")}'

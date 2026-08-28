@@ -38,6 +38,16 @@ def test_chat_index_does_not_store_messages(tmp_path: Path):
     assert "session_file" not in chat
 
 
+def test_autopilot_chats_always_get_fresh_session_ids(tmp_path: Path):
+    store = Store(tmp_path / "db.json")
+    agent = store.ensure_default_agent()
+    first = store.create_autopilot_chat(agent["id"], "Daily")
+    second = store.create_autopilot_chat(agent["id"], "Daily")
+    assert first["id"] != second["id"]
+    assert first["session_id"] == first["id"]
+    assert second["session_id"] == second["id"]
+
+
 def test_autopilot_and_run_metadata(tmp_path: Path):
     store = Store(tmp_path / "db.json")
     agent = store.ensure_default_agent()

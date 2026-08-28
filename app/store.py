@@ -132,6 +132,14 @@ class Store:
         self.chats.insert(item)
         return item
 
+    def create_autopilot_chat(self, agent_id: str, title: str) -> dict:
+        """Create a fresh chat whose Pi session ID is unique to this run."""
+        chat = self.create_chat(agent_id, "", status="starting")
+        return self.update_chat(chat["id"], {
+            "session_id": chat["id"],
+            "title": title,
+        }) or chat
+
     def update_chat(self, chat_id: str, values: dict) -> dict | None:
         values = {**values, "updated_at": now_iso()}
         if "last_activity_at" not in values:
