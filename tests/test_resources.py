@@ -8,7 +8,7 @@ from app.resources import discover_models
 def test_discovers_pi_model_catalog(tmp_path: Path):
     (tmp_path / "models.json").write_text(json.dumps({"providers": {
         "example": {"name": "Example Provider", "models": [
-            {"id": "example-fast", "name": "Example Fast"},
+            {"id": "example-fast", "name": "Example Fast", "reasoning": True},
             {"id": "example-id-only"},
         ]},
         "empty": {"models": []},
@@ -16,8 +16,8 @@ def test_discovers_pi_model_catalog(tmp_path: Path):
 
     assert discover_models(tmp_path) == [{
         "id": "example", "name": "Example Provider", "models": [
-            {"id": "example-fast", "name": "Example Fast"},
-            {"id": "example-id-only", "name": "example-id-only"},
+            {"id": "example-fast", "name": "Example Fast", "thinking_levels": ["minimal", "low", "medium", "high", "xhigh", "max"]},
+            {"id": "example-id-only", "name": "example-id-only", "thinking_levels": ["off"]},
         ],
     }]
 

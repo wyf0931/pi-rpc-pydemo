@@ -37,6 +37,7 @@ class Settings:
     pi_default_skills: tuple[str, ...]
     pi_default_mcp_servers: tuple[str, ...]
     mode: str
+    pi_thinking_level: str
 
 
 def get_settings() -> Settings:
@@ -49,6 +50,9 @@ def get_settings() -> Settings:
     mode = (value("PI_MODE", "production") or "production").lower()
     if mode not in {"development", "production"}:
         mode = "production"
+    thinking_level = (value("PI_THINKING_LEVEL", "low") or "low").lower()
+    if thinking_level not in {"off", "minimal", "low", "medium", "high", "xhigh", "max"}:
+        thinking_level = "low"
     return Settings(
         data_dir=data_dir,
         pi_cli_path=value("PI_CLI_PATH", "pi") or "pi",
@@ -63,4 +67,5 @@ def get_settings() -> Settings:
         pi_default_skills=_csv(value("PI_DEFAULT_SKILLS")),
         pi_default_mcp_servers=_csv(value("PI_DEFAULT_MCP_SERVERS")),
         mode=mode,
+        pi_thinking_level=thinking_level,
     )

@@ -26,6 +26,7 @@ class AgentCreate(BaseModel):
     instruction: str = Field(min_length=1, max_length=10000)
     provider: str | None = None
     model: str | None = None
+    thinking_level: str | None = None
     tools: list[str] | None = None
     extensions: list[str] | None = None
     skills: list[str] | None = None
@@ -37,6 +38,7 @@ class AgentUpdate(BaseModel):
     instruction: str | None = Field(default=None, min_length=1, max_length=10000)
     provider: str | None = None
     model: str | None = None
+    thinking_level: str | None = None
     tools: list[str] | None = None
     extensions: list[str] | None = None
     skills: list[str] | None = None
@@ -78,6 +80,7 @@ async def list_resources():
     catalog["default_skills"] = list(settings.pi_default_skills)
     catalog["default_mcp_servers"] = list(settings.pi_default_mcp_servers)
     catalog["mode"] = settings.mode
+    catalog["default_thinking_level"] = settings.pi_thinking_level
     return catalog
 
 
@@ -99,8 +102,10 @@ async def create_agent(payload: AgentCreate):
     if any(name not in allowed_servers for name in payload.mcp_servers or []):
         raise HTTPException(400, "Unsupported MCP server")
     _validate_model_selection(payload.provider, payload.model, catalog)
+    _validate_thinking_level(payload.thinking_level)
     return store.create_agent(payload.name, payload.instruction, payload.provider, payload.model, tools,
-                              payload.extensions, payload.skills, payload.mcp_servers or [])
+                              payload.extensions, payload.skills, payload.mcp_servers or [],
+                              thinking_level=payload.thinking_level)
 
 
 @app.get("/api/agents/{agent_id}")
@@ -127,6 +132,7 @@ async def update_agent(agent_id: str, payload: AgentUpdate):
         raise HTTPException(404, "Agent not found")
     _validate_model_selection(payload.provider if "provider" in payload.model_fields_set else existing.get("provider"),
                               payload.model if "model" in payload.model_fields_set else existing.get("model"), catalog)
+    _validate_thinking_level(payload.thinking_level if "thinking_level" in payload.model_fields_set else existing.get("thinking_level"))
     agent = store.update_agent(agent_id, payload.model_dump(exclude_unset=True))
     if not agent:
         raise HTTPException(404, "Agent not found")
@@ -141,6 +147,11 @@ def _validate_model_selection(provider: str | None, model: str | None, catalog: 
         raise HTTPException(400, "Unsupported provider")
     if not model or model not in {item["id"] for item in selected["models"]}:
         raise HTTPException(400, "Unsupported model for provider")
+
+
+def _validate_thinking_level(level: str | None) -> None:
+    if level and level not in {"off", "minimal", "low", "medium", "high", "xhigh", "max"}:
+        raise HTTPException(400, "Unsupported thinking level")
 
 
 @app.delete("/api/agents/{agent_id}")

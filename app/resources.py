@@ -63,7 +63,11 @@ def discover_models(pi_home: Path) -> list[dict]:
         for model in provider.get("models") or []:
             if not isinstance(model, dict) or not model.get("id"):
                 continue
-            models.append({"id": model["id"], "name": model.get("name") or model["id"]})
+            default_levels = ["off", "minimal", "low", "medium", "high", "xhigh", "max"]
+            level_map = model.get("thinkingLevelMap")
+            levels = [level for level in default_levels if level_map.get(level) is not None] if isinstance(level_map, dict) else (default_levels[1:] if model.get("reasoning") else ["off"])
+            models.append({"id": model["id"], "name": model.get("name") or model["id"],
+                           "thinking_levels": levels})
         if models:
             providers.append({"id": provider_id, "name": provider.get("name") or provider_id,
                               "models": models})

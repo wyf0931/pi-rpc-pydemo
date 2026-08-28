@@ -34,6 +34,7 @@ class Store:
             "instruction": "Be helpful, clear, and concise.",
             "provider": None,
             "model": None,
+            "thinking_level": None,
             "extensions": [],
             "skills": [],
             "tools": default_tools or [], "tools_configured": True,
@@ -54,10 +55,12 @@ class Store:
     def create_agent(self, name: str, instruction: str, provider: str | None = None,
                      model: str | None = None, tools: list[str] | None = None,
                      extensions: list[str] | None = None, skills: list[str] | None = None,
-                     mcp_servers: list[str] | None = None) -> dict:
+                     mcp_servers: list[str] | None = None,
+                     thinking_level: str | None = None) -> dict:
         item = {
             "id": str(uuid4()), "name": name.strip(), "instruction": instruction.strip(),
             "provider": provider, "model": model, "extensions": extensions or [], "skills": skills or [],
+            "thinking_level": thinking_level,
             "tools": tools or [], "tools_configured": True, "mcp_servers": mcp_servers or [],
             "protected": False, "created_at": now_iso(), "updated_at": now_iso(),
         }

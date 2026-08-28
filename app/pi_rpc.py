@@ -179,6 +179,7 @@ class PiRuntimeManager:
             command += ["--provider", provider]
         if model:
             command += ["--model", model]
+        command += ["--thinking", agent.get("thinking_level") or self.settings.pi_thinking_level]
         command += ["--no-tools"]
         tools = list(agent.get("tools") or [])
         if any("pi-mcp-adapter" in path for path in agent.get("extensions", [])):

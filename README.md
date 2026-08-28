@@ -124,7 +124,7 @@ PI_MODE=production
 
 ### Providers and models
 
-Provider and model options are discovered from `~/.pi/agent/models.json`. An Agent can override the global `PI_PROVIDER` and `PI_MODEL` defaults. The platform validates that the selected model belongs to the selected provider before starting Pi.
+Provider, model, and supported thinking levels are discovered from `~/.pi/agent/models.json`. An Agent can override the global `PI_PROVIDER`, `PI_MODEL`, and `PI_THINKING_LEVEL` defaults. The platform validates that the selected model belongs to the selected provider before starting Pi. Pi starts with `--thinking <level>`; the default level is `low`.
 
 The Agent dialog presents a Provider select and a filtered Model select. Only names are shown in the UI; the stable Provider and Model IDs are retained in Agent metadata and passed to Pi as `--provider` and `--model`.
 

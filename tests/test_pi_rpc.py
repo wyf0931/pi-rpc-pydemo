@@ -9,6 +9,7 @@ def test_agent_provider_and_model_override_global_defaults():
         pi_session_dir="sessions",
         pi_provider="deepseek",
         pi_model="deepseek-v4-pro",
+        pi_thinking_level="low",
     )
     runtime = PiRuntimeManager(settings, store=None)
     command = runtime._command({
@@ -22,3 +23,4 @@ def test_agent_provider_and_model_override_global_defaults():
 
     assert command[command.index("--provider") + 1] == "zhipu"
     assert command[command.index("--model") + 1] == "glm-5.3-flash"
+    assert command[command.index("--thinking") + 1] == "low"
