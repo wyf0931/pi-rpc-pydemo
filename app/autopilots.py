@@ -12,7 +12,7 @@ def _parse_time(value: str | None) -> datetime | None:
         parsed = datetime.fromisoformat(value)
     except ValueError:
         return None
-    return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=datetime.now().astimezone().tzinfo)
 
 
 def next_run_at(autopilot: dict, now: datetime | None = None) -> datetime | None:
@@ -48,6 +48,13 @@ class AutopilotScheduler:
         self.running: set[str] = set()
 
     async def start(self) -> None:
+        for run in self.store.autopilot_runs.all():
+            if run.get("status") == "running":
+                self.store.update_autopilot_run(run["id"], {
+                    "status": "cancelled",
+                    "finished_at": datetime.now(UTC).isoformat(),
+                    "error": "Application restarted before the run completed",
+                })
         if not self.task or self.task.done():
             self.task = asyncio.create_task(self._loop())
 

@@ -522,7 +522,7 @@ def _autopilot_view(item: dict) -> dict:
 
 async def execute_autopilot(autopilot: dict) -> None:
     chat = store.create_chat(autopilot["agent_id"], "pending", status="starting")
-    store.update_chat(chat["id"], {"session_id": chat["id"], "title": autopilot["name"]})
+    chat = store.update_chat(chat["id"], {"session_id": chat["id"], "title": autopilot["name"]}) or chat
     run = store.create_autopilot_run(autopilot["id"], chat["id"], chat["id"])
     started = time.monotonic()
     prompt = f'{autopilot["instruction"].strip()}\n\nCurrent time: {datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")}'
@@ -534,6 +534,14 @@ async def execute_autopilot(autopilot: dict) -> None:
             "duration_ms": round((time.monotonic() - started) * 1000),
         })
         store.update_chat(chat["id"], {"status": "ready"})
+    except asyncio.CancelledError:
+        store.update_autopilot_run(run["id"], {
+            "status": "cancelled", "finished_at": datetime.now(UTC).isoformat(),
+            "duration_ms": round((time.monotonic() - started) * 1000),
+            "error": "Application stopped before the run completed",
+        })
+        store.update_chat(chat["id"], {"status": "stopped"})
+        raise
     except (PiRpcError, OSError, TimeoutError) as exc:
         store.update_autopilot_run(run["id"], {
             "status": "error", "finished_at": datetime.now(UTC).isoformat(),
