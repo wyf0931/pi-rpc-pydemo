@@ -11,11 +11,14 @@ def test_default_agent_and_agent_crud(tmp_path: Path):
     assert store.ensure_default_agent()["id"] == default["id"]
 
     agent = store.create_agent("researcher", "Research carefully", provider="deepseek", model="deepseek-v4-flash", thinking_level="low")
-    assert store.get_agent(agent["id"])["instruction"] == "Research carefully"
-    assert store.get_agent(agent["id"])["provider"] == "deepseek"
-    assert store.get_agent(agent["id"])["model"] == "deepseek-v4-flash"
-    assert store.get_agent(agent["id"])["thinking_level"] == "low"
-    assert store.update_agent(agent["id"], {"instruction": "Be rigorous"})["instruction"] == "Be rigorous"
+    saved = store.get_agent(agent["id"])
+    assert saved is not None
+    assert saved["instruction"] == "Research carefully"
+    assert saved["provider"] == "deepseek"
+    assert saved["model"] == "deepseek-v4-flash"
+    assert saved["thinking_level"] == "low"
+    updated = store.update_agent(agent["id"], {"instruction": "Be rigorous"})
+    assert updated is not None and updated["instruction"] == "Be rigorous"
     assert store.delete_agent(agent["id"]) is True
     assert store.delete_agent(default["id"]) is False
 

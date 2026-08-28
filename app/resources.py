@@ -89,9 +89,7 @@ def discover_resources(pi_home: Path, cwd: Path) -> dict:
         for entry in sorted(root.iterdir()):
             resource_path: Path | None = None
             metadata: dict = {}
-            if entry.is_file() and entry.suffix in {".ts", ".js"}:
-                resource_path = entry
-            elif entry.is_dir() and (entry / "index.ts").exists() or entry.is_dir() and (entry / "index.js").exists():
+            if entry.is_file() and entry.suffix in {".ts", ".js"} or entry.is_dir() and (entry / "index.ts").exists() or entry.is_dir() and (entry / "index.js").exists():
                 resource_path = entry
             if resource_path is None:
                 continue

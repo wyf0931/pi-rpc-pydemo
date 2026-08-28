@@ -2,8 +2,9 @@ import asyncio
 import json
 import os
 import tempfile
+from collections.abc import AsyncIterator
 from pathlib import Path
-from collections.abc import Awaitable, Callable
+from typing import Any
 
 from .resources import discover_resources
 
@@ -19,7 +20,7 @@ class PiRpcClient:
         self.command, self.cwd, self.timeout = command, cwd, timeout
         self.cleanup_paths = cleanup_paths or []
         self.process: asyncio.subprocess.Process | None = None
-        self.events: asyncio.Queue[dict] = asyncio.Queue()
+        self.events: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
         self.responses: dict[str, asyncio.Future[dict]] = {}
         self.reader_task: asyncio.Task | None = None
         self.stderr_task: asyncio.Task | None = None
@@ -100,7 +101,7 @@ class PiRpcClient:
                 result["event"] = event.get("event")
         return result
 
-    async def stream_prompt(self, message: str):
+    async def stream_prompt(self, message: str) -> AsyncIterator[dict[str, Any]]:
         await self.request("prompt", message=message)
         agent_finished = False
         while True:
@@ -113,10 +114,10 @@ class PiRpcClient:
                 elif assistant_event.get("type") == "thinking_delta":
                     yield {"type": "thinking_delta", "delta": assistant_event.get("delta", "")}
             elif event_type == "message_end":
-                message = event.get("message", {})
-                if message.get("role") == "assistant":
+                end_message = event.get("message", {})
+                if end_message.get("role") == "assistant":
                     final_text = "".join(
-                        part.get("text", "") for part in message.get("content", [])
+                        part.get("text", "") for part in end_message.get("content", [])
                         if part.get("type") == "text"
                     )
                     yield {"type": "final", "text": final_text}
@@ -147,7 +148,7 @@ class PiRpcClient:
             self.process.terminate()
             try:
                 await asyncio.wait_for(self.process.wait(), 3)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 self.process.kill()
                 await self.process.wait()
         if self.reader_task:
@@ -267,6 +268,12 @@ class PiRuntimeManager:
             self.store.update_chat(chat_id, {"status": "stopped"})
 
     async def close_chat(self, chat_id: str) -> None:
+        client = self.clients.get(chat_id)
+        if client:
+            await client.close()
+            self.clients.pop(chat_id, None)
+
+    async def _close_client(self, chat_id: str) -> None:
         client = self.clients.get(chat_id)
         if client:
             await client.close()

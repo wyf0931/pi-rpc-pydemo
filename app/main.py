@@ -1,10 +1,9 @@
 import asyncio
+import json
 from pathlib import Path
-from typing import Annotated
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
-import json
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
