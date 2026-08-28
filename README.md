@@ -259,4 +259,12 @@ Issues and pull requests are welcome. Please include reproduction steps for bugs
 
 ## License
 
-No license has been selected yet. Do not treat this repository as reusable open-source software until a license is added.
+Copyright (c) 2026 wyf0931
+
+This project is licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0).
+
+- You are free to use, study, modify, and redistribute this project, including for internal business use.
+- If you distribute the software, or run a modified version as a network service, you must release the modified source code under AGPL-3.0 as well.
+- Any use outside AGPL-3.0 terms — for example, embedding this project or a derivative into a closed-source product — requires the author's explicit prior written agreement. Contact the repository owner to arrange it.
+
+Contributions are accepted under AGPL-3.0.
