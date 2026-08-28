@@ -11,7 +11,7 @@ from .config import get_settings
 from .files import delete_chat_files, discover_chat_files, resolve_chat_file
 from .pi_rpc import PiRpcError, PiRuntimeManager
 from .resources import discover_resources
-from .store import BUILTIN_TOOLS, Store
+from .store import SUPPORTED_TOOLS, Store
 
 settings = get_settings()
 settings.data_dir.mkdir(parents=True, exist_ok=True)
@@ -80,6 +80,16 @@ async def list_resources():
     catalog["default_provider"] = settings.pi_provider
     catalog["default_model"] = settings.pi_model
     catalog["default_tools"] = list(settings.pi_default_tools)
+    catalog["tools"] = [
+        {
+            "name": name,
+            "description": "Platform web tool"
+            if name in {"web_fetch", "web_search"}
+            else "Pi built-in tool",
+            "source": "platform" if name in {"web_fetch", "web_search"} else "builtin",
+        }
+        for name in SUPPORTED_TOOLS
+    ]
     catalog["default_extensions"] = list(settings.pi_default_extensions)
     catalog["default_skills"] = list(settings.pi_default_skills)
     catalog["default_mcp_servers"] = list(settings.pi_default_mcp_servers)
@@ -98,8 +108,8 @@ async def create_agent(payload: AgentCreate):
     tools = (
         payload.tools if payload.tools is not None else list(settings.pi_default_tools)
     )
-    if any(tool not in BUILTIN_TOOLS for tool in tools):
-        raise HTTPException(400, "Unsupported built-in tool")
+    if any(tool not in SUPPORTED_TOOLS for tool in tools):
+        raise HTTPException(400, "Unsupported tool")
     catalog = discover_resources(settings.pi_home, settings.pi_cwd)
     allowed_extensions = {item["path"] for item in catalog["extensions"]}
     allowed_skills = {item["path"] for item in catalog["skills"]}
@@ -136,9 +146,9 @@ async def get_agent(agent_id: str):
 @app.patch("/api/agents/{agent_id}")
 async def update_agent(agent_id: str, payload: AgentUpdate):
     if payload.tools is not None and any(
-        tool not in BUILTIN_TOOLS for tool in payload.tools
+        tool not in SUPPORTED_TOOLS for tool in payload.tools
     ):
-        raise HTTPException(400, "Unsupported built-in tool")
+        raise HTTPException(400, "Unsupported tool")
     catalog = discover_resources(settings.pi_home, settings.pi_cwd)
     if payload.extensions is not None and any(
         path not in {item["path"] for item in catalog["extensions"]}
@@ -214,9 +224,13 @@ def title_for(content: str) -> str:
     return " ".join(content.split())[:48] or "New conversation"
 
 
-def visible_messages(messages: list[dict]) -> list[dict]:
+def visible_messages(messages: list[dict], mode: str = "production") -> list[dict]:
     """Hide process-only tool results from the conversation transcript."""
-    return [message for message in messages if message.get("role") != "toolResult"]
+    return (
+        messages
+        if mode == "development"
+        else [message for message in messages if message.get("role") != "toolResult"]
+    )
 
 
 @app.get("/api/chats")
@@ -288,12 +302,12 @@ async def delete_chat(chat_id: str):
 
 
 @app.get("/api/chats/{chat_id}/messages")
-async def get_messages(chat_id: str):
+async def get_messages(chat_id: str, mode: str = "production"):
     chat = store.get_chat(chat_id)
     if not chat:
         raise HTTPException(404, "Chat not found")
     try:
-        return {"messages": visible_messages(await runtime.messages(chat))}
+        return {"messages": visible_messages(await runtime.messages(chat), mode)}
     except PiRpcError as exc:
         store.update_chat(chat_id, {"status": "error"})
         raise HTTPException(503, str(exc)) from exc
@@ -400,7 +414,7 @@ async def download_chat_file(chat_id: str, path: str):
 
 
 @app.post("/api/chats/{chat_id}/messages")
-async def send_message(chat_id: str, payload: MessageCreate):
+async def send_message(chat_id: str, payload: MessageCreate, mode: str = "production"):
     chat = store.get_chat(chat_id)
     if not chat:
         raise HTTPException(404, "Chat not found")
@@ -442,7 +456,9 @@ async def send_message(chat_id: str, payload: MessageCreate):
                         message
                         for message in final_event.get("messages", [])
                         if message.get("role") == "assistant"
-                    ]
+                        or message.get("role") == "toolResult"
+                    ],
+                    "development",
                 )
                 yield f"data: {json.dumps({'type': 'complete', 'chat': updated, 'assistant': text, 'tools': tools, 'messages': turn_messages}, ensure_ascii=False)}\n\n"
             except PiRpcError as exc:

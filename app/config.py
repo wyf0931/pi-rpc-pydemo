@@ -38,6 +38,9 @@ class Settings:
     pi_default_mcp_servers: tuple[str, ...]
     mode: str
     pi_thinking_level: str
+    jina_api_key: str | None
+    baidu_search_api_key: str | None
+    baidu_search_base_url: str
 
 
 def get_settings() -> Settings:
@@ -82,4 +85,7 @@ def get_settings() -> Settings:
         pi_default_mcp_servers=_csv(value("PI_DEFAULT_MCP_SERVERS")),
         mode=mode,
         pi_thinking_level=thinking_level,
+        jina_api_key=value("JINA_API_KEY") or None,
+        baidu_search_api_key=value("BAIDU_SEARCH_API_KEY") or None,
+        baidu_search_base_url=value("BAIDU_SEARCH_BASE_URL", "https://api.qnaigc.com/v1") or "https://api.qnaigc.com/v1",
     )

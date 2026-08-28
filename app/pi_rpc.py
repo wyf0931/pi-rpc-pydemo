@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .resources import discover_resources
+from .store import PLATFORM_TOOLS
 
 
 class PiRpcError(RuntimeError):
@@ -22,9 +23,11 @@ class PiRpcClient:
         cwd: str,
         timeout: float = 120.0,
         cleanup_paths: list[Path] | None = None,
+        env: dict[str, str] | None = None,
     ):
         self.command, self.cwd, self.timeout = command, cwd, timeout
         self.cleanup_paths = cleanup_paths or []
+        self.env = env
         self.process: asyncio.subprocess.Process | None = None
         self.events: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
         self.responses: dict[str, asyncio.Future[dict]] = {}
@@ -43,6 +46,7 @@ class PiRpcClient:
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                env=self.env,
                 limit=self.STREAM_LIMIT,
             )
         except OSError as exc:
@@ -214,6 +218,9 @@ class PiRuntimeManager:
         ]
         command += ["--no-tools"]
         tools = list(agent.get("tools") or [])
+        if any(tool in tools for tool in PLATFORM_TOOLS):
+            extension = Path(__file__).parent.parent / "extensions" / "oma-web-tools.ts"
+            command += ["--extension", str(extension)]
         if any("pi-mcp-adapter" in path for path in agent.get("extensions", [])):
             for tool in ("mcp", "mcpScript"):
                 if tool not in tools:
@@ -225,6 +232,17 @@ class PiRuntimeManager:
         for path in agent.get("skills", []):
             command += ["--skill", path]
         return command
+
+    def _environment(self) -> dict[str, str]:
+        environment = os.environ.copy()
+        for name, value in {
+            "JINA_API_KEY": getattr(self.settings, "jina_api_key", None),
+            "BAIDU_SEARCH_API_KEY": getattr(self.settings, "baidu_search_api_key", None),
+            "BAIDU_SEARCH_BASE_URL": getattr(self.settings, "baidu_search_base_url", None),
+        }.items():
+            if value:
+                environment[name] = value
+        return environment
 
     def _mcp_override(self, agent: dict) -> tuple[str | None, list[Path]]:
         if not any("pi-mcp-adapter" in path for path in agent.get("extensions", [])):
@@ -256,7 +274,10 @@ class PiRuntimeManager:
         if mcp_config:
             command += ["--mcp-config", mcp_config]
         client = PiRpcClient(
-            command, str(self.settings.pi_cwd), cleanup_paths=cleanup_paths
+            command,
+            str(self.settings.pi_cwd),
+            cleanup_paths=cleanup_paths,
+            env=self._environment(),
         )
         state = await client.start()
         actual_id = state.get("data", {}).get("sessionId") or chat.get("session_id")

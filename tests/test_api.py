@@ -8,6 +8,12 @@ def test_health_and_agents(client):
     assert any(agent["name"] == "assistant" for agent in agents)
 
 
+def test_resources_expose_platform_web_tools(client):
+    tools = {item["name"]: item for item in client.get("/api/resources").json()["tools"]}
+    assert tools["web_fetch"]["source"] == "platform"
+    assert tools["web_search"]["source"] == "platform"
+
+
 def test_create_agent_and_missing_chat(client, temporary_agent):
     response = temporary_agent(
         {"name": f"writer-{uuid4()}", "instruction": "Write clearly"}
