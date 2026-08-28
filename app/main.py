@@ -332,6 +332,9 @@ async def get_messages(chat_id: str, mode: str = "production"):
     chat = store.get_chat(chat_id)
     if not chat:
         raise HTTPException(404, "Chat not found")
+    if chat["status"] == "created":
+        # No prompt yet: no Pi session exists for this chat.
+        return {"messages": []}
     try:
         return {"messages": visible_messages(await runtime.messages(chat), mode)}
     except PiRpcError as exc:

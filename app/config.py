@@ -49,7 +49,7 @@ def get_settings() -> Settings:
     def value(name: str, default: str | None = None) -> str | None:
         return os.environ.get(name, dotenv.get(name, default))
 
-    data_dir = Path(value("PI_PLATFORM_DATA_DIR", "data") or "data")
+    data_dir = Path(value("PI_PLATFORM_DATA_DIR", "data") or "data").expanduser()
     mode = (value("PI_MODE", "production") or "production").lower()
     if mode not in {"development", "production"}:
         mode = "production"
@@ -70,8 +70,8 @@ def get_settings() -> Settings:
         pi_session_dir=Path(
             value("PI_SESSION_DIR", str(data_dir / "pi-sessions"))
             or str(data_dir / "pi-sessions")
-        ),
-        pi_cwd=Path(value("PI_CWD", str(Path.cwd())) or str(Path.cwd())),
+        ).expanduser(),
+        pi_cwd=Path(value("PI_CWD", str(Path.cwd())) or str(Path.cwd())).expanduser(),
         pi_provider=value("PI_PROVIDER") or None,
         pi_model=value("PI_MODEL") or None,
         pi_tools=value("PI_TOOLS") or None,

@@ -23,6 +23,16 @@ def test_create_agent_and_missing_chat(client, temporary_agent):
     assert client.get("/api/chats/missing").status_code == 404
 
 
+def test_fresh_chat_messages_are_empty(client):
+    agents = client.get("/api/agents").json()["agents"]
+    agent_id = next(a["id"] for a in agents if a["name"] == "assistant")
+    chat = client.post("/api/chats", json={"agent_id": agent_id}).json()
+    assert chat["status"] == "created"
+    response = client.get(f"/api/chats/{chat['id']}/messages")
+    assert response.status_code == 200
+    assert response.json() == {"messages": []}
+
+
 def test_autopilot_crud(client):
     agent_id = client.get("/api/agents").json()["agents"][0]["id"]
     created = client.post("/api/autopilots", json={

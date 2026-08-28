@@ -16,7 +16,7 @@ session transcripts**. Status: MVP, single user, localhost.
 | --- | --- | --- |
 | Python | 3.11+ managed by **uv** | Never use pip directly; use `uv` / `uv run`. |
 | API | FastAPI + Pydantic | Request validation lives in Pydantic models in `app/main.py`. |
-| Storage | TinyDB (file `data/platform.json`) | Metadata only. See invariants below. |
+| Storage | TinyDB (file `~/.oma-studio/data/platform.json`) | Metadata only. See invariants below. |
 | Agent runtime | Pi RPC subprocess | One short-lived Pi process per operation (send / stream / messages). |
 | Frontend | Plain static HTML/JS/CSS in `static/` | No bundler. Alpine.js + DaisyUI 5 + Tailwind browser build via CDN. |
 | Markdown rendering | marked + DOMPurify + highlight.js + mermaid (CDN) | Sanitized HTML only; never inject raw model output. |
@@ -26,7 +26,7 @@ session transcripts**. Status: MVP, single user, localhost.
 
 ```bash
 # Setup
-cp .env.example .env      # then set PI_CWD to an absolute workspace path
+cp .env.example .env      # then set the three storage paths (see file comments)
 uv sync                   # Python deps (also creates .venv)
 pi --version              # Pi CLI must be on PATH, with a provider credential configured
 
@@ -64,7 +64,8 @@ Dockerfile      Single image: app layer (Python/FastAPI) + process layer (pi, rg
 docker-compose.yml  One-command run; bind mounts for data, workspace, and Pi home
 schemas/        Vendored compose-spec JSON schema for offline YAML validation
 docs/           Design spec (docs/superpowers/specs/) + README screenshots
-data/           Gitignored runtime data: platform.json, pi-sessions/
+data/           Legacy runtime data (pre-normalization archive, gitignored, superseded
+                by ~/.oma-studio/)
 ```
 
 ## Architecture invariants (do not break)
