@@ -24,7 +24,11 @@ WORKDIR /app
 
 # Dependencies first for layer caching
 COPY pyproject.toml uv.lock ./
-RUN UV_PYTHON=/usr/bin/python3 uv sync --frozen --no-dev
+# Optional proxy for the dependency-install step only (e.g. a host-side VPN
+# when PyPI direct routes are slow from build containers). Empty by default,
+# so CI and normal builds stay direct.
+ARG UV_PROXY=""
+RUN UV_PYTHON=/usr/bin/python3 sh -c '[ -z "$UV_PROXY" ] || export HTTPS_PROXY="$UV_PROXY" HTTP_PROXY="$UV_PROXY"; exec uv sync --frozen --no-dev'
 
 COPY app ./app
 COPY static ./static
