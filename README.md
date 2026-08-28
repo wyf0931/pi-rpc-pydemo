@@ -111,11 +111,11 @@ docker compose up --build
 | Mount | Container path | Purpose |
 | --- | --- | --- |
 | `${PI_PLATFORM_DATA_DIR:-./data}` | `/app/data` | Platform metadata + Pi session transcripts |
-| `${PI_CWD:-./workspace}` | `/workspace` | Agent working directory |
+| `${PI_CWD:-./workspace}` | `${PI_DOCKER_CWD:-/workspace}` | Agent working directory |
 | `~/.pi/agent` | `/home/node/.pi/agent` | Extensions, skills, MCP config, model catalog, provider auth |
 
 Compose reads `.env` for `PI_PROVIDER`, `PI_MODEL`, the resource defaults, `PI_PLATFORM_DATA_DIR`,
-and `PI_CWD`; container-internal paths are fixed in `docker-compose.yml`. This means a local
+`PI_CWD`, and optional `PI_DOCKER_CWD`; container-internal paths are fixed in `docker-compose.yml`. This means a local
 `.env` with `PI_PLATFORM_DATA_DIR=data` shares the repository's existing metadata and Pi
 sessions with Docker. No reverse proxy or extra services — FastAPI serves the API and UI
 directly, and `init: true` reaps the short-lived Pi subprocesses the app spawns. When the
@@ -127,6 +127,8 @@ Notes:
 
 - Mounting `~/.pi/agent` exposes provider credentials and executable extensions to the
   container. Only mount a Pi home you trust.
+- When opening sessions created outside Docker, set `PI_DOCKER_CWD` to the path recorded
+  in those session files; this avoids Pi's project-mismatch prompt in RPC mode.
 - The container is a process boundary, not a security sandbox: the `PI_CWD` caveats from
   [Security and sandboxing](#security-and-sandboxing) apply unchanged.
 - On Linux hosts where bind-mount ownership matters, add `user: "1000:1000"` (or your

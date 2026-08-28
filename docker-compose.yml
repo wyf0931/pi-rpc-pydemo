@@ -30,7 +30,9 @@ services:
       PI_HOME: /home/node/.pi/agent
       PI_PLATFORM_DATA_DIR: /app/data
       PI_SESSION_DIR: /app/data/pi-sessions
-      PI_CWD: /workspace
+      # Keep this equal to the cwd recorded in migrated Pi session files.
+      # New installations can leave it at /workspace.
+      PI_CWD: ${PI_DOCKER_CWD:-/workspace}
       # Node 24 honors proxy env for outbound model-API calls. Set OMA_PROXY
       # in .env (e.g. http://192.168.5.2:7897 with Colima) when the host
       # reaches model providers through a VPN/proxy; empty means direct.
@@ -42,8 +44,9 @@ services:
       # and Pi session transcripts. Must match PI_PLATFORM_DATA_DIR/PI_SESSION_DIR
       # in .env for local runs so both modes share one storage location.
       - ${PI_PLATFORM_DATA_DIR:-./data}:/app/data
-      # Agent working directory (PI_CWD for local runs).
-      - ${PI_CWD:-./workspace}:/workspace
+      # Agent working directory. PI_DOCKER_CWD keeps migrated session projects
+      # addressable inside the container.
+      - ${PI_CWD:-./workspace}:${PI_DOCKER_CWD:-/workspace}
       # Pi home: extensions, skills, mcp.json, models.json, provider auth.
       - ~/.pi/agent:/home/node/.pi/agent
     healthcheck:
