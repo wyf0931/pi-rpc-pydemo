@@ -24,14 +24,19 @@ def discover_chat_files(messages: list[dict], workspace: Path) -> list[dict]:
         if message.get("role") != "assistant":
             continue
         for part in message.get("content") or []:
-            if part.get("type") != "toolCall" or part.get("name") not in {"write", "edit"}:
+            if part.get("type") != "toolCall" or part.get("name") not in {
+                "write",
+                "edit",
+            }:
                 continue
             arguments = _tool_arguments(part)
             raw_path = arguments.get("path") or arguments.get("file_path")
             if not isinstance(raw_path, str) or not raw_path.strip():
                 continue
             candidate = Path(raw_path).expanduser()
-            resolved = (candidate if candidate.is_absolute() else root / candidate).resolve()
+            resolved = (
+                candidate if candidate.is_absolute() else root / candidate
+            ).resolve()
             try:
                 relative = resolved.relative_to(root)
             except ValueError:
@@ -51,8 +56,17 @@ def discover_chat_files(messages: list[dict], workspace: Path) -> list[dict]:
     return sorted(files.values(), key=lambda item: item["generated_at"], reverse=True)
 
 
-def resolve_chat_file(messages: list[dict], workspace: Path, relative_path: str) -> Path | None:
-    match = next((item for item in discover_chat_files(messages, workspace) if item["path"] == relative_path), None)
+def resolve_chat_file(
+    messages: list[dict], workspace: Path, relative_path: str
+) -> Path | None:
+    match = next(
+        (
+            item
+            for item in discover_chat_files(messages, workspace)
+            if item["path"] == relative_path
+        ),
+        None,
+    )
     if not match:
         return None
     resolved = (workspace.expanduser().resolve() / match["path"]).resolve()
@@ -65,7 +79,9 @@ def resolve_chat_file(messages: list[dict], workspace: Path, relative_path: str)
     return resolved
 
 
-def delete_chat_files(messages: list[dict], workspace: Path, protected_paths: set[str] | None = None) -> list[str]:
+def delete_chat_files(
+    messages: list[dict], workspace: Path, protected_paths: set[str] | None = None
+) -> list[str]:
     deleted: list[str] = []
     protected_paths = protected_paths or set()
     for item in discover_chat_files(messages, workspace):

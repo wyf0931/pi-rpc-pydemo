@@ -10,7 +10,13 @@ def test_default_agent_and_agent_crud(tmp_path: Path):
     assert default["protected"] is True
     assert store.ensure_default_agent()["id"] == default["id"]
 
-    agent = store.create_agent("researcher", "Research carefully", provider="deepseek", model="deepseek-v4-flash", thinking_level="low")
+    agent = store.create_agent(
+        "researcher",
+        "Research carefully",
+        provider="deepseek",
+        model="deepseek-v4-flash",
+        thinking_level="low",
+    )
     saved = store.get_agent(agent["id"])
     assert saved is not None
     assert saved["instruction"] == "Research carefully"

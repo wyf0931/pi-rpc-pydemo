@@ -10,7 +10,9 @@ def _frontmatter(path: Path) -> dict:
         lines = text.split("---", 2)[1].splitlines()
         index = 0
         while index < len(lines):
-            match = re.match(r"^([A-Za-z][A-Za-z0-9_-]*):\s*(.*)$", lines[index].strip())
+            match = re.match(
+                r"^([A-Za-z][A-Za-z0-9_-]*):\s*(.*)$", lines[index].strip()
+            )
             if not match:
                 index += 1
                 continue
@@ -18,7 +20,9 @@ def _frontmatter(path: Path) -> dict:
             if value in {">", ">-", "|", "|-", ">+", "|+"}:
                 values = []
                 index += 1
-                while index < len(lines) and (not lines[index].strip() or lines[index].startswith((" ", "\t"))):
+                while index < len(lines) and (
+                    not lines[index].strip() or lines[index].startswith((" ", "\t"))
+                ):
                     if lines[index].strip():
                         values.append(lines[index].strip())
                     index += 1
@@ -34,15 +38,25 @@ def _frontmatter(path: Path) -> dict:
 def _skill_metadata(path: Path) -> dict:
     frontmatter = _frontmatter(path)
     directory = path.parent
-    return {"id": str(directory), "name": frontmatter.get("name", directory.name),
-            "description": frontmatter.get("description", ""), "path": str(directory), "type": "skill"}
+    return {
+        "id": str(directory),
+        "name": frontmatter.get("name", directory.name),
+        "description": frontmatter.get("description", ""),
+        "path": str(directory),
+        "type": "skill",
+    }
 
 
 def _extension_metadata(resource_path: Path, package: dict | None = None) -> dict:
     package = package or {}
     resolved = str(resource_path.resolve())
-    return {"id": resolved, "name": package.get("name") or resource_path.stem,
-            "description": package.get("description", ""), "path": resolved, "type": "extension"}
+    return {
+        "id": resolved,
+        "name": package.get("name") or resource_path.stem,
+        "description": package.get("description", ""),
+        "path": resolved,
+        "type": "extension",
+    }
 
 
 def discover_models(pi_home: Path) -> list[dict]:
@@ -65,12 +79,26 @@ def discover_models(pi_home: Path) -> list[dict]:
                 continue
             default_levels = ["off", "minimal", "low", "medium", "high", "xhigh", "max"]
             level_map = model.get("thinkingLevelMap")
-            levels = [level for level in default_levels if level_map.get(level) is not None] if isinstance(level_map, dict) else (default_levels[1:] if model.get("reasoning") else ["off"])
-            models.append({"id": model["id"], "name": model.get("name") or model["id"],
-                           "thinking_levels": levels})
+            levels = (
+                [level for level in default_levels if level_map.get(level) is not None]
+                if isinstance(level_map, dict)
+                else (default_levels[1:] if model.get("reasoning") else ["off"])
+            )
+            models.append(
+                {
+                    "id": model["id"],
+                    "name": model.get("name") or model["id"],
+                    "thinking_levels": levels,
+                }
+            )
         if models:
-            providers.append({"id": provider_id, "name": provider.get("name") or provider_id,
-                              "models": models})
+            providers.append(
+                {
+                    "id": provider_id,
+                    "name": provider.get("name") or provider_id,
+                    "models": models,
+                }
+            )
     return providers
 
 
@@ -89,7 +117,14 @@ def discover_resources(pi_home: Path, cwd: Path) -> dict:
         for entry in sorted(root.iterdir()):
             resource_path: Path | None = None
             metadata: dict = {}
-            if entry.is_file() and entry.suffix in {".ts", ".js"} or entry.is_dir() and (entry / "index.ts").exists() or entry.is_dir() and (entry / "index.js").exists():
+            if (
+                entry.is_file()
+                and entry.suffix in {".ts", ".js"}
+                or entry.is_dir()
+                and (entry / "index.ts").exists()
+                or entry.is_dir()
+                and (entry / "index.js").exists()
+            ):
                 resource_path = entry
             if resource_path is None:
                 continue
@@ -97,18 +132,27 @@ def discover_resources(pi_home: Path, cwd: Path) -> dict:
             if resolved in seen_extensions:
                 continue
             seen_extensions.add(resolved)
-            package_file = resource_path / "package.json" if resource_path.is_dir() else resource_path.parent / "package.json"
+            package_file = (
+                resource_path / "package.json"
+                if resource_path.is_dir()
+                else resource_path.parent / "package.json"
+            )
             if package_file.exists():
                 try:
                     package = json.loads(package_file.read_text(encoding="utf-8"))
-                    metadata = {"name": package.get("name"), "description": package.get("description", "")}
+                    metadata = {
+                        "name": package.get("name"),
+                        "description": package.get("description", ""),
+                    }
                 except (OSError, json.JSONDecodeError):
                     metadata = {}
             extensions.append(_extension_metadata(resource_path, metadata))
 
     # Pi packages can contribute extensions from the managed npm directory.
     npm_root = pi_home / "npm" / "node_modules"
-    package_files = list(npm_root.glob("*/package.json")) + list(npm_root.glob("@*/*/package.json"))
+    package_files = list(npm_root.glob("*/package.json")) + list(
+        npm_root.glob("@*/*/package.json")
+    )
     for package_file in sorted(package_files):
         try:
             package = json.loads(package_file.read_text(encoding="utf-8"))
@@ -135,9 +179,14 @@ def discover_resources(pi_home: Path, cwd: Path) -> dict:
                 skills.append(_skill_metadata(path))
             except OSError:
                 continue
-    config_paths = [pi_home / "mcp.json", Path.home() / ".config" / "mcp" / "mcp.json",
-                    Path.home() / ".agents" / "mcp.json", Path.home() / ".agents" / "mcp" / "mcp.json",
-                    cwd / ".mcp.json", cwd / ".pi" / "mcp.json"]
+    config_paths = [
+        pi_home / "mcp.json",
+        Path.home() / ".config" / "mcp" / "mcp.json",
+        Path.home() / ".agents" / "mcp.json",
+        Path.home() / ".agents" / "mcp" / "mcp.json",
+        cwd / ".mcp.json",
+        cwd / ".pi" / "mcp.json",
+    ]
     seen_servers: set[str] = set()
     for config_path in config_paths:
         if not config_path.is_file():
@@ -148,10 +197,20 @@ def discover_resources(pi_home: Path, cwd: Path) -> dict:
                 if name in seen_servers or not isinstance(definition, dict):
                     continue
                 seen_servers.add(name)
-                mcp_servers.append({"id": name, "name": name,
-                                    "description": definition.get("description", ""),
-                                    "path": str(config_path.resolve()), "type": "mcp_server"})
+                mcp_servers.append(
+                    {
+                        "id": name,
+                        "name": name,
+                        "description": definition.get("description", ""),
+                        "path": str(config_path.resolve()),
+                        "type": "mcp_server",
+                    }
+                )
         except (OSError, json.JSONDecodeError):
             continue
-    return {"extensions": extensions, "skills": skills, "mcp_servers": mcp_servers,
-            "providers": discover_models(pi_home)}
+    return {
+        "extensions": extensions,
+        "skills": skills,
+        "mcp_servers": mcp_servers,
+        "providers": discover_models(pi_home),
+    }

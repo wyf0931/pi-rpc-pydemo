@@ -16,7 +16,13 @@ class PiRpcError(RuntimeError):
 class PiRpcClient:
     STREAM_LIMIT = 16 * 1024 * 1024
 
-    def __init__(self, command: list[str], cwd: str, timeout: float = 120.0, cleanup_paths: list[Path] | None = None):
+    def __init__(
+        self,
+        command: list[str],
+        cwd: str,
+        timeout: float = 120.0,
+        cleanup_paths: list[Path] | None = None,
+    ):
         self.command, self.cwd, self.timeout = command, cwd, timeout
         self.cleanup_paths = cleanup_paths or []
         self.process: asyncio.subprocess.Process | None = None
@@ -32,8 +38,11 @@ class PiRpcClient:
     async def start(self) -> dict:
         try:
             self.process = await asyncio.create_subprocess_exec(
-                *self.command, cwd=self.cwd, stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+                *self.command,
+                cwd=self.cwd,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
                 limit=self.STREAM_LIMIT,
             )
         except OSError as exc:
@@ -112,20 +121,32 @@ class PiRpcClient:
                 if assistant_event.get("type") == "text_delta":
                     yield {"type": "delta", "delta": assistant_event.get("delta", "")}
                 elif assistant_event.get("type") == "thinking_delta":
-                    yield {"type": "thinking_delta", "delta": assistant_event.get("delta", "")}
+                    yield {
+                        "type": "thinking_delta",
+                        "delta": assistant_event.get("delta", ""),
+                    }
             elif event_type == "message_end":
                 end_message = event.get("message", {})
                 if end_message.get("role") == "assistant":
                     final_text = "".join(
-                        part.get("text", "") for part in end_message.get("content", [])
+                        part.get("text", "")
+                        for part in end_message.get("content", [])
                         if part.get("type") == "text"
                     )
                     yield {"type": "final", "text": final_text}
             elif event_type == "tool_execution_start":
-                yield {"type": "tool", "phase": "start", "tool_name": event.get("toolName")}
+                yield {
+                    "type": "tool",
+                    "phase": "start",
+                    "tool_name": event.get("toolName"),
+                }
             elif event_type == "tool_execution_end":
-                yield {"type": "tool", "phase": "end", "tool_name": event.get("toolName"),
-                       "is_error": event.get("isError", False)}
+                yield {
+                    "type": "tool",
+                    "phase": "end",
+                    "tool_name": event.get("toolName"),
+                    "is_error": event.get("isError", False),
+                }
             elif event_type == "agent_end":
                 yield {"type": "done", "event": event}
                 agent_finished = True
@@ -169,9 +190,16 @@ class PiRuntimeManager:
         self.locks: dict[str, asyncio.Lock] = {}
 
     def _command(self, agent: dict, session_id: str, create: bool = False) -> list[str]:
-        command = [self.settings.pi_cli_path, "--mode", "rpc", "--session-dir",
-                   str(self.settings.pi_session_dir), "--no-extensions", "--no-skills",
-                   "--no-prompt-templates"]
+        command = [
+            self.settings.pi_cli_path,
+            "--mode",
+            "rpc",
+            "--session-dir",
+            str(self.settings.pi_session_dir),
+            "--no-extensions",
+            "--no-skills",
+            "--no-prompt-templates",
+        ]
         command += ["--session-id" if create else "--session", session_id]
         command += ["--system-prompt", agent["instruction"]]
         provider = agent.get("provider") or self.settings.pi_provider
@@ -180,7 +208,10 @@ class PiRuntimeManager:
             command += ["--provider", provider]
         if model:
             command += ["--model", model]
-        command += ["--thinking", agent.get("thinking_level") or self.settings.pi_thinking_level]
+        command += [
+            "--thinking",
+            agent.get("thinking_level") or self.settings.pi_thinking_level,
+        ]
         command += ["--no-tools"]
         tools = list(agent.get("tools") or [])
         if any("pi-mcp-adapter" in path for path in agent.get("extensions", [])):
@@ -198,14 +229,21 @@ class PiRuntimeManager:
     def _mcp_override(self, agent: dict) -> tuple[str | None, list[Path]]:
         if not any("pi-mcp-adapter" in path for path in agent.get("extensions", [])):
             return None, []
-        discovered = discover_resources(self.settings.pi_home, self.settings.pi_cwd)["mcp_servers"]
+        discovered = discover_resources(self.settings.pi_home, self.settings.pi_cwd)[
+            "mcp_servers"
+        ]
         selected = set(agent.get("mcp_servers") or [])
         if not discovered:
             return None, []
         fd, raw_path = tempfile.mkstemp(prefix="pi-agent-mcp-", suffix=".json")
         path = Path(raw_path)
         os.close(fd)
-        config = {"mcpServers": {item["id"]: {"disabled": item["id"] not in selected} for item in discovered}}
+        config = {
+            "mcpServers": {
+                item["id"]: {"disabled": item["id"] not in selected}
+                for item in discovered
+            }
+        }
         path.write_text(json.dumps(config), encoding="utf-8")
         return str(path), [path]
 
@@ -217,7 +255,9 @@ class PiRuntimeManager:
         command = self._command(agent, chat["session_id"], create)
         if mcp_config:
             command += ["--mcp-config", mcp_config]
-        client = PiRpcClient(command, str(self.settings.pi_cwd), cleanup_paths=cleanup_paths)
+        client = PiRpcClient(
+            command, str(self.settings.pi_cwd), cleanup_paths=cleanup_paths
+        )
         state = await client.start()
         actual_id = state.get("data", {}).get("sessionId") or chat.get("session_id")
         self.clients[chat["id"]] = client
@@ -280,4 +320,7 @@ class PiRuntimeManager:
             self.clients.pop(chat_id, None)
 
     async def close(self) -> None:
-        await asyncio.gather(*(self._close_client(chat_id) for chat_id in list(self.clients)), return_exceptions=True)
+        await asyncio.gather(
+            *(self._close_client(chat_id) for chat_id in list(self.clients)),
+            return_exceptions=True,
+        )

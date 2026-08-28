@@ -61,8 +61,11 @@ async def shutdown():
 
 @app.get("/api/health")
 async def health():
-    active_processes = sum(1 for client in runtime.clients.values()
-                           if client.process and client.process.returncode is None)
+    active_processes = sum(
+        1
+        for client in runtime.clients.values()
+        if client.process and client.process.returncode is None
+    )
     return {"ok": True, "active_processes": active_processes}
 
 
@@ -87,9 +90,14 @@ async def list_resources():
 
 @app.post("/api/agents", status_code=201)
 async def create_agent(payload: AgentCreate):
-    if any(agent["name"].casefold() == payload.name.strip().casefold() for agent in store.list_agents()):
+    if any(
+        agent["name"].casefold() == payload.name.strip().casefold()
+        for agent in store.list_agents()
+    ):
         raise HTTPException(409, "Agent name already exists")
-    tools = payload.tools if payload.tools is not None else list(settings.pi_default_tools)
+    tools = (
+        payload.tools if payload.tools is not None else list(settings.pi_default_tools)
+    )
     if any(tool not in BUILTIN_TOOLS for tool in tools):
         raise HTTPException(400, "Unsupported built-in tool")
     catalog = discover_resources(settings.pi_home, settings.pi_cwd)
@@ -104,9 +112,17 @@ async def create_agent(payload: AgentCreate):
         raise HTTPException(400, "Unsupported MCP server")
     _validate_model_selection(payload.provider, payload.model, catalog)
     _validate_thinking_level(payload.thinking_level)
-    return store.create_agent(payload.name, payload.instruction, payload.provider, payload.model, tools,
-                              payload.extensions, payload.skills, payload.mcp_servers or [],
-                              thinking_level=payload.thinking_level)
+    return store.create_agent(
+        payload.name,
+        payload.instruction,
+        payload.provider,
+        payload.model,
+        tools,
+        payload.extensions,
+        payload.skills,
+        payload.mcp_servers or [],
+        thinking_level=payload.thinking_level,
+    )
 
 
 @app.get("/api/agents/{agent_id}")
@@ -119,31 +135,55 @@ async def get_agent(agent_id: str):
 
 @app.patch("/api/agents/{agent_id}")
 async def update_agent(agent_id: str, payload: AgentUpdate):
-    if payload.tools is not None and any(tool not in BUILTIN_TOOLS for tool in payload.tools):
+    if payload.tools is not None and any(
+        tool not in BUILTIN_TOOLS for tool in payload.tools
+    ):
         raise HTTPException(400, "Unsupported built-in tool")
     catalog = discover_resources(settings.pi_home, settings.pi_cwd)
-    if payload.extensions is not None and any(path not in {item["path"] for item in catalog["extensions"]} for path in payload.extensions):
+    if payload.extensions is not None and any(
+        path not in {item["path"] for item in catalog["extensions"]}
+        for path in payload.extensions
+    ):
         raise HTTPException(400, "Unsupported extension path")
-    if payload.skills is not None and any(path not in {item["path"] for item in catalog["skills"]} for path in payload.skills):
+    if payload.skills is not None and any(
+        path not in {item["path"] for item in catalog["skills"]}
+        for path in payload.skills
+    ):
         raise HTTPException(400, "Unsupported skill path")
-    if payload.mcp_servers is not None and any(name not in {item["id"] for item in catalog["mcp_servers"]} for name in payload.mcp_servers):
+    if payload.mcp_servers is not None and any(
+        name not in {item["id"] for item in catalog["mcp_servers"]}
+        for name in payload.mcp_servers
+    ):
         raise HTTPException(400, "Unsupported MCP server")
     existing = store.get_agent(agent_id)
     if not existing:
         raise HTTPException(404, "Agent not found")
-    _validate_model_selection(payload.provider if "provider" in payload.model_fields_set else existing.get("provider"),
-                              payload.model if "model" in payload.model_fields_set else existing.get("model"), catalog)
-    _validate_thinking_level(payload.thinking_level if "thinking_level" in payload.model_fields_set else existing.get("thinking_level"))
+    _validate_model_selection(
+        payload.provider
+        if "provider" in payload.model_fields_set
+        else existing.get("provider"),
+        payload.model if "model" in payload.model_fields_set else existing.get("model"),
+        catalog,
+    )
+    _validate_thinking_level(
+        payload.thinking_level
+        if "thinking_level" in payload.model_fields_set
+        else existing.get("thinking_level")
+    )
     agent = store.update_agent(agent_id, payload.model_dump(exclude_unset=True))
     if not agent:
         raise HTTPException(404, "Agent not found")
     return agent
 
 
-def _validate_model_selection(provider: str | None, model: str | None, catalog: dict) -> None:
+def _validate_model_selection(
+    provider: str | None, model: str | None, catalog: dict
+) -> None:
     if not provider and not model:
         return
-    selected = next((item for item in catalog["providers"] if item["id"] == provider), None)
+    selected = next(
+        (item for item in catalog["providers"] if item["id"] == provider), None
+    )
     if not selected:
         raise HTTPException(400, "Unsupported provider")
     if not model or model not in {item["id"] for item in selected["models"]}:
@@ -151,7 +191,15 @@ def _validate_model_selection(provider: str | None, model: str | None, catalog: 
 
 
 def _validate_thinking_level(level: str | None) -> None:
-    if level and level not in {"off", "minimal", "low", "medium", "high", "xhigh", "max"}:
+    if level and level not in {
+        "off",
+        "minimal",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+    }:
         raise HTTPException(400, "Unsupported thinking level")
 
 
@@ -215,19 +263,28 @@ async def delete_chat(chat_id: str):
             other_messages = await runtime.messages(other_chat)
         except PiRpcError:
             continue
-        protected_paths.update(item["path"] for item in discover_chat_files(other_messages, settings.pi_cwd))
+        protected_paths.update(
+            item["path"]
+            for item in discover_chat_files(other_messages, settings.pi_cwd)
+        )
     deleted_files = delete_chat_files(messages, settings.pi_cwd, protected_paths)
     deleted_sessions = []
     session_id = chat.get("session_id") or chat_id
     for session_path in settings.pi_session_dir.iterdir():
-        if session_path.is_file() and session_path.name.endswith(f"_{session_id}.jsonl"):
+        if session_path.is_file() and session_path.name.endswith(
+            f"_{session_id}.jsonl"
+        ):
             try:
                 session_path.unlink()
                 deleted_sessions.append(session_path.name)
             except OSError:
                 continue
     store.delete_chat(chat_id)
-    return {"ok": True, "deleted_files": deleted_files, "deleted_sessions": deleted_sessions}
+    return {
+        "ok": True,
+        "deleted_files": deleted_files,
+        "deleted_sessions": deleted_sessions,
+    }
 
 
 @app.get("/api/chats/{chat_id}/messages")
@@ -248,7 +305,9 @@ async def list_chat_files(chat_id: str):
     if not chat:
         raise HTTPException(404, "Chat not found")
     try:
-        return {"files": discover_chat_files(await runtime.messages(chat), settings.pi_cwd)}
+        return {
+            "files": discover_chat_files(await runtime.messages(chat), settings.pi_cwd)
+        }
     except PiRpcError as exc:
         raise HTTPException(503, str(exc)) from exc
 
@@ -273,8 +332,9 @@ async def get_chat_file(chat_id: str, path: str):
 
 
 @app.get("/api/library/files")
-async def list_library_files(search: str = "", agent_id: str | None = None,
-                             page: int = 1, page_size: int = 20):
+async def list_library_files(
+    search: str = "", agent_id: str | None = None, page: int = 1, page_size: int = 20
+):
     page = max(1, page)
     page_size = min(max(1, page_size), 100)
     chats = store.list_chats()
@@ -285,20 +345,40 @@ async def list_library_files(search: str = "", agent_id: str | None = None,
         except PiRpcError:
             return []
         agent = store.get_agent(chat["agent_id"]) or {}
-        return [{**file, "chat_id": chat["id"], "agent_id": chat["agent_id"],
-                 "agent_name": agent.get("name", "unknown agent")} for file in files]
+        return [
+            {
+                **file,
+                "chat_id": chat["id"],
+                "agent_id": chat["agent_id"],
+                "agent_name": agent.get("name", "unknown agent"),
+            }
+            for file in files
+        ]
 
-    files = [file for batch in await asyncio.gather(*(files_for_chat(chat) for chat in chats)) for file in batch]
+    files = [
+        file
+        for batch in await asyncio.gather(*(files_for_chat(chat) for chat in chats))
+        for file in batch
+    ]
     query = search.strip().casefold()
     if agent_id:
         files = [file for file in files if file["agent_id"] == agent_id]
     if query:
-        files = [file for file in files if query in file["name"].casefold() or query in file["path"].casefold()]
+        files = [
+            file
+            for file in files
+            if query in file["name"].casefold() or query in file["path"].casefold()
+        ]
     files.sort(key=lambda file: file["generated_at"], reverse=True)
     total = len(files)
     start = (page - 1) * page_size
-    return {"files": files[start:start + page_size], "total": total,
-            "page": page, "page_size": page_size, "pages": max(1, (total + page_size - 1) // page_size)}
+    return {
+        "files": files[start : start + page_size],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": max(1, (total + page_size - 1) // page_size),
+    }
 
 
 @app.get("/api/chats/{chat_id}/files/download")
@@ -307,12 +387,16 @@ async def download_chat_file(chat_id: str, path: str):
     if not chat:
         raise HTTPException(404, "Chat not found")
     try:
-        file_path = resolve_chat_file(await runtime.messages(chat), settings.pi_cwd, path)
+        file_path = resolve_chat_file(
+            await runtime.messages(chat), settings.pi_cwd, path
+        )
     except PiRpcError as exc:
         raise HTTPException(503, str(exc)) from exc
     if not file_path:
         raise HTTPException(404, "File not found or not generated by this chat")
-    return FileResponse(file_path, filename=file_path.name, media_type="application/octet-stream")
+    return FileResponse(
+        file_path, filename=file_path.name, media_type="application/octet-stream"
+    )
 
 
 @app.post("/api/chats/{chat_id}/messages")
@@ -321,16 +405,27 @@ async def send_message(chat_id: str, payload: MessageCreate):
     if not chat:
         raise HTTPException(404, "Chat not found")
     try:
-        store.update_chat(chat_id, {"status": "running", "title": title_for(payload.content)
-                                    if chat["title"] == "New conversation" else chat["title"]})
+        store.update_chat(
+            chat_id,
+            {
+                "status": "running",
+                "title": title_for(payload.content)
+                if chat["title"] == "New conversation"
+                else chat["title"],
+            },
+        )
+
         async def events():
             text = ""
             tools = []
             final_event = {}
             try:
                 async for event in runtime.stream(
-                    chat, payload.content,
-                    session_name=title_for(payload.content) if chat["title"] == "New conversation" else None,
+                    chat,
+                    payload.content,
+                    session_name=title_for(payload.content)
+                    if chat["title"] == "New conversation"
+                    else None,
                 ):
                     if event["type"] == "delta":
                         text += event["delta"]
@@ -342,12 +437,23 @@ async def send_message(chat_id: str, payload: MessageCreate):
                         final_event = event.get("event", {})
                     yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
                 updated = store.update_chat(chat_id, {"status": "ready"}) or chat
-                turn_messages = visible_messages([message for message in final_event.get("messages", []) if message.get("role") == "assistant"])
+                turn_messages = visible_messages(
+                    [
+                        message
+                        for message in final_event.get("messages", [])
+                        if message.get("role") == "assistant"
+                    ]
+                )
                 yield f"data: {json.dumps({'type': 'complete', 'chat': updated, 'assistant': text, 'tools': tools, 'messages': turn_messages}, ensure_ascii=False)}\n\n"
             except PiRpcError as exc:
                 store.update_chat(chat_id, {"status": "error"})
                 yield f"data: {json.dumps({'type': 'error', 'error': str(exc)}, ensure_ascii=False)}\n\n"
-        return StreamingResponse(events(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+        return StreamingResponse(
+            events(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
     except PiRpcError as exc:
         store.update_chat(chat_id, {"status": "error"})
         raise HTTPException(503, str(exc)) from exc
