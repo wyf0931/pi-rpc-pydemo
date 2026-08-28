@@ -30,6 +30,7 @@ Agents are reusable definitions. The card list is intentionally separate from th
 - Pi-managed session history, addressable at `/chat/<chat-id>`.
 - Markdown rendering for assistant messages, code blocks, tables, lists, thinking, tool calls, and collapsible tool results.
 - Generated-file drawer for Chat sessions, with metadata cards and a new-tab Markdown viewer with Mermaid support.
+- Library page aggregating Agent-created files with Agent filtering, name search, pagination, download, and source-chat links.
 - Agent definitions with instruction, Provider, Model, built-in tool allowlist, extensions, skills, and MCP servers.
 - Read-only discovery of Pi resources from the configured Pi home directory.
 - Light and Dark themes with a DaisyUI `swap swap-rotate` control.
@@ -185,6 +186,8 @@ This MVP is a single FastAPI application with a static frontend. The main endpoi
 | `POST /api/chats/{id}/messages` | Stream a Pi response as server-sent events |
 | `GET /api/chats/{id}/files` | List files written or edited by that Chat |
 | `GET /api/chats/{id}/files/content` | Read an authorized Chat-generated text file |
+| `GET /api/chats/{id}/files/download` | Download an authorized Chat-generated file |
+| `GET /api/library/files` | Search and paginate files created by Agents |
 
 ## Security and sandboxing
 

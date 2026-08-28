@@ -13,7 +13,7 @@
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css" />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260906" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260908" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null">
     <div class="app-shell" :class="{'sidebar-collapsed': sidebarCollapsed}">
@@ -26,7 +26,7 @@
             <button class="menu-item" @click="comingSoon('Autopilots')"><span class="menu-icon">↻</span><span class="menu-label">Autopilots</span></button>
             <button class="menu-item" @click="comingSoon('Projects')"><span class="menu-icon">□</span><span class="menu-label">Projects</span></button>
             <button class="menu-item" @click="comingSoon('Market')"><span class="menu-icon">◇</span><span class="menu-label">Market</span></button>
-            <button class="menu-item" @click="comingSoon('Library')"><span class="menu-icon">▤</span><span class="menu-label">Library</span></button>
+            <button class="menu-item" :class="{active: page === 'library'}" @click="go('library')"><span class="menu-icon">▤</span><span class="menu-label">Library</span></button>
           </nav>
           <div class="history-area"><div class="sidebar-section-heading"><span>Chat history</span><div class="history-actions"><button type="button" class="sidebar-tool expanded-search" @click="showError(new Error('Search is reserved for the next iteration.'))" title="Search chats" aria-label="Search chats">⌕</button><button class="icon-btn" @click="newChat()" title="New chat">+</button></div></div>
           <template x-if="chats.length === 0"><div class="empty-history">Your conversations<br>will appear here.</div></template>
@@ -64,6 +64,13 @@
           </template>
         </section>
 
+        <section class="content-panel library-page" x-show="page === 'library'" x-cloak>
+          <div class="page-heading library-heading"><div><h1>Library</h1><p>Files created by your agents.</p></div></div>
+          <div class="library-filters"><select class="select select-bordered" x-model="libraryAgentFilter" @change="loadLibrary(1)" aria-label="Filter by agent"><option value="">All agents</option><template x-for="agent in agents" :key="agent.id"><option :value="agent.id" x-text="agent.name"></option></template></select><label class="library-search"><span>⌕</span><input class="input" x-model="librarySearch" @input.debounce.300ms="loadLibrary(1)" placeholder="Search files" aria-label="Search files" /></label></div>
+          <div class="library-table-wrap"><template x-if="libraryLoading"><div class="files-empty"><span class="loading loading-dots loading-sm"></span></div></template><template x-if="!libraryLoading && libraryFiles.length === 0"><div class="files-empty">No generated files found</div></template><table class="table library-table" x-show="!libraryLoading && libraryFiles.length"><thead><tr><th>Name</th><th>Agent</th><th>Created</th><th>Actions</th></tr></thead><tbody><template x-for="file in libraryFiles" :key="file.chat_id + ':' + file.path"><tr><td><button class="library-file-name" @click="openLibraryFile(file)"><span class="file-type" x-text="file.extension || 'file'"></span><span><b x-text="file.name"></b><small x-text="file.path + ' · ' + formatBytes(file.size)"></small></span></button></td><td x-text="file.agent_name"></td><td x-text="formatDateTime(file.generated_at)"></td><td><div class="library-actions"><button class="btn btn-sm btn-ghost" @click="openLibraryFile(file)" title="Open file" aria-label="Open file">↗</button><a class="btn btn-sm btn-ghost" :href="downloadUrl(file)" title="Download file" aria-label="Download file">↓</a><button class="btn btn-sm btn-ghost" @click="openLibraryChat(file)" title="View chat" aria-label="View chat">◉</button></div></td></tr></template></tbody></table></div>
+          <div class="library-pagination" x-show="libraryPages > 1"><button class="btn btn-sm btn-ghost" @click="loadLibrary(libraryPage - 1)" :disabled="libraryPage <= 1">Previous</button><span x-text="libraryPage + ' / ' + libraryPages"></span><button class="btn btn-sm btn-ghost" @click="loadLibrary(libraryPage + 1)" :disabled="libraryPage >= libraryPages">Next</button></div>
+        </section>
+
         <section class="content-panel file-view-page" x-show="page === 'file'" x-cloak>
           <template x-if="fileViewer"><div class="file-view-header"><span class="file-view-path" x-text="fileViewer.path"></span><span class="file-view-chat" x-text="fileViewer.chatId"></span></div></template>
           <template x-if="fileViewer"><article class="file-markdown prose max-w-none" :class="{'prose-invert': theme === 'dark'}" x-html="renderMarkdown(fileViewer.content)"></article></template>
@@ -74,7 +81,7 @@
           <div class="agent-grid"><template x-for="agent in agents" :key="agent.id"><div class="agent-card" role="button" tabindex="0" @click="dialog = agent" @keydown.enter="dialog = agent"><div class="card-top"><span class="agent-mark large" x-text="initials(agent.name)"></span><span class="card-status"><span class="status-dot"></span> ready</span></div><h3 x-text="agent.name"></h3><p class="agent-instruction" x-text="agent.instruction"></p><div class="card-bottom"><span class="agent-id" x-text="agent.id.slice(0, 8)"></span><span x-text="chatCount(agent.id) + ' chats' "></span></div><button type="button" class="trash-btn" x-show="!agent.protected" @click.stop="deleteAgent(agent)" title="Delete agent" aria-label="Delete agent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div></template></div>
         </section>
       </main>
-      <aside class="files-drawer" x-show="filesOpen" x-cloak x-transition aria-label="Generated files"><div class="files-drawer-header"><div><h2>Generated files</h2><p x-text="files.length + ' file' + (files.length === 1 ? '' : 's')"></p></div><button type="button" class="icon-btn" @click="filesOpen = false" aria-label="Close files">×</button></div><div class="files-drawer-body"><template x-if="filesLoading"><div class="files-empty"><span class="loading loading-dots loading-sm"></span></div></template><template x-if="!filesLoading && files.length === 0"><div class="files-empty">No generated files</div></template><template x-for="file in files" :key="file.id"><button type="button" class="file-card" @click="openFile(file)"><span class="file-type" x-text="file.extension || 'file'"></span><span class="file-card-copy"><b x-text="file.name"></b><small x-text="file.path"></small><small x-text="formatDate(file.generated_at) + ' · ' + formatBytes(file.size)"></small></span><span class="file-open">↗</span></button></template></div></aside>
+      <aside class="files-drawer" x-show="filesOpen" x-cloak x-transition aria-label="Files"><div class="files-drawer-header"><div><h2>Files</h2><p x-text="files.length + ' file' + (files.length === 1 ? '' : 's')"></p></div><button type="button" class="icon-btn" @click="filesOpen = false" aria-label="Close files">×</button></div><div class="files-drawer-body"><template x-if="filesLoading"><div class="files-empty"><span class="loading loading-dots loading-sm"></span></div></template><template x-if="!filesLoading && files.length === 0"><div class="files-empty">No generated files</div></template><template x-for="file in files" :key="file.id"><button type="button" class="file-card" @click="openFile(file)"><span class="file-type" x-text="file.extension || 'file'"></span><span class="file-card-copy"><b x-text="file.name"></b><small x-text="file.path"></small><small x-text="formatDate(file.generated_at) + ' · ' + formatBytes(file.size)"></small></span><span class="file-open">↗</span></button></template></div></aside>
     </div>
 
     <dialog class="agent-dialog" :open="!!dialog" x-show="dialog" x-cloak @click.self="dialog = null">
@@ -88,6 +95,6 @@
     </dialog>
     <div class="toast" x-show="error" x-text="error" x-cloak></div>
 
-    <script src="/static/app.js?v=20260907"></script>
+    <script src="/static/app.js?v=20260908"></script>
   </body>
 </html>
