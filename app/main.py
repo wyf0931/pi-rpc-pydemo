@@ -1,5 +1,7 @@
 import asyncio
 import json
+import time
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -7,6 +9,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from .autopilots import AutopilotScheduler, next_run_at
 from .config import get_settings
 from .files import delete_chat_files, discover_chat_files, resolve_chat_file
 from .pi_rpc import PiRpcError, PiRuntimeManager
@@ -54,8 +57,33 @@ class MessageCreate(BaseModel):
     content: str = Field(min_length=1, max_length=100000)
 
 
+class AutopilotCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    instruction: str = Field(min_length=1, max_length=10000)
+    agent_id: str
+    cron: str = "0 * * * *"
+    starts_at: str | None = None
+    ends_at: str | None = None
+
+
+class AutopilotUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=80)
+    instruction: str | None = Field(default=None, min_length=1, max_length=10000)
+    agent_id: str | None = None
+    cron: str | None = None
+    starts_at: str | None = None
+    ends_at: str | None = None
+    enabled: bool | None = None
+
+
+@app.on_event("startup")
+async def startup():
+    await scheduler.start()
+
+
 @app.on_event("shutdown")
 async def shutdown():
+    await scheduler.stop()
     await runtime.close()
 
 
@@ -482,6 +510,102 @@ async def abort_chat(chat_id: str):
         raise HTTPException(404, "Chat not found")
     await runtime.abort(chat_id)
     return {"ok": True}
+
+
+def _autopilot_view(item: dict) -> dict:
+    agent = store.get_agent(item["agent_id"]) or {}
+    upcoming = next_run_at(item)
+    return {**item, "agent_name": agent.get("name", "Unknown agent"),
+            "status": "active" if item.get("enabled") else "paused",
+            "next_run_at": upcoming.isoformat() if upcoming else None}
+
+
+async def execute_autopilot(autopilot: dict) -> None:
+    chat = store.create_chat(autopilot["agent_id"], "pending", status="starting")
+    store.update_chat(chat["id"], {"session_id": chat["id"], "title": autopilot["name"]})
+    run = store.create_autopilot_run(autopilot["id"], chat["id"], chat["id"])
+    started = time.monotonic()
+    prompt = f'{autopilot["instruction"].strip()}\n\nCurrent time: {datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")}'
+    try:
+        async for _event in runtime.stream(chat, prompt, session_name=autopilot["name"]):
+            pass
+        store.update_autopilot_run(run["id"], {
+            "status": "success", "finished_at": datetime.now(UTC).isoformat(),
+            "duration_ms": round((time.monotonic() - started) * 1000),
+        })
+        store.update_chat(chat["id"], {"status": "ready"})
+    except (PiRpcError, OSError, TimeoutError) as exc:
+        store.update_autopilot_run(run["id"], {
+            "status": "error", "finished_at": datetime.now(UTC).isoformat(),
+            "duration_ms": round((time.monotonic() - started) * 1000), "error": str(exc),
+        })
+        store.update_chat(chat["id"], {"status": "error"})
+
+
+@app.get("/api/autopilots")
+async def list_autopilots(search: str = "", agent_id: str | None = None):
+    query = search.strip().casefold()
+    items = [_autopilot_view(item) for item in store.list_autopilots()]
+    if agent_id:
+        items = [item for item in items if item["agent_id"] == agent_id]
+    if query:
+        items = [item for item in items if query in item["name"].casefold()]
+    return {"autopilots": items}
+
+
+@app.post("/api/autopilots", status_code=201)
+async def create_autopilot(payload: AutopilotCreate):
+    if not store.get_agent(payload.agent_id):
+        raise HTTPException(404, "Agent not found")
+    if next_run_at({"cron": payload.cron}) is None:
+        raise HTTPException(400, "Invalid cron expression")
+    return _autopilot_view(store.create_autopilot(
+        payload.name, payload.instruction, payload.agent_id, payload.cron,
+        payload.starts_at, payload.ends_at,
+    ))
+
+
+@app.patch("/api/autopilots/{autopilot_id}")
+async def update_autopilot(autopilot_id: str, payload: AutopilotUpdate):
+    current = store.get_autopilot(autopilot_id)
+    if not current:
+        raise HTTPException(404, "Autopilot not found")
+    values = payload.model_dump(exclude_unset=True)
+    if "agent_id" in values and not store.get_agent(values["agent_id"]):
+        raise HTTPException(404, "Agent not found")
+    if "cron" in values and next_run_at({"cron": values["cron"]}) is None:
+        raise HTTPException(400, "Invalid cron expression")
+    return _autopilot_view(store.update_autopilot(autopilot_id, values) or current)
+
+
+@app.delete("/api/autopilots/{autopilot_id}")
+async def delete_autopilot(autopilot_id: str):
+    if not store.delete_autopilot(autopilot_id):
+        raise HTTPException(404, "Autopilot not found")
+    return {"ok": True}
+
+
+@app.post("/api/autopilots/{autopilot_id}/run", status_code=202)
+async def run_autopilot(autopilot_id: str):
+    autopilot = store.get_autopilot(autopilot_id)
+    if not autopilot:
+        raise HTTPException(404, "Autopilot not found")
+    if autopilot_id in scheduler.running:
+        raise HTTPException(409, "Autopilot is already running")
+    store.update_autopilot(autopilot_id, {"last_run_at": datetime.now(UTC).isoformat()})
+    scheduler.running.add(autopilot_id)
+    asyncio.create_task(scheduler._execute(autopilot))
+    return {"ok": True, "status": "queued"}
+
+
+@app.get("/api/autopilots/{autopilot_id}/runs")
+async def list_autopilot_runs(autopilot_id: str):
+    if not store.get_autopilot(autopilot_id):
+        raise HTTPException(404, "Autopilot not found")
+    return {"runs": store.list_autopilot_runs(autopilot_id)}
+
+
+scheduler = AutopilotScheduler(store, execute_autopilot)
 
 
 static_dir = Path(__file__).parent.parent / "static"
