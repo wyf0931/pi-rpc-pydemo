@@ -12,6 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css" />
+    <link rel="stylesheet" href="/static/typography.css?v=20260908" />
     <link rel="stylesheet" href="/static/styles.css?v=20260906" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null">
@@ -65,7 +66,7 @@
 
         <section class="content-panel file-view-page" x-show="page === 'file'" x-cloak>
           <template x-if="fileViewer"><div class="file-view-header"><span class="file-view-path" x-text="fileViewer.path"></span><span class="file-view-chat" x-text="fileViewer.chatId"></span></div></template>
-          <template x-if="fileViewer"><article class="file-markdown markdown-part" x-html="renderMarkdown(fileViewer.content)"></article></template>
+          <template x-if="fileViewer"><article class="file-markdown prose max-w-none" :class="{'prose-invert': theme === 'dark'}" x-html="renderMarkdown(fileViewer.content)"></article></template>
         </section>
 
         <section class="content-panel agents-page" x-show="page === 'agents'" x-cloak>

@@ -4,6 +4,7 @@
 __pycache__/
 .pytest_cache/
 .playwright-cli/
+node_modules/
 data/
 research/
 .superpowers/

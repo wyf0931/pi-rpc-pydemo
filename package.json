@@ -1,0 +1,12 @@
+{
+  "name": "pi-agent-platform-ui",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i frontend/input.css -o static/typography.css --minify"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.12",
+    "@tailwindcss/typography": "^0.5.20",
+    "tailwindcss": "^4.1.12"
+  }
+}

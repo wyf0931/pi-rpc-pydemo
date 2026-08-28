@@ -207,7 +207,14 @@ See [OpenShell sandbox runner proposal](https://github.com/wyf0931/pi-rpc-pydemo
 uv run uvicorn app.main:app --env-file .env --reload
 ```
 
-The page is plain static HTML, JavaScript, and CSS under `static/`; FastAPI serves it together with the API. No frontend build step is required.
+The page is plain static HTML, JavaScript, and CSS under `static/`; FastAPI serves it together with the API. The interactive MVP still runs without a frontend build step, while the file viewer's typography stylesheet is generated with Tailwind CLI:
+
+```bash
+npm install
+npm run build:css
+```
+
+The build uses the official `@tailwindcss/typography` plugin. Keep `static/typography.css` in sync when changing Markdown presentation classes.
 
 Useful commands:
 
