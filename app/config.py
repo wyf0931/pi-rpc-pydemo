@@ -1,6 +1,6 @@
+import os
 from dataclasses import dataclass
 from pathlib import Path
-import os
 
 
 def _env_file_values() -> dict[str, str]:
@@ -51,17 +51,31 @@ def get_settings() -> Settings:
     if mode not in {"development", "production"}:
         mode = "production"
     thinking_level = (value("PI_THINKING_LEVEL", "low") or "low").lower()
-    if thinking_level not in {"off", "minimal", "low", "medium", "high", "xhigh", "max"}:
+    if thinking_level not in {
+        "off",
+        "minimal",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+    }:
         thinking_level = "low"
     return Settings(
         data_dir=data_dir,
         pi_cli_path=value("PI_CLI_PATH", "pi") or "pi",
-        pi_session_dir=Path(value("PI_SESSION_DIR", str(data_dir / "pi-sessions")) or str(data_dir / "pi-sessions")),
+        pi_session_dir=Path(
+            value("PI_SESSION_DIR", str(data_dir / "pi-sessions"))
+            or str(data_dir / "pi-sessions")
+        ),
         pi_cwd=Path(value("PI_CWD", str(Path.cwd())) or str(Path.cwd())),
         pi_provider=value("PI_PROVIDER") or None,
         pi_model=value("PI_MODEL") or None,
         pi_tools=value("PI_TOOLS") or None,
-        pi_home=Path(value("PI_HOME", str(Path.home() / ".pi" / "agent")) or str(Path.home() / ".pi" / "agent")).expanduser(),
+        pi_home=Path(
+            value("PI_HOME", str(Path.home() / ".pi" / "agent"))
+            or str(Path.home() / ".pi" / "agent")
+        ).expanduser(),
         pi_default_tools=_csv(value("PI_DEFAULT_TOOLS")),
         pi_default_extensions=_csv(value("PI_DEFAULT_EXTENSIONS")),
         pi_default_skills=_csv(value("PI_DEFAULT_SKILLS")),
