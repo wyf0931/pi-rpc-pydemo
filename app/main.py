@@ -273,9 +273,7 @@ async def create_chat(payload: ChatCreate):
         raise HTTPException(404, "Agent not found")
     # Pi accepts an externally supplied session id. The platform chat id is a UUID
     # and is therefore also a valid Pi session id.
-    chat = store.create_chat(payload.agent_id, "pending", status="created")
-    store.update_chat(chat["id"], {"session_id": chat["id"], "status": "created"})
-    return store.get_chat(chat["id"]) or chat
+    return store.create_chat(payload.agent_id, status="created")
 
 
 @app.get("/api/chats/{chat_id}")
@@ -521,8 +519,7 @@ def _autopilot_view(item: dict) -> dict:
 
 
 async def execute_autopilot(autopilot: dict) -> None:
-    chat = store.create_chat(autopilot["agent_id"], "pending", status="starting")
-    store.update_chat(chat["id"], {"session_id": chat["id"], "title": autopilot["name"]})
+    chat = store.create_autopilot_chat(autopilot["agent_id"], autopilot["name"])
     run = store.create_autopilot_run(autopilot["id"], chat["id"], chat["id"])
     started = time.monotonic()
     prompt = f'{autopilot["instruction"].strip()}\n\nCurrent time: {datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")}'
@@ -534,6 +531,14 @@ async def execute_autopilot(autopilot: dict) -> None:
             "duration_ms": round((time.monotonic() - started) * 1000),
         })
         store.update_chat(chat["id"], {"status": "ready"})
+    except asyncio.CancelledError:
+        store.update_autopilot_run(run["id"], {
+            "status": "cancelled", "finished_at": datetime.now(UTC).isoformat(),
+            "duration_ms": round((time.monotonic() - started) * 1000),
+            "error": "Application stopped before the run completed",
+        })
+        store.update_chat(chat["id"], {"status": "stopped"})
+        raise
     except (PiRpcError, OSError, TimeoutError) as exc:
         store.update_autopilot_run(run["id"], {
             "status": "error", "finished_at": datetime.now(UTC).isoformat(),
