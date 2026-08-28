@@ -110,6 +110,8 @@ class PiRpcClient:
                 assistant_event = event.get("assistantMessageEvent", {})
                 if assistant_event.get("type") == "text_delta":
                     yield {"type": "delta", "delta": assistant_event.get("delta", "")}
+                elif assistant_event.get("type") == "thinking_delta":
+                    yield {"type": "thinking_delta", "delta": assistant_event.get("delta", "")}
             elif event_type == "message_end":
                 message = event.get("message", {})
                 if message.get("role") == "assistant":
