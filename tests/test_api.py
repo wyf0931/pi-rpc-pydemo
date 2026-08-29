@@ -56,3 +56,10 @@ def test_delete_empty_chat_does_not_start_pi(client):
     response = client.delete(f"/api/chats/{chat['id']}")
     assert response.status_code == 200
     assert client.get(f"/api/chats/{chat['id']}").status_code == 404
+
+
+def test_empty_chat_is_hidden_from_history(client):
+    agent_id = client.get("/api/agents").json()["agents"][0]["id"]
+    chat = client.post("/api/chats", json={"agent_id": agent_id}).json()
+    assert all(item["id"] != chat["id"] for item in client.get("/api/chats").json()["chats"])
+    assert client.get(f"/api/chats/{chat['id']}").status_code == 404
