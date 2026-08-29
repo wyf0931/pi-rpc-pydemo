@@ -290,6 +290,14 @@ async def delete_chat(chat_id: str):
     if not chat:
         raise HTTPException(404, "Chat not found")
     await runtime.close_chat(chat_id)
+    session_id = chat.get("session_id") or chat_id
+    session_paths = [
+        path for path in settings.pi_session_dir.iterdir()
+        if path.is_file() and path.name.endswith(f"_{session_id}.jsonl")
+    ]
+    if not session_paths:
+        store.delete_chat(chat_id)
+        return {"ok": True, "deleted_files": [], "deleted_sessions": []}
     messages: list[dict] = []
     try:
         messages = await runtime.messages(chat)
@@ -309,16 +317,12 @@ async def delete_chat(chat_id: str):
         )
     deleted_files = delete_chat_files(messages, settings.pi_cwd, protected_paths)
     deleted_sessions = []
-    session_id = chat.get("session_id") or chat_id
-    for session_path in settings.pi_session_dir.iterdir():
-        if session_path.is_file() and session_path.name.endswith(
-            f"_{session_id}.jsonl"
-        ):
-            try:
-                session_path.unlink()
-                deleted_sessions.append(session_path.name)
-            except OSError:
-                continue
+    for session_path in session_paths:
+        try:
+            session_path.unlink()
+            deleted_sessions.append(session_path.name)
+        except OSError:
+            continue
     store.delete_chat(chat_id)
     return {
         "ok": True,
