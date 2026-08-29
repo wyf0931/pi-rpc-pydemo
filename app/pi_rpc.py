@@ -137,6 +137,7 @@ class PiRpcClient:
             elif event_type == "message_end":
                 end_message = event.get("message", {})
                 if end_message.get("role") == "assistant":
+                    yield {"type": "assistant_message_end", "message": end_message}
                     final_text = "".join(
                         part.get("text", "")
                         for part in end_message.get("content", [])

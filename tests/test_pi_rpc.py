@@ -1,6 +1,7 @@
+import asyncio
 from types import SimpleNamespace
 
-from app.pi_rpc import PiRuntimeManager
+from app.pi_rpc import PiRpcClient, PiRuntimeManager
 
 
 def test_agent_provider_and_model_override_global_defaults():
@@ -67,3 +68,31 @@ def test_container_maps_host_pi_home_resource_paths():
 
     assert "/home/node/.pi/agent/npm/node_modules/pi-mcp-adapter/index.ts" in command
     assert "/home/node/.pi/agent/skills/human-writing" in command
+
+
+def test_stream_prompt_emits_assistant_message_boundaries():
+    client = PiRpcClient(["pi"], ".")
+    events = [
+        {"type": "message_update", "assistantMessageEvent": {"type": "thinking_delta", "delta": "first"}},
+        {"type": "message_end", "message": {"role": "assistant", "content": [{"type": "thinking", "thinking": "first"}], "stopReason": "toolUse"}},
+        {"type": "message_update", "assistantMessageEvent": {"type": "thinking_delta", "delta": "second"}},
+        {"type": "message_end", "message": {"role": "assistant", "content": [{"type": "text", "text": "answer"}], "stopReason": "stop"}},
+        {"type": "agent_end", "messages": []},
+        {"type": "agent_settled"},
+    ]
+
+    async def fake_request(_command, **_payload):
+        return {"success": True}
+
+    client.request = fake_request
+    client.events = asyncio.Queue()
+
+    async def collect():
+        for event in events:
+            await client.events.put(event)
+        return [event async for event in client.stream_prompt("hello")]
+
+    streamed = asyncio.run(collect())
+    assert [event["type"] for event in streamed].count("assistant_message_end") == 2
+    assert [event["delta"] for event in streamed if event["type"] == "thinking_delta"] == ["first", "second"]
+    assert [event["text"] for event in streamed if event["type"] == "final"] == ["", "answer"]
