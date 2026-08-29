@@ -25,6 +25,11 @@ runtime = PiRuntimeManager(settings, store)
 app = FastAPI(title="Pi Agent Platform")
 
 
+def _has_session_file(chat: dict) -> bool:
+    session_id = chat.get("session_id") or chat.get("id")
+    return any(settings.pi_session_dir.glob(f"*_{session_id}.jsonl"))
+
+
 class AgentCreate(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     instruction: str = Field(min_length=1, max_length=10000)
@@ -263,7 +268,9 @@ def visible_messages(messages: list[dict], mode: str = "production") -> list[dic
 
 @app.get("/api/chats")
 async def list_chats():
-    return {"chats": store.list_chats()}
+    chats = [chat for chat in store.list_chats()
+             if chat.get("title") != "New conversation" or _has_session_file(chat)]
+    return {"chats": chats}
 
 
 @app.post("/api/chats", status_code=201)
@@ -281,6 +288,8 @@ async def get_chat(chat_id: str):
     chat = store.get_chat(chat_id)
     if not chat:
         raise HTTPException(404, "Chat not found")
+    if chat.get("title") == "New conversation" and not _has_session_file(chat):
+        raise HTTPException(404, "Chat has not started")
     return chat
 
 
