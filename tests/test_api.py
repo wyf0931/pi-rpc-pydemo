@@ -48,3 +48,11 @@ def test_autopilot_crud(client):
     assert updated.status_code == 200 and updated.json()["status"] == "active"
     assert client.get(f"/api/autopilots/{autopilot_id}/runs").json()["runs"] == []
     assert client.delete(f"/api/autopilots/{autopilot_id}").status_code == 200
+
+
+def test_delete_empty_chat_does_not_start_pi(client):
+    agent_id = client.get("/api/agents").json()["agents"][0]["id"]
+    chat = client.post("/api/chats", json={"agent_id": agent_id}).json()
+    response = client.delete(f"/api/chats/{chat['id']}")
+    assert response.status_code == 200
+    assert client.get(f"/api/chats/{chat['id']}").status_code == 404
