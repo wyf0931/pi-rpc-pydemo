@@ -147,6 +147,41 @@ Run the test suite:
 uv run pytest -q
 ```
 
+### Production deployment (studio.ohmyagent.ai)
+
+The production host (`tx-oma-app`) follows a release-directory layout, with all
+persistent state outside the releases:
+
+```text
+/opt/apps/oma-studio/
+├── .env.ops                          stable env + secrets (shared by releases)
+├── bin/deploy.sh                     server-side deploy script (synced from repo)
+├── bin/docker-compose.override.yml   loopback-only port + PI_HOME mount
+├── releases/<UTCts>-<sha>/           git clone of the deployed commit
+│   ├── .env -> ../../.env.ops
+│   └── docker-compose.override.yml -> ../../bin/docker-compose.override.yml
+├── current -> releases/<latest healthy release>
+└── shared/                           oma/{data,workspace}, pi-home/agent
+```
+
+Continuous deployment is wired in `.github/workflows/ci.yml`: a push to `main`
+runs lint/type/tests first, then the `deploy` job syncs `bin/deploy-server.sh`
+to the server and deploys the exact pushed SHA (NGINX terminates HTTPS for
+`studio.ohmyagent.ai` and proxies to a loopback-bound container). Add
+`[skip deploy]` to a commit message to ship without deploying. Required repo
+secrets: `OMA_DEPLOY_KEY` (deploy-only SSH private key), `OMA_DEPLOY_HOST`,
+`OMA_DEPLOY_USER`, `OMA_DEPLOY_KNOWN_HOSTS`.
+
+Manual deploy / rollback:
+
+```bash
+ssh tx-oma-app /opt/apps/oma-studio/bin/deploy.sh main
+# rollback: point current back and restart
+ssh tx-oma-app 'ln -sfn /opt/apps/oma-studio/releases/<previous> \
+  /opt/apps/oma-studio/current && \
+  cd /opt/apps/oma-studio/current && docker compose up -d'
+```
+
 ## Configuration
 
 Create `.env` from the example and adjust paths for your machine:
