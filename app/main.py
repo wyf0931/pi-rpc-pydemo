@@ -11,7 +11,12 @@ from pydantic import BaseModel, Field
 
 from .autopilots import AutopilotScheduler, next_run_at
 from .config import get_settings
-from .files import delete_chat_files, discover_chat_files, discover_session_files, resolve_chat_file
+from .files import (
+    delete_chat_files,
+    discover_chat_files,
+    discover_session_files,
+    resolve_chat_file,
+)
 from .pi_rpc import PiRpcError, PiRuntimeManager
 from .resources import discover_resources
 from .store import SUPPORTED_TOOLS, Store, now_iso

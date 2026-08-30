@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 EXTENSION = Path(__file__).parents[1] / "extensions" / "oma-web-tools.ts"
 
 
