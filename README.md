@@ -170,7 +170,11 @@ to the server and deploys the exact pushed SHA (NGINX terminates HTTPS for
 `studio.ohmyagent.ai` and proxies to a loopback-bound container). Add
 `[skip deploy]` to a commit message to ship without deploying. Required repo
 secrets: `OMA_DEPLOY_KEY` (deploy-only SSH private key), `OMA_DEPLOY_HOST`,
-`OMA_DEPLOY_USER`, `OMA_DEPLOY_KNOWN_HOSTS`.
+`OMA_DEPLOY_USER`, `OMA_DEPLOY_KNOWN_HOSTS`, and `OMA_SMOKE_BASIC_AUTH`
+(credentials for the post-deploy smoke check). Until the platform ships its
+own user auth, NGINX fronts the site with HTTP Basic Auth
+(`/etc/nginx/.htpasswd-oma-studio` on the server); the smoke check and browser
+access both go through it.
 
 Manual deploy / rollback:
 
