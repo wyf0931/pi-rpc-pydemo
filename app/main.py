@@ -25,6 +25,22 @@ runtime = PiRuntimeManager(settings, store)
 app = FastAPI(title="Pi Agent Platform")
 
 
+def pi_terminal_failure(messages: list[dict]) -> str | None:
+    """Return a user-facing error when Pi ends a turn without an answer."""
+    for message in reversed(messages):
+        if message.get("role") != "assistant":
+            continue
+        reason = message.get("stopReason")
+        if reason not in {"aborted", "error"}:
+            return None
+        return message.get("errorMessage") or (
+            "The agent turn was aborted before a final answer was generated."
+            if reason == "aborted"
+            else "The agent turn failed before a final answer was generated."
+        )
+    return None
+
+
 def _has_session_file(chat: dict) -> bool:
     session_id = chat.get("session_id") or chat.get("id")
     return any(settings.pi_session_dir.glob(f"*_{session_id}.jsonl"))
@@ -492,6 +508,11 @@ async def send_message(chat_id: str, payload: MessageCreate, mode: str = "produc
                     elif event["type"] == "done":
                         final_event = event.get("event", {})
                     yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+                failure = pi_terminal_failure(final_event.get("messages", []))
+                if failure:
+                    updated = store.update_chat(chat_id, {"status": "error"}) or chat
+                    yield f"data: {json.dumps({'type': 'error', 'error': failure, 'chat': updated}, ensure_ascii=False)}\n\n"
+                    return
                 updated = store.update_chat(chat_id, {"status": "ready"}) or chat
                 turn_messages = visible_messages(
                     [
