@@ -1,5 +1,19 @@
 from uuid import uuid4
 
+from app.main import pi_terminal_failure
+
+
+def test_pi_terminal_failure_distinguishes_failed_and_successful_turns():
+    assert pi_terminal_failure([
+        {"role": "assistant", "stopReason": "error", "errorMessage": "upstream failed"}
+    ]) == "upstream failed"
+    assert pi_terminal_failure([
+        {"role": "assistant", "stopReason": "aborted", "errorMessage": "Request aborted"}
+    ]) == "Request aborted"
+    assert pi_terminal_failure([
+        {"role": "assistant", "stopReason": "stop", "content": [{"type": "text", "text": "done"}]}
+    ]) is None
+
 
 def test_health_and_agents(client):
     assert client.get("/api/health").json()["ok"] is True
