@@ -43,11 +43,7 @@ const webSearchTool = defineTool({
   async execute(_toolCallId, params, signal) {
     const apiKey = process.env.BAIDU_SEARCH_API_KEY?.trim();
     if (!apiKey) throw new Error("BAIDU_SEARCH_API_KEY is not configured");
-    const configuredBaseUrl = process.env.BAIDU_SEARCH_BASE_URL?.trim();
-    // Keep old local .env files usable after moving from Qiniu to Qianfan.
-    const baseUrl = (configuredBaseUrl && !configuredBaseUrl.includes("api.qnaigc.com")
-      ? configuredBaseUrl
-      : DEFAULT_SEARCH_BASE_URL).replace(/\/+$/, "");
+    const baseUrl = (process.env.BAIDU_SEARCH_BASE_URL?.trim() || DEFAULT_SEARCH_BASE_URL).replace(/\/+$/, "");
     const query = params.query.trim().slice(0, MAX_SEARCH_QUERY_CHARS);
     const response = await fetchWithTimeout(`${baseUrl}/v2/ai_search/web_search`, {
       method: "POST",
