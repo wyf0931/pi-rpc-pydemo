@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 from .autopilots import AutopilotScheduler, next_run_at
 from .config import get_settings
-from .files import delete_chat_files, discover_chat_files, resolve_chat_file
+from .files import delete_chat_files, discover_chat_files, discover_session_files, resolve_chat_file
 from .pi_rpc import PiRpcError, PiRuntimeManager
 from .resources import discover_resources
 from .store import SUPPORTED_TOOLS, Store
@@ -364,6 +364,8 @@ async def get_messages(chat_id: str, mode: str = "production"):
     if chat["status"] == "created":
         # No prompt yet: no Pi session exists for this chat.
         return {"messages": []}
+    if not _has_session_file(chat):
+        raise HTTPException(404, "Pi session not found for this chat")
     try:
         return {"messages": visible_messages(await runtime.messages(chat), mode)}
     except PiRpcError as exc:
@@ -376,6 +378,8 @@ async def list_chat_files(chat_id: str):
     chat = store.get_chat(chat_id)
     if not chat:
         raise HTTPException(404, "Chat not found")
+    if not _has_session_file(chat):
+        return {"files": []}
     try:
         return {
             "files": discover_chat_files(await runtime.messages(chat), settings.pi_cwd)
@@ -389,6 +393,8 @@ async def get_chat_file(chat_id: str, path: str):
     chat = store.get_chat(chat_id)
     if not chat:
         raise HTTPException(404, "Chat not found")
+    if not _has_session_file(chat):
+        raise HTTPException(404, "Pi session not found for this chat")
     try:
         messages = await runtime.messages(chat)
         file_path = resolve_chat_file(messages, settings.pi_cwd, path)
@@ -411,11 +417,12 @@ async def list_library_files(
     page_size = min(max(1, page_size), 100)
     chats = store.list_chats()
 
-    async def files_for_chat(chat: dict) -> list[dict]:
-        try:
-            files = discover_chat_files(await runtime.messages(chat), settings.pi_cwd)
-        except PiRpcError:
+    def files_for_chat(chat: dict) -> list[dict]:
+        session_id = chat.get("session_id") or chat["id"]
+        session_paths = list(settings.pi_session_dir.glob(f"*_{session_id}.jsonl"))
+        if not session_paths:
             return []
+        files = discover_session_files(session_paths[0], settings.pi_cwd)
         agent = store.get_agent(chat["agent_id"]) or {}
         return [
             {
@@ -427,11 +434,7 @@ async def list_library_files(
             for file in files
         ]
 
-    files = [
-        file
-        for batch in await asyncio.gather(*(files_for_chat(chat) for chat in chats))
-        for file in batch
-    ]
+    files = [file for chat in chats for file in files_for_chat(chat)]
     query = search.strip().casefold()
     if agent_id:
         files = [file for file in files if file["agent_id"] == agent_id]
