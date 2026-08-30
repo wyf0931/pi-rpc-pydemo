@@ -14,7 +14,7 @@ from .config import get_settings
 from .files import delete_chat_files, discover_chat_files, resolve_chat_file
 from .pi_rpc import PiRpcError, PiRuntimeManager
 from .resources import discover_resources
-from .store import SUPPORTED_TOOLS, Store
+from .store import SUPPORTED_TOOLS, Store, now_iso
 
 settings = get_settings()
 settings.data_dir.mkdir(parents=True, exist_ok=True)
@@ -465,6 +465,7 @@ async def send_message(chat_id: str, payload: MessageCreate, mode: str = "produc
             chat_id,
             {
                 "status": "running",
+                "last_activity_at": now_iso(),
                 "title": title_for(payload.content)
                 if chat["title"] == "New conversation"
                 else chat["title"],
@@ -542,6 +543,8 @@ async def execute_autopilot(autopilot: dict) -> None:
     try:
         async for _event in runtime.stream(chat, prompt, session_name=autopilot["name"]):
             pass
+        # Autopilot output is real activity: surface the chat in the sidebar.
+        store.update_chat(chat["id"], {"last_activity_at": now_iso()})
         store.update_autopilot_run(run["id"], {
             "status": "success", "finished_at": datetime.now(UTC).isoformat(),
             "duration_ms": round((time.monotonic() - started) * 1000),

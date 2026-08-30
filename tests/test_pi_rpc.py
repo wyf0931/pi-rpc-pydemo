@@ -84,7 +84,7 @@ def test_stream_prompt_emits_assistant_message_boundaries():
     async def fake_request(_command, **_payload):
         return {"success": True}
 
-    client.request = fake_request
+    client.request = fake_request  # type: ignore[method-assign]
     client.events = asyncio.Queue()
 
     async def collect():

@@ -136,9 +136,10 @@ class Store:
         return self.update_chat(chat["id"], {"title": title}) or chat
 
     def update_chat(self, chat_id: str, values: dict) -> dict | None:
+        # updated_at tracks any metadata touch; last_activity_at is the sidebar
+        # ordering key and is only bumped when a caller passes it explicitly
+        # (real user/autopilot activity), so reading history never reorders.
         values = {**values, "updated_at": now_iso()}
-        if "last_activity_at" not in values:
-            values["last_activity_at"] = values["updated_at"]
         if self.chats.update(values, Query().id == chat_id):
             return self.get_chat(chat_id)
         return None
