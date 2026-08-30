@@ -87,5 +87,5 @@ def get_settings() -> Settings:
         pi_thinking_level=thinking_level,
         jina_api_key=value("JINA_API_KEY") or None,
         baidu_search_api_key=value("BAIDU_SEARCH_API_KEY") or None,
-        baidu_search_base_url=value("BAIDU_SEARCH_BASE_URL", "https://api.qnaigc.com/v1") or "https://api.qnaigc.com/v1",
+        baidu_search_base_url=value("BAIDU_SEARCH_BASE_URL", "https://qianfan.baidubce.com") or "https://qianfan.baidubce.com",
     )

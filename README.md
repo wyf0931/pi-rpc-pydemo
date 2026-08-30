@@ -161,7 +161,7 @@ PI_PROVIDER=deepseek
 PI_MODE=production
 JINA_API_KEY=
 BAIDU_SEARCH_API_KEY=
-BAIDU_SEARCH_BASE_URL=https://api.qnaigc.com/v1
+BAIDU_SEARCH_BASE_URL=https://qianfan.baidubce.com
 ```
 
 `PI_CWD` is Pi's working directory. It is **not** a filesystem security boundary: Pi can access anything available to the operating-system user when tools such as `bash` are enabled.
@@ -203,9 +203,9 @@ OMA Studio also provides two platform tools through `extensions/oma-web-tools.ts
 | Tool | Purpose |
 | --- | --- |
 | `web_fetch` | Fetch a URL as readable Markdown through Jina Reader |
-| `web_search` | Search the web through the Qiniu Baidu Search API |
+| `web_search` | Search the web through the Baidu Qianfan Search API |
 
-Set `JINA_API_KEY` and `BAIDU_SEARCH_API_KEY` in `.env` when enabling the corresponding tools. In development mode, their tool calls and results are retained in the chat transcript; production mode keeps the quieter process view.
+Set `JINA_API_KEY` and `BAIDU_SEARCH_API_KEY` in `.env` when enabling the corresponding tools. `BAIDU_SEARCH_BASE_URL` defaults to `https://qianfan.baidubce.com`. In development mode, their tool calls and results are retained in the chat transcript; production mode keeps the quieter process view.
 
 If the `pi-mcp-adapter` extension is selected, its `mcp` and `mcpScript` tools are added to the Pi allowlist so enabled MCP servers can be called.
 
