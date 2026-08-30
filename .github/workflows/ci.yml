@@ -26,3 +26,50 @@ jobs:
 
       - name: Test (pytest)
         run: uv run pytest -q
+
+  # Production deploy: push to main, after lint-and-test passes. Deploying the
+  # exact pushed SHA avoids racing a newer commit onto the server. Skip with
+  # '[skip deploy]' in the commit message.
+  deploy:
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      !contains(github.event.head_commit.message, '[skip deploy]')
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    env:
+      OMA_DEPLOY_HOST: ${{ secrets.OMA_DEPLOY_HOST }}
+      OMA_DEPLOY_USER: ${{ secrets.OMA_DEPLOY_USER }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.OMA_DEPLOY_KEY }}" > ~/.ssh/oma_deploy_key
+          chmod 600 ~/.ssh/oma_deploy_key
+          echo "${{ secrets.OMA_DEPLOY_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Sync deploy script to server
+        run: |
+          target="$OMA_DEPLOY_USER@$OMA_DEPLOY_HOST"
+          remote=/opt/apps/oma-studio/bin/deploy.sh
+          scp -q -i ~/.ssh/oma_deploy_key -o IdentitiesOnly=yes \
+            bin/deploy-server.sh "$target:$remote"
+
+      - name: Deploy ${{ github.sha }}
+        run: |
+          target="$OMA_DEPLOY_USER@$OMA_DEPLOY_HOST"
+          remote=/opt/apps/oma-studio/bin/deploy.sh
+          ssh -i ~/.ssh/oma_deploy_key -o IdentitiesOnly=yes \
+            "$target" "$remote" '${{ github.sha }}'
+
+      - name: Smoke check production
+        run: |
+          curl -fsS --max-time 15 https://studio.ohmyagent.ai/api/health

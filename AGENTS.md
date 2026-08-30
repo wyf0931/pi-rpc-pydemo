@@ -147,8 +147,10 @@ green light from the user.
    do not push to `origin`, even if everything is green.
 5. **After user confirmation:** merge the feature branch into `main`
    (`git merge --no-ff <branch>` unless the user asks otherwise), run the test suite
-   once more on `main`, then push: `git push origin main`. This push is the deploy step
-   for this project — there is no separate pipeline.
+   once more on `main`, then push: `git push origin main`. The push is the deploy step:
+   GitHub Actions (`.github/workflows/ci.yml`) runs lint/type/tests and, on success,
+   auto-deploys the pushed SHA to `tx-oma-app` (see README "Production deployment").
+   Add `[skip deploy]` to the merge commit message to skip the deploy.
 6. **`main` stays deployable.** Never push a state that doesn't pass tests, never
    force-push `main`, and never push feature branches to `origin` unless asked.
 
