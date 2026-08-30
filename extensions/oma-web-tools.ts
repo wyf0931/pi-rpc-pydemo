@@ -1,10 +1,11 @@
 import { Type } from "@earendil-works/pi-ai";
 import { defineTool, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-const DEFAULT_SEARCH_BASE_URL = "https://api.qnaigc.com/v1";
+const DEFAULT_SEARCH_BASE_URL = "https://qianfan.baidubce.com";
 const DEFAULT_TIMEOUT_MS = 30_000;
 const MAX_FETCH_CHARS = 120_000;
 const MAX_SEARCH_RESULTS = 20;
+const MAX_SEARCH_QUERY_CHARS = 72;
 
 const webFetchTool = defineTool({
   name: "web_fetch",
@@ -33,7 +34,7 @@ const webFetchTool = defineTool({
 const webSearchTool = defineTool({
   name: "web_search",
   label: "Web Search",
-  description: "Search the web using the configured Qiniu Baidu search API and return Markdown results.",
+  description: "Search the web using Baidu Qianfan Search and return Markdown results.",
   promptSnippet: "web_search: search the web for current or source-backed information.",
   parameters: Type.Object({
     query: Type.String({ description: "Search keywords or a phrase." }),
@@ -42,14 +43,28 @@ const webSearchTool = defineTool({
   async execute(_toolCallId, params, signal) {
     const apiKey = process.env.BAIDU_SEARCH_API_KEY?.trim();
     if (!apiKey) throw new Error("BAIDU_SEARCH_API_KEY is not configured");
-    const baseUrl = (process.env.BAIDU_SEARCH_BASE_URL?.trim() || DEFAULT_SEARCH_BASE_URL).replace(/\/+$/, "");
-    const response = await fetchWithTimeout(`${baseUrl}/search/web`, {
+    const configuredBaseUrl = process.env.BAIDU_SEARCH_BASE_URL?.trim();
+    // Keep old local .env files usable after moving from Qiniu to Qianfan.
+    const baseUrl = (configuredBaseUrl && !configuredBaseUrl.includes("api.qnaigc.com")
+      ? configuredBaseUrl
+      : DEFAULT_SEARCH_BASE_URL).replace(/\/+$/, "");
+    const query = params.query.trim().slice(0, MAX_SEARCH_QUERY_CHARS);
+    const response = await fetchWithTimeout(`${baseUrl}/v2/ai_search/web_search`, {
       method: "POST",
       headers: { accept: "application/json", authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-      body: JSON.stringify({ query: params.query, max_results: params.max_results ?? 10, search_type: "web" }),
+      body: JSON.stringify({
+        messages: [{ role: "user", content: query }],
+        search_source: "baidu_search_v2",
+        resource_type_filter: [{ type: "web", top_k: params.max_results ?? 10 }],
+      }),
       signal,
     });
-    return { content: [{ type: "text", text: formatSearchResults(response.json, params.query) }], details: { query: params.query } };
+    const payload = asRecord(response.json);
+    if (payload?.code) throw new Error(`Baidu Search ${payload.code}: ${textValue(payload.message) || "request failed"}`);
+    return {
+      content: [{ type: "text", text: formatSearchResults(response.json, query) }],
+      details: { query, requestId: textValue(payload?.request_id) || textValue(payload?.requestId) },
+    };
   },
 });
 
@@ -92,15 +107,14 @@ function normalizeUrl(value: string): string {
 
 function formatSearchResults(value: unknown, query: string): string {
   const root = asRecord(value);
-  const payload = asRecord(root?.data) ?? root;
-  const rows = Array.isArray(payload?.results) ? payload.results : [];
+  const rows = Array.isArray(root?.references) ? root.references : [];
   const lines = [`# Web Search: ${query}`, ""];
   for (const [index, row] of rows.entries()) {
     const item = asRecord(row);
     if (!item) continue;
     const title = textValue(item.title) || "(untitled)";
     const url = textValue(item.url);
-    const snippet = textValue(item.content) || textValue(item.snippet) || textValue(item.description);
+    const snippet = textValue(item.snippet) || textValue(item.content) || textValue(item.web_anchor);
     lines.push(`${index + 1}. **${title}**`, snippet, url, "");
   }
   return rows.length ? lines.join("\n") : `No web results found for '${query}'.`;
