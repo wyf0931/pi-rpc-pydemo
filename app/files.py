@@ -1,3 +1,4 @@
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -54,6 +55,29 @@ def discover_chat_files(messages: list[dict], workspace: Path) -> list[dict]:
                 "extension": resolved.suffix.lower().lstrip("."),
             }
     return sorted(files.values(), key=lambda item: item["generated_at"], reverse=True)
+
+
+def read_session_messages(session_path: Path) -> list[dict]:
+    """Read message records directly from a Pi JSONL session transcript."""
+    messages: list[dict] = []
+    try:
+        lines = session_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return messages
+    for line in lines:
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        message = record.get("message")
+        if isinstance(message, dict):
+            messages.append(message)
+    return messages
+
+
+def discover_session_files(session_path: Path, workspace: Path) -> list[dict]:
+    """Discover generated files without starting Pi or invoking RPC."""
+    return discover_chat_files(read_session_messages(session_path), workspace)
 
 
 def resolve_chat_file(
