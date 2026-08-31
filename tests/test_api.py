@@ -86,6 +86,28 @@ def test_resources_expose_platform_web_tools(client):
     assert tools["web_search"]["source"] == "platform"
 
 
+def test_market_skill_search(client, monkeypatch):
+    async def fake_search(query, owner=None):
+        assert query == "python"
+        assert owner == "acme"
+        return [
+            {
+                "repo": "acme/skills",
+                "skill": "python",
+                "installs": "1K",
+                "url": "https://skills.sh/acme/skills/python",
+            }
+        ]
+
+    monkeypatch.setattr("app.main.search_skills", fake_search)
+    response = client.post(
+        "/api/market/skills/search",
+        json={"query": "python", "owner": "acme"},
+    )
+    assert response.status_code == 200
+    assert response.json()["results"][0]["skill"] == "python"
+
+
 def test_create_agent_and_missing_chat(client, temporary_agent):
     response = temporary_agent(
         {"name": f"writer-{uuid4()}", "instruction": "Write clearly"}

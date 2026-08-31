@@ -20,6 +20,7 @@ from .files import (
     read_session_messages,
     resolve_chat_file,
 )
+from .market import search_skills
 from .pi_rpc import ActiveTurn, PiRpcError, PiRuntimeManager
 from .resources import discover_resources
 from .store import (
@@ -77,6 +78,11 @@ class ChatCreate(BaseModel):
 
 class MessageCreate(BaseModel):
     content: str = Field(min_length=1, max_length=100000)
+
+
+class SkillSearch(BaseModel):
+    query: str = Field(min_length=1, max_length=200)
+    owner: str | None = Field(default=None, max_length=100)
 
 
 class AutopilotCreate(BaseModel):
@@ -146,6 +152,21 @@ async def list_resources():
     catalog["mode"] = settings.mode
     catalog["default_thinking_level"] = settings.pi_thinking_level
     return catalog
+
+
+@app.post("/api/market/skills/search")
+async def market_skill_search(payload: SkillSearch):
+    query = payload.query.strip()
+    owner = payload.owner.strip() if payload.owner else None
+    if not query:
+        raise HTTPException(422, "Search query is required")
+    try:
+        results = await search_skills(query, owner)
+    except TimeoutError as exc:
+        raise HTTPException(504, str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(502, f"skills search failed: {exc}") from exc
+    return {"results": results}
 
 
 @app.post("/api/agents", status_code=201)
