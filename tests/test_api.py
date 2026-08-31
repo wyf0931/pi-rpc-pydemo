@@ -4,23 +4,64 @@ from app.main import pi_terminal_failure, visible_messages
 
 
 def test_pi_terminal_failure_distinguishes_failed_and_successful_turns():
-    assert pi_terminal_failure([
-        {"role": "assistant", "stopReason": "error", "errorMessage": "upstream failed"}
-    ]) == "upstream failed"
-    assert pi_terminal_failure([
-        {"role": "assistant", "stopReason": "aborted", "errorMessage": "Request aborted"}
-    ]) == "Request aborted"
-    assert pi_terminal_failure([
-        {"role": "assistant", "stopReason": "stop", "content": [{"type": "text", "text": "done"}]}
-    ]) is None
+    assert (
+        pi_terminal_failure(
+            [
+                {
+                    "role": "assistant",
+                    "stopReason": "error",
+                    "errorMessage": "upstream failed",
+                }
+            ]
+        )
+        == "upstream failed"
+    )
+    assert (
+        pi_terminal_failure(
+            [
+                {
+                    "role": "assistant",
+                    "stopReason": "aborted",
+                    "errorMessage": "Request aborted",
+                }
+            ]
+        )
+        == "Request aborted"
+    )
+    assert (
+        pi_terminal_failure(
+            [
+                {
+                    "role": "assistant",
+                    "stopReason": "stop",
+                    "content": [{"type": "text", "text": "done"}],
+                }
+            ]
+        )
+        is None
+    )
 
 
 def test_visible_messages_attaches_web_results_to_calls():
     messages = [
-        {"role": "assistant", "timestamp": "2026-08-30T00:00:00Z", "content": [{
-            "type": "toolCall", "id": "call-1", "name": "web_search", "arguments": {"query": "news"}
-        }]},
-        {"role": "toolResult", "toolCallId": "call-1", "toolName": "web_search", "content": [{"type": "text", "text": "# Web Search: news"}]},
+        {
+            "role": "assistant",
+            "timestamp": "2026-08-30T00:00:00Z",
+            "content": [
+                {
+                    "type": "toolCall",
+                    "id": "call-1",
+                    "name": "web_search",
+                    "arguments": {"query": "news"},
+                }
+            ],
+        },
+        {
+            "role": "toolResult",
+            "toolCallId": "call-1",
+            "toolName": "web_search",
+            "content": [{"type": "text", "text": "# Web Search: news"}],
+        },
     ]
 
     visible = visible_messages(messages)
@@ -38,7 +79,9 @@ def test_health_and_agents(client):
 
 
 def test_resources_expose_platform_web_tools(client):
-    tools = {item["name"]: item for item in client.get("/api/resources").json()["tools"]}
+    tools = {
+        item["name"]: item for item in client.get("/api/resources").json()["tools"]
+    }
     assert tools["web_fetch"]["source"] == "platform"
     assert tools["web_search"]["source"] == "platform"
 
@@ -64,15 +107,21 @@ def test_fresh_chat_messages_are_empty(client):
 
 def test_autopilot_crud(client):
     agent_id = client.get("/api/agents").json()["agents"][0]["id"]
-    created = client.post("/api/autopilots", json={
-        "name": "Daily brief",
-        "instruction": "Summarize the day",
-        "agent_id": agent_id,
-        "cron": "0 9 * * *",
-    })
+    created = client.post(
+        "/api/autopilots",
+        json={
+            "name": "Daily brief",
+            "instruction": "Summarize the day",
+            "agent_id": agent_id,
+            "cron": "0 9 * * *",
+        },
+    )
     assert created.status_code == 201
     autopilot_id = created.json()["id"]
-    assert client.get("/api/autopilots?search=daily").json()["autopilots"][0]["name"] == "Daily brief"
+    assert (
+        client.get("/api/autopilots?search=daily").json()["autopilots"][0]["name"]
+        == "Daily brief"
+    )
     updated = client.patch(f"/api/autopilots/{autopilot_id}", json={"enabled": True})
     assert updated.status_code == 200 and updated.json()["status"] == "active"
     assert client.get(f"/api/autopilots/{autopilot_id}/runs").json()["runs"] == []
@@ -90,7 +139,9 @@ def test_delete_empty_chat_does_not_start_pi(client):
 def test_empty_chat_is_hidden_from_history(client):
     agent_id = client.get("/api/agents").json()["agents"][0]["id"]
     chat = client.post("/api/chats", json={"agent_id": agent_id}).json()
-    assert all(item["id"] != chat["id"] for item in client.get("/api/chats").json()["chats"])
+    assert all(
+        item["id"] != chat["id"] for item in client.get("/api/chats").json()["chats"]
+    )
     assert client.get(f"/api/chats/{chat['id']}").status_code == 404
 
 

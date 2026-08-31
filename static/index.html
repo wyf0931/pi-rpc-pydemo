@@ -4,131 +4,1736 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>pi studio</title>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/daisyui@5"
+      rel="stylesheet"
+      type="text/css"
+    />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+    ></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
+    />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260930" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260831" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null">
-    <div class="app-shell" :class="{'sidebar-collapsed': sidebarCollapsed, 'mobile-sidebar-open': mobileSidebarOpen}">
+    <div
+      class="app-shell"
+      :class="{'sidebar-collapsed': sidebarCollapsed, 'mobile-sidebar-open': mobileSidebarOpen}"
+    >
       <main class="workspace">
-        <div class="mobile-topbar"><button type="button" class="btn btn-ghost btn-circle" @click="toggleMobileSidebar()" aria-label="Open chat history">☰</button><a class="mobile-brand" href="#" @click.prevent="newChat()"><img src="/static/oma-logo-light.png" alt="OMA studio" /><span>OMA studio</span></a><button type="button" class="btn btn-ghost btn-circle" @click="newChat()" aria-label="New chat">＋</button></div>
+        <div class="mobile-topbar">
+          <button
+            type="button"
+            class="btn btn-ghost btn-circle"
+            @click="toggleMobileSidebar()"
+            aria-label="Open chat history"
+          >
+            ☰</button
+          ><a class="mobile-brand" href="#" @click.prevent="newChat()"
+            ><img src="/static/oma-logo-light.png" alt="OMA studio" /><span
+              >OMA studio</span
+            ></a
+          ><button
+            type="button"
+            class="btn btn-ghost btn-circle"
+            @click="newChat()"
+            aria-label="New chat"
+          >
+            ＋
+          </button>
+        </div>
         <aside class="history-panel">
-          <div class="sidebar-top"><a class="brand" href="#" @click.prevent="brandClick()"><img src="/static/oma-logo-light.png" alt="OhMyAgent logo" /><span>OMA studio</span></a><div class="sidebar-tools"><button type="button" class="sidebar-tool" @click="sidebarCollapsed = !sidebarCollapsed" :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'" :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"><span x-text="sidebarCollapsed ? '›' : '‹'"></span></button></div></div>
+          <div class="sidebar-top">
+            <a class="brand" href="#" @click.prevent="brandClick()"
+              ><img
+                src="/static/oma-logo-light.png"
+                alt="OhMyAgent logo"
+              /><span>OMA studio</span></a
+            >
+            <div class="sidebar-tools">
+              <button
+                type="button"
+                class="sidebar-tool"
+                @click="sidebarCollapsed = !sidebarCollapsed"
+                :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+                :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+              >
+                <span x-text="sidebarCollapsed ? '›' : '‹'"></span>
+              </button>
+            </div>
+          </div>
           <nav class="sidebar-menu" aria-label="Workspace navigation">
-            <button class="new-chat menu-item primary-menu" :class="{active: page === 'chat' && !activeChat}" @click="newChat()"><span class="menu-icon"><svg class="menu-svg" viewBox="0 0 42 42" aria-hidden="true"><path d="M6.5625 7H30.625V9.40625H7.65625V32.5938H32.5938V21H35V33.6875C35 34.4124 34.4124 35 33.6875 35H6.5625C5.83763 35 5.25 34.4124 5.25 33.6875V8.3125C5.25 7.58763 5.83763 7 6.5625 7Z"></path><path d="M36.187 8.438L37.8885 10.1395L21.778 26.25H20.125V24.5L36.187 8.438Z"></path></svg></span><span class="menu-label">New chat</span></button>
-            <button class="menu-item" :class="{active: page === 'agents'}" @click="go('agents')"><span class="menu-icon"><svg class="menu-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></span><span class="menu-label">Agents</span></button>
-            <button class="menu-item" :class="{active: page === 'autopilots'}" @click="go('autopilots')"><span class="menu-icon"><svg class="menu-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2"></path><path d="M5 3 2 6"></path><path d="m22 6-3-3"></path><path d="M6.38 18.7 4 21"></path><path d="M17.64 18.67 20 21"></path></svg></span><span class="menu-label">Autopilots</span></button>
-            <button class="menu-item" @click="comingSoon('Market')"><span class="menu-icon"><svg class="menu-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"></path><path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 1-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"></path><path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"></path></svg></span><span class="menu-label">Market</span></button>
-            <button class="menu-item" :class="{active: page === 'library'}" @click="go('library')"><span class="menu-icon"><svg class="menu-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"></path><path d="M4 5v14a2 2 0 0 0 2 2"></path><path d="M8 7h7M8 11h7M8 15h5"></path></svg></span><span class="menu-label">Library</span></button>
+            <button
+              class="new-chat menu-item primary-menu"
+              :class="{active: page === 'chat' && !activeChat}"
+              @click="newChat()"
+            >
+              <span class="menu-icon"
+                ><svg class="menu-svg" viewBox="0 0 42 42" aria-hidden="true">
+                  <path
+                    d="M6.5625 7H30.625V9.40625H7.65625V32.5938H32.5938V21H35V33.6875C35 34.4124 34.4124 35 33.6875 35H6.5625C5.83763 35 5.25 34.4124 5.25 33.6875V8.3125C5.25 7.58763 5.83763 7 6.5625 7Z"
+                  ></path>
+                  <path
+                    d="M36.187 8.438L37.8885 10.1395L21.778 26.25H20.125V24.5L36.187 8.438Z"
+                  ></path></svg></span
+              ><span class="menu-label">New chat</span>
+            </button>
+            <button
+              class="menu-item"
+              :class="{active: page === 'agents'}"
+              @click="go('agents')"
+            >
+              <span class="menu-icon"
+                ><svg class="menu-svg" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 8V4H8"></path>
+                  <rect width="16" height="12" x="4" y="8" rx="2"></rect>
+                  <path d="M2 14h2"></path>
+                  <path d="M20 14h2"></path>
+                  <path d="M15 13v2"></path>
+                  <path d="M9 13v2"></path></svg></span
+              ><span class="menu-label">Agents</span>
+            </button>
+            <button
+              class="menu-item"
+              :class="{active: page === 'autopilots'}"
+              @click="go('autopilots')"
+            >
+              <span class="menu-icon"
+                ><svg class="menu-svg" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="13" r="8"></circle>
+                  <path d="M12 9v4l2 2"></path>
+                  <path d="M5 3 2 6"></path>
+                  <path d="m22 6-3-3"></path>
+                  <path d="M6.38 18.7 4 21"></path>
+                  <path d="M17.64 18.67 20 21"></path></svg></span
+              ><span class="menu-label">Autopilots</span>
+            </button>
+            <button class="menu-item" @click="comingSoon('Market')">
+              <span class="menu-icon"
+                ><svg class="menu-svg" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"></path>
+                  <path
+                    d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 1-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"
+                  ></path>
+                  <path
+                    d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"
+                  ></path></svg></span
+              ><span class="menu-label">Market</span>
+            </button>
+            <button
+              class="menu-item"
+              :class="{active: page === 'library'}"
+              @click="go('library')"
+            >
+              <span class="menu-icon"
+                ><svg class="menu-svg" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"></path>
+                  <path d="M4 5v14a2 2 0 0 0 2 2"></path>
+                  <path d="M8 7h7M8 11h7M8 15h5"></path></svg></span
+              ><span class="menu-label">Library</span>
+            </button>
           </nav>
-          <div class="history-area"><div class="sidebar-section-heading"><span>Chat history</span><div class="history-actions"><button type="button" class="sidebar-tool expanded-search" @click="openChatSearch()" title="Search chats" aria-label="Search chats">⌕</button><button class="icon-btn" @click="newChat()" title="New chat">+</button></div></div>
-          <template x-if="chats.length === 0"><div class="empty-history">Your conversations<br>will appear here.</div></template>
-          <div class="history-list">
-            <template x-for="chat in chats" :key="chat.id">
-              <div class="history-item" :class="{selected: activeChat?.id === chat.id}" @click="openChat(chat); mobileSidebarOpen = false" @keydown.enter="openChat(chat); mobileSidebarOpen = false" tabindex="0" role="button">
-                <span class="history-title" x-text="chat.title"></span>
-                <span class="history-meta"><span x-text="agentName(chat.agent_id)"></span><span x-text="relativeTime(chat.last_activity_at)"></span></span>
-                <button type="button" class="history-trash" @click.stop="deleteChat(chat)" title="Delete chat" aria-label="Delete chat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
+          <div class="history-area">
+            <div class="sidebar-section-heading">
+              <span>Chat history</span>
+              <div class="history-actions">
+                <button
+                  type="button"
+                  class="sidebar-tool expanded-search"
+                  @click="openChatSearch()"
+                  title="Search chats"
+                  aria-label="Search chats"
+                >
+                  ⌕</button
+                ><button class="icon-btn" @click="newChat()" title="New chat">
+                  +
+                </button>
               </div>
-            </template>
-          </div></div>
-          <div class="sidebar-footer"><label class="swap swap-rotate theme-toggle" title="Toggle theme"><input type="checkbox" class="theme-controller" :checked="theme === 'dark'" @change="toggleTheme()" aria-label="Toggle dark mode" /><svg class="swap-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2m0 14v2M5.64 5.64l1.42 1.42m9.9 9.9 1.4 1.4M3 12h2m14 0h2M5.64 18.36l1.42-1.42m9.9-9.9 1.4-1.4M17.5 12a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0Z"/></svg><svg class="swap-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg></label><button type="button" class="theme-toggle settings-trigger" title="Settings" aria-label="Settings" @click="openSettings()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1a1.7 1.7 0 0 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 0 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9h-.2a1.7 1.7 0 0 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 0 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2v-.2a1.7 1.7 0 0 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 0 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z"/></svg></button><div class="sandbox-status"><span class="status-dot"></span><span>connected</span></div></div>
-        </aside><button type="button" class="mobile-sidebar-overlay" @click="mobileSidebarOpen = false" aria-label="Close chat history"></button>
+            </div>
+            <template x-if="chats.length === 0"
+              ><div class="empty-history">
+                Your conversations<br />will appear here.
+              </div></template
+            >
+            <div class="history-list">
+              <template x-for="chat in chats" :key="chat.id">
+                <div
+                  class="history-item"
+                  :class="{selected: activeChat?.id === chat.id}"
+                  @click="openChat(chat); mobileSidebarOpen = false"
+                  @keydown.enter="openChat(chat); mobileSidebarOpen = false"
+                  tabindex="0"
+                  role="button"
+                >
+                  <span class="history-title" x-text="chat.title"></span>
+                  <span class="history-meta"
+                    ><span x-text="agentName(chat.agent_id)"></span
+                    ><span x-text="relativeTime(chat.last_activity_at)"></span
+                  ></span>
+                  <button
+                    type="button"
+                    class="history-trash"
+                    @click.stop="deleteChat(chat)"
+                    title="Delete chat"
+                    aria-label="Delete chat"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </template>
+            </div>
+          </div>
+          <div class="sidebar-footer">
+            <label class="swap swap-rotate theme-toggle" title="Toggle theme"
+              ><input
+                type="checkbox"
+                class="theme-controller"
+                :checked="theme === 'dark'"
+                @change="toggleTheme()"
+                aria-label="Toggle dark mode" /><svg
+                class="swap-off"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  d="M12 3v2m0 14v2M5.64 5.64l1.42 1.42m9.9 9.9 1.4 1.4M3 12h2m14 0h2M5.64 18.36l1.42-1.42m9.9-9.9 1.4-1.4M17.5 12a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0Z"
+                /></svg
+              ><svg class="swap-on" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"
+                /></svg></label
+            ><button
+              type="button"
+              class="theme-toggle settings-trigger"
+              title="Settings"
+              aria-label="Settings"
+              @click="openSettings()"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" />
+                <path
+                  d="m19.4 15 .1.1a1.7 1.7 0 0 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 0 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9h-.2a1.7 1.7 0 0 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 0 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2v-.2a1.7 1.7 0 0 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 0 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z"
+                />
+              </svg>
+            </button>
+            <div class="sandbox-status">
+              <span class="status-dot"></span><span>connected</span>
+            </div>
+          </div>
+        </aside>
+        <button
+          type="button"
+          class="mobile-sidebar-overlay"
+          @click="mobileSidebarOpen = false"
+          aria-label="Close chat history"
+        ></button>
 
         <section class="content-panel" x-show="page === 'chat'" x-cloak>
-          <aside class="files-drawer link-drawer" x-show="linkDrawerOpen" x-cloak x-transition aria-label="Web results"><div class="files-drawer-header"><div><h2 x-text="linkDrawerTitle"></h2><p x-text="linkDrawerItems.length + ' page' + (linkDrawerItems.length === 1 ? '' : 's')"></p></div><button type="button" class="icon-btn" @click="linkDrawerOpen = false" aria-label="Close web results">×</button></div><div class="files-drawer-body"><template x-for="item in linkDrawerItems" :key="item.url"><a class="web-result-card" :href="item.url" target="_blank" rel="noopener noreferrer"><template x-if="item.favicon"><img class="web-result-favicon" :src="item.favicon" alt="" loading="lazy"></template><span class="web-result-copy"><b x-text="item.title"></b><small x-text="item.url"></small><small x-show="item.date" x-text="item.date"></small><span x-show="item.snippet" x-text="item.snippet"></span></span><span class="file-open">↗</span></a></template></div></aside>
+          <aside
+            class="files-drawer link-drawer"
+            x-show="linkDrawerOpen"
+            x-cloak
+            x-transition
+            aria-label="Web results"
+          >
+            <div class="files-drawer-header">
+              <div>
+                <h2 x-text="linkDrawerTitle"></h2>
+                <p
+                  x-text="linkDrawerItems.length + ' page' + (linkDrawerItems.length === 1 ? '' : 's')"
+                ></p>
+              </div>
+              <button
+                type="button"
+                class="icon-btn"
+                @click="linkDrawerOpen = false"
+                aria-label="Close web results"
+              >
+                ×
+              </button>
+            </div>
+            <div class="files-drawer-body">
+              <template x-for="item in linkDrawerItems" :key="item.url"
+                ><a
+                  class="web-result-card"
+                  :href="item.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  ><template x-if="item.favicon"
+                    ><img
+                      class="web-result-favicon"
+                      :src="item.favicon"
+                      alt=""
+                      loading="lazy" /></template
+                  ><span class="web-result-copy"
+                    ><b x-text="item.title"></b><small x-text="item.url"></small
+                    ><small x-show="item.date" x-text="item.date"></small
+                    ><span
+                      x-show="item.snippet"
+                      x-text="item.snippet"
+                    ></span></span
+                  ><span class="file-open">↗</span></a
+                ></template
+              >
+            </div>
+          </aside>
           <template x-if="!activeChat">
             <div class="chat-empty">
               <h1>Stay hungry. Stay foolish.</h1>
               <div class="start-grid">
                 <div class="start-card">
-                  <textarea id="new-chat-message" name="message" rows="3" class="textarea textarea-bordered start-input" x-model="draft" @input="resizeStartInput($event)" @keydown.enter.meta.prevent="sendFirst()" placeholder="What would you like to explore?"></textarea>
-                  <div class="start-composer-foot"><div class="agent-picker" @click.outside="agentPickerOpen = false"><button type="button" class="agent-picker-button" @click="agentPickerOpen = !agentPickerOpen" aria-haspopup="listbox" :aria-expanded="agentPickerOpen"><span class="agent-avatar" x-text="initials(agentName(selectedAgentId))"></span><span x-text="agentName(selectedAgentId)"></span><span class="picker-chevron">⌄</span></button><div class="agent-picker-menu" x-show="agentPickerOpen" x-cloak role="listbox"><template x-for="agent in agents" :key="agent.id"><button type="button" role="option" class="agent-picker-option" :aria-selected="selectedAgentId === agent.id" @click="chooseAgent(agent.id)"><span class="agent-avatar" x-text="initials(agent.name)"></span><span><b x-text="agent.name"></b><small x-text="agent.instruction"></small></span></button></template></div></div><button class="icon-send" @click="sendFirst()" :disabled="!draft.trim() || !selectedAgentId || loading" title="Start chat" aria-label="Start chat">↗</button></div>
+                  <textarea
+                    id="new-chat-message"
+                    name="message"
+                    rows="3"
+                    class="textarea textarea-bordered start-input"
+                    x-model="draft"
+                    @input="resizeStartInput($event)"
+                    @keydown.enter.meta.prevent="sendFirst()"
+                    placeholder="What would you like to explore?"
+                  ></textarea>
+                  <div class="start-composer-foot">
+                    <div
+                      class="agent-picker"
+                      @click.outside="agentPickerOpen = false"
+                    >
+                      <button
+                        type="button"
+                        class="agent-picker-button"
+                        @click="agentPickerOpen = !agentPickerOpen"
+                        aria-haspopup="listbox"
+                        :aria-expanded="agentPickerOpen"
+                      >
+                        <span
+                          class="agent-avatar"
+                          x-text="initials(agentName(selectedAgentId))"
+                        ></span
+                        ><span x-text="agentName(selectedAgentId)"></span
+                        ><span class="picker-chevron">⌄</span>
+                      </button>
+                      <div
+                        class="agent-picker-menu"
+                        x-show="agentPickerOpen"
+                        x-cloak
+                        role="listbox"
+                      >
+                        <template x-for="agent in agents" :key="agent.id"
+                          ><button
+                            type="button"
+                            role="option"
+                            class="agent-picker-option"
+                            :aria-selected="selectedAgentId === agent.id"
+                            @click="chooseAgent(agent.id)"
+                          >
+                            <span
+                              class="agent-avatar"
+                              x-text="initials(agent.name)"
+                            ></span
+                            ><span
+                              ><b x-text="agent.name"></b
+                              ><small x-text="agent.instruction"></small
+                            ></span></button
+                        ></template>
+                      </div>
+                    </div>
+                    <button
+                      class="icon-send"
+                      @click="sendFirst()"
+                      :disabled="!draft.trim() || !selectedAgentId || loading"
+                      title="Start chat"
+                      aria-label="Start chat"
+                    >
+                      ↗
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </template>
           <template x-if="activeChat">
             <div class="conversation">
-              <div class="conversation-toolbar"><button type="button" class="icon-btn files-toggle" @click="toggleFiles()" title="Generated files" aria-label="Generated files">▤</button></div>
-              <div class="message-list" x-ref="messages"><template x-if="runError"><div class="alert alert-error mb-4" role="alert"><span x-text="runError"></span></div></template><template x-if="messagesLoading"><div class="loading-skeleton"><span></span><span></span><span></span></div></template>
-                <template x-for="message in messages" :key="message._key"><article class="message" :class="message.role" x-show="messageVisible(message)"><div class="message-label" x-text="message.role === 'assistant' ? agentName(activeChat.agent_id) : message.role"></div><div class="message-body" x-html="renderMessage(message)"></div></article></template>
+              <div class="conversation-toolbar">
+                <button
+                  type="button"
+                  class="icon-btn files-toggle"
+                  @click="toggleFiles()"
+                  title="Generated files"
+                  aria-label="Generated files"
+                >
+                  ▤
+                </button>
               </div>
-              <div class="composer"><textarea id="conversation-message" name="message" class="textarea textarea-bordered" x-model="draft" @keydown.enter.meta.prevent="sendMessage()" :disabled="loading" placeholder="Message this agent…"></textarea><button class="icon-send conversation-send" @click="loading ? abort() : sendMessage()" :class="{abort: loading}" :disabled="!loading && !draft.trim()" :title="loading ? 'Abort' : 'Send'" :aria-label="loading ? 'Abort' : 'Send'"><span x-text="loading ? '×' : '↗'"></span></button></div>
+              <div class="message-list" x-ref="messages">
+                <template x-if="runError"
+                  ><div class="alert alert-error mb-4" role="alert">
+                    <span x-text="runError"></span></div></template
+                ><template x-if="messagesLoading"
+                  ><div class="loading-skeleton">
+                    <span></span><span></span><span></span></div
+                ></template>
+                <template x-for="message in messages" :key="message._key"
+                  ><article
+                    class="message"
+                    :class="message.role"
+                    x-show="messageVisible(message)"
+                  >
+                    <div
+                      class="message-label"
+                      x-text="message.role === 'assistant' ? agentName(activeChat.agent_id) : message.role"
+                    ></div>
+                    <div
+                      class="message-body"
+                      x-html="renderMessage(message)"
+                    ></div></article
+                ></template>
+              </div>
+              <div class="composer">
+                <textarea
+                  id="conversation-message"
+                  name="message"
+                  class="textarea textarea-bordered"
+                  x-model="draft"
+                  @keydown.enter.meta.prevent="sendMessage()"
+                  :disabled="loading"
+                  placeholder="Message this agent…"
+                ></textarea
+                ><button
+                  class="icon-send conversation-send"
+                  @click="loading ? abort() : sendMessage()"
+                  :class="{abort: loading}"
+                  :disabled="!loading && !draft.trim()"
+                  :title="loading ? 'Abort' : 'Send'"
+                  :aria-label="loading ? 'Abort' : 'Send'"
+                >
+                  <span x-text="loading ? '×' : '↗'"></span>
+                </button>
+              </div>
             </div>
           </template>
         </section>
 
-        <section class="content-panel library-page" x-show="page === 'library'" x-cloak>
-          <div class="page-heading library-heading"><div><h1>Library</h1><p>Files created by your agents.</p></div></div>
-          <div class="library-filters"><select class="select select-bordered" x-model="libraryAgentFilter" @change="loadLibrary(1)" aria-label="Filter by agent"><option value="">All agents</option><template x-for="agent in agents" :key="agent.id"><option :value="agent.id" x-text="agent.name"></option></template></select><label class="library-search"><span>⌕</span><input class="input" x-model="librarySearch" @input.debounce.300ms="loadLibrary(1)" placeholder="Search files" aria-label="Search files" /></label></div>
-          <div class="library-table-wrap"><template x-if="libraryLoading"><div class="files-empty"><span class="loading loading-dots loading-sm"></span></div></template><template x-if="!libraryLoading && libraryFiles.length === 0"><div class="files-empty">No generated files found</div></template><table class="table library-table" x-show="!libraryLoading && libraryFiles.length"><thead><tr><th>Name</th><th>Agent</th><th>Created</th><th>Actions</th></tr></thead><tbody><template x-for="file in libraryFiles" :key="file.chat_id + ':' + file.path"><tr><td><button class="library-file-name" @click="openLibraryFile(file)"><span class="file-type" x-text="file.extension || 'file'"></span><span><b x-text="file.name"></b><small x-text="file.path + ' · ' + formatBytes(file.size)"></small></span></button></td><td x-text="file.agent_name"></td><td x-text="formatDateTime(file.generated_at)"></td><td><div class="library-actions"><button class="btn btn-sm btn-ghost" @click="openLibraryFile(file)" title="Open file" aria-label="Open file">↗</button><a class="btn btn-sm btn-ghost" :href="downloadUrl(file)" title="Download file" aria-label="Download file">↓</a><button class="btn btn-sm btn-ghost" @click="openLibraryChat(file)" title="View chat" aria-label="View chat">◉</button></div></td></tr></template></tbody></table></div>
-          <div class="library-pagination" x-show="libraryPages > 1"><button class="btn btn-sm btn-ghost" @click="loadLibrary(libraryPage - 1)" :disabled="libraryPage <= 1">Previous</button><span x-text="libraryPage + ' / ' + libraryPages"></span><button class="btn btn-sm btn-ghost" @click="loadLibrary(libraryPage + 1)" :disabled="libraryPage >= libraryPages">Next</button></div>
+        <section
+          class="content-panel library-page"
+          x-show="page === 'library'"
+          x-cloak
+        >
+          <div class="page-heading library-heading">
+            <div>
+              <h1>Library</h1>
+              <p>Files created by your agents.</p>
+            </div>
+          </div>
+          <div class="library-filters">
+            <select
+              class="select select-bordered"
+              x-model="libraryAgentFilter"
+              @change="loadLibrary(1)"
+              aria-label="Filter by agent"
+            >
+              <option value="">All agents</option>
+              <template x-for="agent in agents" :key="agent.id"
+                ><option :value="agent.id" x-text="agent.name"></option
+              ></template></select
+            ><label class="library-search"
+              ><span>⌕</span
+              ><input
+                class="input"
+                x-model="librarySearch"
+                @input.debounce.300ms="loadLibrary(1)"
+                placeholder="Search files"
+                aria-label="Search files"
+            /></label>
+          </div>
+          <div class="library-table-wrap">
+            <template x-if="libraryLoading"
+              ><div class="files-empty">
+                <span
+                  class="loading loading-dots loading-sm"
+                ></span></div></template
+            ><template x-if="!libraryLoading && libraryFiles.length === 0"
+              ><div class="files-empty">No generated files found</div></template
+            >
+            <table
+              class="table library-table"
+              x-show="!libraryLoading && libraryFiles.length"
+            >
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Agent</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template
+                  x-for="file in libraryFiles"
+                  :key="file.chat_id + ':' + file.path"
+                  ><tr>
+                    <td>
+                      <button
+                        class="library-file-name"
+                        @click="openLibraryFile(file)"
+                      >
+                        <span
+                          class="file-type"
+                          x-text="file.extension || 'file'"
+                        ></span
+                        ><span
+                          ><b x-text="file.name"></b
+                          ><small
+                            x-text="file.path + ' · ' + formatBytes(file.size)"
+                          ></small
+                        ></span>
+                      </button>
+                    </td>
+                    <td x-text="file.agent_name"></td>
+                    <td x-text="formatDateTime(file.generated_at)"></td>
+                    <td>
+                      <div class="library-actions">
+                        <button
+                          class="btn btn-sm btn-ghost"
+                          @click="openLibraryFile(file)"
+                          title="Open file"
+                          aria-label="Open file"
+                        >
+                          ↗</button
+                        ><a
+                          class="btn btn-sm btn-ghost"
+                          :href="downloadUrl(file)"
+                          title="Download file"
+                          aria-label="Download file"
+                          >↓</a
+                        ><button
+                          class="btn btn-sm btn-ghost"
+                          @click="openLibraryChat(file)"
+                          title="View chat"
+                          aria-label="View chat"
+                        >
+                          ◉
+                        </button>
+                      </div>
+                    </td>
+                  </tr></template
+                >
+              </tbody>
+            </table>
+          </div>
+          <div class="library-pagination" x-show="libraryPages > 1">
+            <button
+              class="btn btn-sm btn-ghost"
+              @click="loadLibrary(libraryPage - 1)"
+              :disabled="libraryPage <= 1"
+            >
+              Previous</button
+            ><span x-text="libraryPage + ' / ' + libraryPages"></span
+            ><button
+              class="btn btn-sm btn-ghost"
+              @click="loadLibrary(libraryPage + 1)"
+              :disabled="libraryPage >= libraryPages"
+            >
+              Next
+            </button>
+          </div>
         </section>
 
-        <section class="content-panel file-view-page" x-show="page === 'file'" x-cloak>
-          <template x-if="fileViewer"><div class="file-view-header"><span class="file-view-path" x-text="fileViewer.path"></span><span class="file-view-chat" x-text="fileViewer.chatId"></span></div></template>
-          <template x-if="fileViewer"><article class="file-markdown prose max-w-none" :class="{'prose-invert': theme === 'dark'}" x-html="renderMarkdown(fileViewer.content)"></article></template>
+        <section
+          class="content-panel file-view-page"
+          x-show="page === 'file'"
+          x-cloak
+        >
+          <template x-if="fileViewer"
+            ><div class="file-view-header">
+              <span class="file-view-path" x-text="fileViewer.path"></span
+              ><span
+                class="file-view-chat"
+                x-text="fileViewer.chatId"
+              ></span></div
+          ></template>
+          <template x-if="fileViewer"
+            ><article
+              class="file-markdown prose max-w-none"
+              :class="{'prose-invert': theme === 'dark'}"
+              x-html="renderMarkdown(fileViewer.content)"
+            ></article
+          ></template>
         </section>
 
-        <section class="content-panel agents-page" x-show="page === 'agents'" x-cloak>
-          <div class="page-heading"><div><h1>Agents</h1><p>Define the minds available to your conversations.</p></div><button class="send-btn" @click="newAgent()">+ New</button></div>
-          <div class="agent-grid"><template x-for="agent in agents" :key="agent.id"><div class="agent-card" role="button" tabindex="0" @click="dialog = agent" @keydown.enter="dialog = agent"><div class="card-top"><span class="agent-mark large" x-text="initials(agent.name)"></span><span class="card-status"><span class="status-dot"></span> ready</span></div><h3 x-text="agent.name"></h3><p class="agent-instruction" x-text="agent.instruction"></p><div class="card-bottom"><span x-text="chatCount(agent.id) + ' chats' "></span></div><button type="button" class="trash-btn" x-show="!agent.protected" @click.stop="deleteAgent(agent)" title="Delete agent" aria-label="Delete agent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div></template></div>
+        <section
+          class="content-panel agents-page"
+          x-show="page === 'agents'"
+          x-cloak
+        >
+          <div class="page-heading">
+            <div>
+              <h1>Agents</h1>
+              <p>Define the minds available to your conversations.</p>
+            </div>
+            <button class="send-btn" @click="newAgent()">+ New</button>
+          </div>
+          <div class="agent-grid">
+            <template x-for="agent in agents" :key="agent.id"
+              ><div
+                class="agent-card"
+                role="button"
+                tabindex="0"
+                @click="dialog = agent"
+                @keydown.enter="dialog = agent"
+              >
+                <div class="card-top">
+                  <span
+                    class="agent-mark large"
+                    x-text="initials(agent.name)"
+                  ></span
+                  ><span class="card-status"
+                    ><span class="status-dot"></span> ready</span
+                  >
+                </div>
+                <h3 x-text="agent.name"></h3>
+                <p class="agent-instruction" x-text="agent.instruction"></p>
+                <div class="card-bottom">
+                  <span x-text="chatCount(agent.id) + ' chats' "></span>
+                </div>
+                <button
+                  type="button"
+                  class="trash-btn"
+                  x-show="!agent.protected"
+                  @click.stop="deleteAgent(agent)"
+                  title="Delete agent"
+                  aria-label="Delete agent"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"
+                    />
+                  </svg>
+                </button></div
+            ></template>
+          </div>
         </section>
-        <section class="content-panel autopilots-page" x-show="page === 'autopilots'" x-cloak>
-          <div class="page-heading"><div><h1>Autopilots</h1><p>Run an agent instruction on a schedule.</p></div><button class="send-btn" @click="newAutopilot()">+ New</button></div>
-          <div class="autopilot-filters"><label class="library-search"><span>⌕</span><input class="input" x-model="autopilotSearch" @input.debounce.300ms="loadAutopilots()" placeholder="Search autopilots" aria-label="Search autopilots" /></label><select class="select select-bordered" x-model="autopilotAgentFilter" @change="loadAutopilots()" aria-label="Filter by agent"><option value="">All agents</option><template x-for="agent in agents" :key="agent.id"><option :value="agent.id" x-text="agent.name"></option></template></select></div>
-          <div class="autopilot-table-wrap"><template x-if="autopilotLoading"><div class="files-empty"><span class="loading loading-dots loading-sm"></span></div></template><template x-if="!autopilotLoading && autopilots.length === 0"><div class="files-empty">No autopilots yet</div></template><table class="table table-zebra autopilot-table" x-show="!autopilotLoading && autopilots.length"><thead><tr><th>Name</th><th>Agent</th><th>Schedule</th><th>Status</th><th>Actions</th></tr></thead><tbody><template x-for="item in autopilots" :key="item.id"><tr><td><button class="autopilot-name" @click="loadAutopilotRuns(item)"><b x-text="item.name"></b><small x-text="item.instruction"></small></button></td><td x-text="item.agent_name"></td><td><span class="mono" x-text="item.cron"></span><small class="autopilot-next" x-text="item.next_run_at ? 'Next ' + formatDateTime(item.next_run_at) : '—'"></small></td><td><span class="badge" :class="item.enabled ? 'badge-success' : 'badge-ghost'" x-text="item.status"></span></td><td><div class="autopilot-actions"><input type="checkbox" class="toggle toggle-sm toggle-primary" :checked="item.enabled" @change="toggleAutopilot(item)" :aria-label="'Toggle ' + item.name" /><button class="btn btn-sm btn-ghost" @click="runAutopilot(item)" title="Run now" aria-label="Run now">▶</button><button class="btn btn-sm btn-ghost" @click="editAutopilot(item)" title="Edit" aria-label="Edit">✎</button><button class="btn btn-sm btn-ghost text-error" @click="deleteAutopilot(item)" title="Delete" aria-label="Delete">⌫</button><button class="btn btn-sm btn-ghost" @click="loadAutopilotRuns(item)" title="Run history" aria-label="Run history">◷</button></div></td></tr></template></tbody></table></div>
+        <section
+          class="content-panel autopilots-page"
+          x-show="page === 'autopilots'"
+          x-cloak
+        >
+          <div class="page-heading">
+            <div>
+              <h1>Autopilots</h1>
+              <p>Run an agent instruction on a schedule.</p>
+            </div>
+            <button class="send-btn" @click="newAutopilot()">+ New</button>
+          </div>
+          <div class="autopilot-filters">
+            <label class="library-search"
+              ><span>⌕</span
+              ><input
+                class="input"
+                x-model="autopilotSearch"
+                @input.debounce.300ms="loadAutopilots()"
+                placeholder="Search autopilots"
+                aria-label="Search autopilots" /></label
+            ><select
+              class="select select-bordered"
+              x-model="autopilotAgentFilter"
+              @change="loadAutopilots()"
+              aria-label="Filter by agent"
+            >
+              <option value="">All agents</option>
+              <template x-for="agent in agents" :key="agent.id"
+                ><option :value="agent.id" x-text="agent.name"></option
+              ></template>
+            </select>
+          </div>
+          <div class="autopilot-table-wrap">
+            <template x-if="autopilotLoading"
+              ><div class="files-empty">
+                <span
+                  class="loading loading-dots loading-sm"
+                ></span></div></template
+            ><template x-if="!autopilotLoading && autopilots.length === 0"
+              ><div class="files-empty">No autopilots yet</div></template
+            >
+            <table
+              class="table table-zebra autopilot-table"
+              x-show="!autopilotLoading && autopilots.length"
+            >
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Agent</th>
+                  <th>Schedule</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="item in autopilots" :key="item.id"
+                  ><tr>
+                    <td>
+                      <button
+                        class="autopilot-name"
+                        @click="loadAutopilotRuns(item)"
+                      >
+                        <b x-text="item.name"></b
+                        ><small x-text="item.instruction"></small>
+                      </button>
+                    </td>
+                    <td x-text="item.agent_name"></td>
+                    <td>
+                      <span class="mono" x-text="item.cron"></span
+                      ><small
+                        class="autopilot-next"
+                        x-text="item.next_run_at ? 'Next ' + formatDateTime(item.next_run_at) : '—'"
+                      ></small>
+                    </td>
+                    <td>
+                      <span
+                        class="badge"
+                        :class="item.enabled ? 'badge-success' : 'badge-ghost'"
+                        x-text="item.status"
+                      ></span>
+                    </td>
+                    <td>
+                      <div class="autopilot-actions">
+                        <input
+                          type="checkbox"
+                          class="toggle toggle-sm toggle-primary"
+                          :checked="item.enabled"
+                          @change="toggleAutopilot(item)"
+                          :aria-label="'Toggle ' + item.name"
+                        /><button
+                          class="btn btn-sm btn-ghost"
+                          @click="runAutopilot(item)"
+                          title="Run now"
+                          aria-label="Run now"
+                        >
+                          ▶</button
+                        ><button
+                          class="btn btn-sm btn-ghost"
+                          @click="editAutopilot(item)"
+                          title="Edit"
+                          aria-label="Edit"
+                        >
+                          ✎</button
+                        ><button
+                          class="btn btn-sm btn-ghost text-error"
+                          @click="deleteAutopilot(item)"
+                          title="Delete"
+                          aria-label="Delete"
+                        >
+                          ⌫</button
+                        ><button
+                          class="btn btn-sm btn-ghost"
+                          @click="loadAutopilotRuns(item)"
+                          title="Run history"
+                          aria-label="Run history"
+                        >
+                          ◷
+                        </button>
+                      </div>
+                    </td>
+                  </tr></template
+                >
+              </tbody>
+            </table>
+          </div>
         </section>
       </main>
-      <aside class="files-drawer" x-show="filesOpen" x-cloak x-transition aria-label="Files"><div class="files-drawer-header"><div><h2>Files</h2><p x-text="files.length + ' file' + (files.length === 1 ? '' : 's')"></p></div><button type="button" class="icon-btn" @click="filesOpen = false" aria-label="Close files">×</button></div><div class="files-drawer-body"><template x-if="filesLoading"><div class="files-empty"><span class="loading loading-dots loading-sm"></span></div></template><template x-if="!filesLoading && files.length === 0"><div class="files-empty">No generated files</div></template><template x-for="file in files" :key="file.id"><button type="button" class="file-card" @click="openFile(file)"><span class="file-type" x-text="file.extension || 'file'"></span><span class="file-card-copy"><b x-text="file.name"></b><small x-text="file.path"></small><small x-text="formatDate(file.generated_at) + ' · ' + formatBytes(file.size)"></small></span><span class="file-open">↗</span></button></template></div></aside>
+      <aside
+        class="files-drawer"
+        x-show="filesOpen"
+        x-cloak
+        x-transition
+        aria-label="Files"
+      >
+        <div class="files-drawer-header">
+          <div>
+            <h2>Files</h2>
+            <p
+              x-text="files.length + ' file' + (files.length === 1 ? '' : 's')"
+            ></p>
+          </div>
+          <button
+            type="button"
+            class="icon-btn"
+            @click="filesOpen = false"
+            aria-label="Close files"
+          >
+            ×
+          </button>
+        </div>
+        <div class="files-drawer-body">
+          <template x-if="filesLoading"
+            ><div class="files-empty">
+              <span
+                class="loading loading-dots loading-sm"
+              ></span></div></template
+          ><template x-if="!filesLoading && files.length === 0"
+            ><div class="files-empty">No generated files</div></template
+          ><template x-for="file in files" :key="file.id"
+            ><button type="button" class="file-card" @click="openFile(file)">
+              <span class="file-type" x-text="file.extension || 'file'"></span
+              ><span class="file-card-copy"
+                ><b x-text="file.name"></b><small x-text="file.path"></small
+                ><small
+                  x-text="formatDate(file.generated_at) + ' · ' + formatBytes(file.size)"
+                ></small></span
+              ><span class="file-open">↗</span>
+            </button></template
+          >
+        </div>
+      </aside>
     </div>
 
-<dialog class="modal modal-middle" :open="autopilotDialog" x-show="autopilotDialog" x-cloak @click.self="autopilotDialog = false"><div class="modal-box autopilot-dialog"><div class="dialog-head"><div><div class="eyebrow">Automation</div><h2 x-text="autopilotEditing ? 'Edit Autopilot' : 'New Autopilot'"></h2></div><button class="icon-btn" @click="autopilotDialog = false" aria-label="Close">×</button></div><form @submit.prevent="saveAutopilot"><div class="form-field"><label for="autopilot-name">Name</label><input id="autopilot-name" class="input input-bordered" x-model="autopilotName" required maxlength="80" placeholder="e.g. Daily research brief"></div><div class="form-field"><label for="autopilot-instruction">Instruction</label><textarea id="autopilot-instruction" class="textarea textarea-bordered" x-model="autopilotInstruction" required maxlength="10000" placeholder="Tell the agent what to do…"></textarea></div><div class="autopilot-form-grid"><div class="form-field"><label for="autopilot-agent">Agent</label><select id="autopilot-agent" class="select select-bordered" x-model="autopilotAgentId" required><template x-for="agent in agents" :key="agent.id"><option :value="agent.id" x-text="agent.name"></option></template></select></div><div class="form-field"><label for="autopilot-cron">Cron</label><input id="autopilot-cron" class="input input-bordered mono" x-model="autopilotCron" readonly @focus="openCronBuilder()" @click="openCronBuilder()" required aria-label="Cron schedule"></div></div><details class="collapse collapse-arrow autopilot-advanced"><summary class="collapse-title">Advanced</summary><div class="collapse-content"><div class="form-field"><label for="autopilot-starts">Effective from</label><input id="autopilot-starts" type="datetime-local" class="input input-bordered" x-model="autopilotStartsAt"></div><div class="form-field"><label for="autopilot-ends">Effective until</label><input id="autopilot-ends" type="datetime-local" class="input input-bordered" x-model="autopilotEndsAt"></div></div></details><div class="dialog-actions"><button type="button" class="btn btn-sm btn-ghost" @click="autopilotDialog = false">Cancel</button><button type="submit" class="btn btn-sm btn-primary" :disabled="autopilotSaving" x-text="autopilotEditing ? 'Save' : 'Create'"></button></div></form></div></dialog>
-    <dialog class="modal modal-middle" :open="autopilotRunsOpen" x-show="autopilotRunsOpen" x-cloak @click.self="autopilotRunsOpen = false"><div class="modal-box autopilot-runs-dialog"><div class="dialog-head"><div><div class="eyebrow">Run history</div><h2 x-text="autopilotRunsItem?.name || 'Autopilot'"></h2></div><div class="dialog-head-actions"><button class="btn btn-sm btn-primary" @click="runAutopilot(autopilotRunsItem)">▶ Run now</button><button class="icon-btn" @click="autopilotRunsOpen = false" aria-label="Close">×</button></div></div><div class="autopilot-runs-table"><template x-if="!autopilotRuns.length"><div class="files-empty">No runs yet</div></template><table class="table table-zebra" x-show="autopilotRuns.length"><thead><tr><th>Started</th><th>Duration</th><th>Status</th><th>Session</th></tr></thead><tbody><template x-for="run in autopilotRuns" :key="run.id"><tr><td x-text="formatDateTime(run.started_at)"></td><td x-text="run.duration_ms ? (run.duration_ms / 1000).toFixed(1) + 's' : '—'"></td><td><span class="badge" :class="run.status === 'success' ? 'badge-success' : run.status === 'error' ? 'badge-error' : 'badge-ghost'" x-text="run.status"></span></td><td><a class="btn btn-sm btn-ghost" :href="'/chat/' + run.chat_id" title="Open session" aria-label="Open session">↗</a></td></tr></template></tbody></table></div></div></dialog>
-    <dialog class="modal modal-middle" :open="autopilotDeleteTarget" x-show="autopilotDeleteTarget" x-cloak @click.self="autopilotDeleteTarget = null"><div class="modal-box confirm-box"><div class="dialog-head"><div><div class="eyebrow">Delete autopilot</div><h2>Remove <span x-text="autopilotDeleteTarget?.name"></span>?</h2></div><button class="icon-btn" @click="autopilotDeleteTarget = null" aria-label="Close">×</button></div><p class="confirm-copy">This removes the automation definition. Existing sessions and run history remain available.</p><div class="dialog-actions"><button class="btn btn-sm btn-ghost" @click="autopilotDeleteTarget = null">Cancel</button><button class="btn btn-sm btn-error" @click="confirmDeleteAutopilot()">Delete</button></div></div></dialog>
-    <dialog id="chat-search-dialog" class="modal chat-search-dialog" :open="searchOpen" x-show="searchOpen" x-cloak @click.self="searchOpen = false">
-      <div class="modal-box"><div class="dialog-head"><div><div class="eyebrow">Chat history</div><h2>Search chats</h2></div><button class="icon-btn" @click="searchOpen = false" aria-label="Close">×</button></div><label class="chat-search-input"><span>⌕</span><input class="input" x-model="chatSearchQuery" placeholder="Search by session name" autofocus aria-label="Search sessions" /></label><div class="chat-search-results"><template x-if="searchChatResults().length === 0"><div class="files-empty">No matching chats</div></template><template x-for="chat in searchChatResults()" :key="chat.id"><button type="button" class="chat-search-item" @click="selectSearchChat(chat)"><span><b x-text="chat.title"></b><small><span x-text="agentName(chat.agent_id)"></span><span x-text="relativeTime(chat.last_activity_at)"></span></small></span><span>↗</span></button></template></div></div>
+    <dialog
+      class="modal modal-middle"
+      :open="autopilotDialog"
+      x-show="autopilotDialog"
+      x-cloak
+      @click.self="autopilotDialog = false"
+    >
+      <div class="modal-box autopilot-dialog">
+        <div class="dialog-head">
+          <div>
+            <div class="eyebrow">Automation</div>
+            <h2
+              x-text="autopilotEditing ? 'Edit Autopilot' : 'New Autopilot'"
+            ></h2>
+          </div>
+          <button
+            class="icon-btn"
+            @click="autopilotDialog = false"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        <form @submit.prevent="saveAutopilot">
+          <div class="form-field">
+            <label for="autopilot-name">Name</label
+            ><input
+              id="autopilot-name"
+              class="input input-bordered"
+              x-model="autopilotName"
+              required
+              maxlength="80"
+              placeholder="e.g. Daily research brief"
+            />
+          </div>
+          <div class="form-field">
+            <label for="autopilot-instruction">Instruction</label
+            ><textarea
+              id="autopilot-instruction"
+              class="textarea textarea-bordered"
+              x-model="autopilotInstruction"
+              required
+              maxlength="10000"
+              placeholder="Tell the agent what to do…"
+            ></textarea>
+          </div>
+          <div class="autopilot-form-grid">
+            <div class="form-field">
+              <label for="autopilot-agent">Agent</label
+              ><select
+                id="autopilot-agent"
+                class="select select-bordered"
+                x-model="autopilotAgentId"
+                required
+              >
+                <template x-for="agent in agents" :key="agent.id"
+                  ><option :value="agent.id" x-text="agent.name"></option
+                ></template>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="autopilot-cron">Cron</label
+              ><input
+                id="autopilot-cron"
+                class="input input-bordered mono"
+                x-model="autopilotCron"
+                readonly
+                @focus="openCronBuilder()"
+                @click="openCronBuilder()"
+                required
+                aria-label="Cron schedule"
+              />
+            </div>
+          </div>
+          <details class="collapse collapse-arrow autopilot-advanced">
+            <summary class="collapse-title">Advanced</summary>
+            <div class="collapse-content">
+              <div class="form-field">
+                <label for="autopilot-starts">Effective from</label
+                ><input
+                  id="autopilot-starts"
+                  type="datetime-local"
+                  class="input input-bordered"
+                  x-model="autopilotStartsAt"
+                />
+              </div>
+              <div class="form-field">
+                <label for="autopilot-ends">Effective until</label
+                ><input
+                  id="autopilot-ends"
+                  type="datetime-local"
+                  class="input input-bordered"
+                  x-model="autopilotEndsAt"
+                />
+              </div>
+            </div>
+          </details>
+          <div class="dialog-actions">
+            <button
+              type="button"
+              class="btn btn-sm btn-ghost"
+              @click="autopilotDialog = false"
+            >
+              Cancel</button
+            ><button
+              type="submit"
+              class="btn btn-sm btn-primary"
+              :disabled="autopilotSaving"
+              x-text="autopilotEditing ? 'Save' : 'Create'"
+            ></button>
+          </div>
+        </form>
+      </div>
     </dialog>
-    <dialog class="modal modal-middle settings-dialog" :open="settingsOpen" x-show="settingsOpen" x-cloak @click.self="settingsOpen = false">
+    <dialog
+      class="modal modal-middle"
+      :open="autopilotRunsOpen"
+      x-show="autopilotRunsOpen"
+      x-cloak
+      @click.self="autopilotRunsOpen = false"
+    >
+      <div class="modal-box autopilot-runs-dialog">
+        <div class="dialog-head">
+          <div>
+            <div class="eyebrow">Run history</div>
+            <h2 x-text="autopilotRunsItem?.name || 'Autopilot'"></h2>
+          </div>
+          <div class="dialog-head-actions">
+            <button
+              class="btn btn-sm btn-primary"
+              @click="runAutopilot(autopilotRunsItem)"
+            >
+              ▶ Run now</button
+            ><button
+              class="icon-btn"
+              @click="autopilotRunsOpen = false"
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+        <div class="autopilot-runs-table">
+          <template x-if="!autopilotRuns.length"
+            ><div class="files-empty">No runs yet</div></template
+          >
+          <table class="table table-zebra" x-show="autopilotRuns.length">
+            <thead>
+              <tr>
+                <th>Started</th>
+                <th>Duration</th>
+                <th>Status</th>
+                <th>Session</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="run in autopilotRuns" :key="run.id"
+                ><tr>
+                  <td x-text="formatDateTime(run.started_at)"></td>
+                  <td
+                    x-text="run.duration_ms ? (run.duration_ms / 1000).toFixed(1) + 's' : '—'"
+                  ></td>
+                  <td>
+                    <span
+                      class="badge"
+                      :class="run.status === 'success' ? 'badge-success' : run.status === 'error' ? 'badge-error' : 'badge-ghost'"
+                      x-text="run.status"
+                    ></span>
+                  </td>
+                  <td>
+                    <a
+                      class="btn btn-sm btn-ghost"
+                      :href="'/chat/' + run.chat_id"
+                      title="Open session"
+                      aria-label="Open session"
+                      >↗</a
+                    >
+                  </td>
+                </tr></template
+              >
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </dialog>
+    <dialog
+      class="modal modal-middle"
+      :open="autopilotDeleteTarget"
+      x-show="autopilotDeleteTarget"
+      x-cloak
+      @click.self="autopilotDeleteTarget = null"
+    >
+      <div class="modal-box confirm-box">
+        <div class="dialog-head">
+          <div>
+            <div class="eyebrow">Delete autopilot</div>
+            <h2>Remove <span x-text="autopilotDeleteTarget?.name"></span>?</h2>
+          </div>
+          <button
+            class="icon-btn"
+            @click="autopilotDeleteTarget = null"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        <p class="confirm-copy">
+          This removes the automation definition. Existing sessions and run
+          history remain available.
+        </p>
+        <div class="dialog-actions">
+          <button
+            class="btn btn-sm btn-ghost"
+            @click="autopilotDeleteTarget = null"
+          >
+            Cancel</button
+          ><button
+            class="btn btn-sm btn-error"
+            @click="confirmDeleteAutopilot()"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </dialog>
+    <dialog
+      id="chat-search-dialog"
+      class="modal chat-search-dialog"
+      :open="searchOpen"
+      x-show="searchOpen"
+      x-cloak
+      @click.self="searchOpen = false"
+    >
+      <div class="modal-box">
+        <div class="dialog-head">
+          <div>
+            <div class="eyebrow">Chat history</div>
+            <h2>Search chats</h2>
+          </div>
+          <button
+            class="icon-btn"
+            @click="searchOpen = false"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        <label class="chat-search-input"
+          ><span>⌕</span
+          ><input
+            class="input"
+            x-model="chatSearchQuery"
+            placeholder="Search by session name"
+            autofocus
+            aria-label="Search sessions"
+        /></label>
+        <div class="chat-search-results">
+          <template x-if="searchChatResults().length === 0"
+            ><div class="files-empty">No matching chats</div></template
+          ><template x-for="chat in searchChatResults()" :key="chat.id"
+            ><button
+              type="button"
+              class="chat-search-item"
+              @click="selectSearchChat(chat)"
+            >
+              <span
+                ><b x-text="chat.title"></b
+                ><small
+                  ><span x-text="agentName(chat.agent_id)"></span
+                  ><span
+                    x-text="relativeTime(chat.last_activity_at)"
+                  ></span></small></span
+              ><span>↗</span>
+            </button></template
+          >
+        </div>
+      </div>
+    </dialog>
+    <dialog
+      class="modal modal-middle settings-dialog"
+      :open="settingsOpen"
+      x-show="settingsOpen"
+      x-cloak
+      @click.self="settingsOpen = false"
+    >
       <div class="modal-box settings-modal-box">
-        <div class="settings-header"><h2>Settings</h2><button type="button" class="icon-btn" @click="settingsOpen = false" aria-label="Close settings">×</button></div>
+        <div class="settings-header">
+          <h2>Settings</h2>
+          <button
+            type="button"
+            class="icon-btn"
+            @click="settingsOpen = false"
+            aria-label="Close settings"
+          >
+            ×
+          </button>
+        </div>
         <div class="settings-layout">
           <aside class="settings-menu menu" aria-label="Settings sections">
-            <button type="button" class="active" @click="settingsTab = 'general'"><span>⚙</span> General</button>
+            <button
+              type="button"
+              class="active"
+              @click="settingsTab = 'general'"
+            >
+              <span>⚙</span> General
+            </button>
           </aside>
           <section class="settings-content" x-show="settingsTab === 'general'">
-            <div class="settings-title"><h3>General</h3><p>Customize your workspace preferences.</p></div>
-            <div class="settings-section"><label for="settings-language">Language</label><p>Choose the language for the workspace interface.</p><select id="settings-language" class="select select-bordered settings-select" x-model="language" @change="saveLanguage()"><option value="en">English</option><option value="zh" disabled>中文 (Coming soon)</option></select></div>
-            <div class="settings-section"><label for="settings-timezone">Timezone</label><p>Used when displaying and scheduling automation tasks.</p><select id="settings-timezone" class="select select-bordered settings-select" x-model="timezone" @change="saveTimezone()"><option value="Asia/Shanghai">Shanghai (UTC+08:00)</option><option value="Asia/Tokyo">Tokyo (UTC+09:00)</option><option value="Asia/Singapore">Singapore (UTC+08:00)</option><option value="Europe/London">London (UTC+00:00)</option><option value="America/New_York">New York (UTC-05:00)</option><option value="America/Chicago">Chicago (UTC-06:00)</option><option value="America/Los_Angeles">Los Angeles (UTC-08:00)</option><option value="Asia/Ho_Chi_Minh">Vietnam (UTC+07:00)</option></select></div>
-            <div class="settings-section"><label>Theme</label><p>Choose how OMA studio follows your display preference.</p><div class="theme-options"><label class="theme-option" :class="{'selected': themePreference === 'light'}"><input type="radio" name="settings-theme" value="light" :checked="themePreference === 'light'" @change="applyThemePreference('light')"><span class="theme-option-icon">☼</span><b>Light</b></label><label class="theme-option" :class="{'selected': themePreference === 'dark'}"><input type="radio" name="settings-theme" value="dark" :checked="themePreference === 'dark'" @change="applyThemePreference('dark')"><span class="theme-option-icon">☾</span><b>Dark</b></label><label class="theme-option" :class="{'selected': themePreference === 'system'}"><input type="radio" name="settings-theme" value="system" :checked="themePreference === 'system'" @change="applyThemePreference('system')"><span class="theme-option-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12.1665 13.5811V14.7803H3.66651V13.5811H12.1665Z" fill="currentColor"></path><path d="M13.4453 7.02379C13.4453 6.04702 13.4452 5.3616 13.3887 4.83434C13.3333 4.31828 13.2302 4.02378 13.0723 3.80309C12.9446 3.62475 12.7877 3.46883 12.6094 3.34117C12.3887 3.18328 12.0942 3.08007 11.5781 3.02477C11.0508 2.96829 10.3655 2.96715 9.38867 2.96715H6.61035C5.63359 2.96715 4.94816 2.96827 4.4209 3.02477C3.90486 3.0801 3.61034 3.18321 3.38965 3.34117C3.21143 3.46878 3.05534 3.62487 2.92774 3.80309C2.76977 4.02377 2.66667 4.3183 2.61133 4.83434C2.55483 5.3616 2.55371 6.04702 2.55371 7.02379C2.55371 8.0006 2.55485 8.68596 2.61133 9.21324C2.66663 9.72936 2.76983 10.0238 2.92774 10.2445C3.0554 10.4228 3.21131 10.5797 3.38965 10.7074C3.61034 10.8654 3.90484 10.9685 4.4209 11.0238C4.94816 11.0803 5.63359 11.0804 6.61035 11.0804H9.38867C10.3654 11.0804 11.0508 11.0803 11.5781 11.0238C12.0941 10.9685 12.3887 10.8652 12.6094 10.7074C12.7877 10.5797 12.9446 10.4229 13.0723 10.2445C13.2301 10.0238 13.3334 9.72927 13.3887 9.21324C13.4452 8.68596 13.4453 8.00058 13.4453 7.02379ZM14.6455 7.02379C14.6455 7.97428 14.646 8.73509 14.5811 9.34117C14.5149 9.95828 14.3756 10.4858 14.0479 10.9437C13.8436 11.229 13.5938 11.4788 13.3086 11.683C12.8507 12.0108 12.3232 12.15 11.7061 12.2162C11.1 12.2811 10.3391 12.2806 9.38867 12.2806H6.61035C5.66018 12.2806 4.89991 12.2811 4.29395 12.2162C3.67684 12.15 3.14935 12.0108 2.69141 11.683C2.40613 11.4788 2.15639 11.229 1.95215 10.9437C1.62436 10.4858 1.4841 9.95828 1.41797 9.34117C1.35305 8.73511 1.35449 7.97424 1.35449 7.02379C1.35449 6.07366 1.35308 5.31333 1.41797 4.70738C1.4841 4.09028 1.62436 3.56279 1.95215 3.10485C2.15638 2.81956 2.40613 2.56982 2.69141 2.36559C3.14935 2.03779 3.67684 1.89753 4.29395 1.83141C4.8999 1.76652 5.66022 1.76793 6.61035 1.76793H9.38867C10.3391 1.76793 11.1 1.76649 11.7061 1.83141C12.3232 1.89753 12.8507 2.03779 13.3086 2.36559C13.5939 2.56982 13.8436 2.81957 14.0479 3.10485C14.3756 3.56279 14.5149 4.09028 14.5811 4.70738C14.646 5.31335 14.6455 6.07362 14.6455 7.02379Z" fill="currentColor"></path></svg></span><b>Follow system</b></label></div></div>
+            <div class="settings-title">
+              <h3>General</h3>
+              <p>Customize your workspace preferences.</p>
+            </div>
+            <div class="settings-section">
+              <label for="settings-language">Language</label>
+              <p>Choose the language for the workspace interface.</p>
+              <select
+                id="settings-language"
+                class="select select-bordered settings-select"
+                x-model="language"
+                @change="saveLanguage()"
+              >
+                <option value="en">English</option>
+                <option value="zh" disabled>中文 (Coming soon)</option>
+              </select>
+            </div>
+            <div class="settings-section">
+              <label for="settings-timezone">Timezone</label>
+              <p>Used when displaying and scheduling automation tasks.</p>
+              <select
+                id="settings-timezone"
+                class="select select-bordered settings-select"
+                x-model="timezone"
+                @change="saveTimezone()"
+              >
+                <option value="Asia/Shanghai">Shanghai (UTC+08:00)</option>
+                <option value="Asia/Tokyo">Tokyo (UTC+09:00)</option>
+                <option value="Asia/Singapore">Singapore (UTC+08:00)</option>
+                <option value="Europe/London">London (UTC+00:00)</option>
+                <option value="America/New_York">New York (UTC-05:00)</option>
+                <option value="America/Chicago">Chicago (UTC-06:00)</option>
+                <option value="America/Los_Angeles">
+                  Los Angeles (UTC-08:00)
+                </option>
+                <option value="Asia/Ho_Chi_Minh">Vietnam (UTC+07:00)</option>
+              </select>
+            </div>
+            <div class="settings-section">
+              <label>Theme</label>
+              <p>Choose how OMA studio follows your display preference.</p>
+              <div class="theme-options">
+                <label
+                  class="theme-option"
+                  :class="{'selected': themePreference === 'light'}"
+                  ><input
+                    type="radio"
+                    name="settings-theme"
+                    value="light"
+                    :checked="themePreference === 'light'"
+                    @change="applyThemePreference('light')"
+                  /><span class="theme-option-icon">☼</span><b>Light</b></label
+                ><label
+                  class="theme-option"
+                  :class="{'selected': themePreference === 'dark'}"
+                  ><input
+                    type="radio"
+                    name="settings-theme"
+                    value="dark"
+                    :checked="themePreference === 'dark'"
+                    @change="applyThemePreference('dark')"
+                  /><span class="theme-option-icon">☾</span><b>Dark</b></label
+                ><label
+                  class="theme-option"
+                  :class="{'selected': themePreference === 'system'}"
+                  ><input
+                    type="radio"
+                    name="settings-theme"
+                    value="system"
+                    :checked="themePreference === 'system'"
+                    @change="applyThemePreference('system')"
+                  /><span class="theme-option-icon"
+                    ><svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M12.1665 13.5811V14.7803H3.66651V13.5811H12.1665Z"
+                        fill="currentColor"
+                      ></path>
+                      <path
+                        d="M13.4453 7.02379C13.4453 6.04702 13.4452 5.3616 13.3887 4.83434C13.3333 4.31828 13.2302 4.02378 13.0723 3.80309C12.9446 3.62475 12.7877 3.46883 12.6094 3.34117C12.3887 3.18328 12.0942 3.08007 11.5781 3.02477C11.0508 2.96829 10.3655 2.96715 9.38867 2.96715H6.61035C5.63359 2.96715 4.94816 2.96827 4.4209 3.02477C3.90486 3.0801 3.61034 3.18321 3.38965 3.34117C3.21143 3.46878 3.05534 3.62487 2.92774 3.80309C2.76977 4.02377 2.66667 4.3183 2.61133 4.83434C2.55483 5.3616 2.55371 6.04702 2.55371 7.02379C2.55371 8.0006 2.55485 8.68596 2.61133 9.21324C2.66663 9.72936 2.76983 10.0238 2.92774 10.2445C3.0554 10.4228 3.21131 10.5797 3.38965 10.7074C3.61034 10.8654 3.90484 10.9685 4.4209 11.0238C4.94816 11.0803 5.63359 11.0804 6.61035 11.0804H9.38867C10.3654 11.0804 11.0508 11.0803 11.5781 11.0238C12.0941 10.9685 12.3887 10.8652 12.6094 10.7074C12.7877 10.5797 12.9446 10.4229 13.0723 10.2445C13.2301 10.0238 13.3334 9.72927 13.3887 9.21324C13.4452 8.68596 13.4453 8.00058 13.4453 7.02379ZM14.6455 7.02379C14.6455 7.97428 14.646 8.73509 14.5811 9.34117C14.5149 9.95828 14.3756 10.4858 14.0479 10.9437C13.8436 11.229 13.5938 11.4788 13.3086 11.683C12.8507 12.0108 12.3232 12.15 11.7061 12.2162C11.1 12.2811 10.3391 12.2806 9.38867 12.2806H6.61035C5.66018 12.2806 4.89991 12.2811 4.29395 12.2162C3.67684 12.15 3.14935 12.0108 2.69141 11.683C2.40613 11.4788 2.15639 11.229 1.95215 10.9437C1.62436 10.4858 1.4841 9.95828 1.41797 9.34117C1.35305 8.73511 1.35449 7.97424 1.35449 7.02379C1.35449 6.07366 1.35308 5.31333 1.41797 4.70738C1.4841 4.09028 1.62436 3.56279 1.95215 3.10485C2.15638 2.81956 2.40613 2.56982 2.69141 2.36559C3.14935 2.03779 3.67684 1.89753 4.29395 1.83141C4.8999 1.76652 5.66022 1.76793 6.61035 1.76793H9.38867C10.3391 1.76793 11.1 1.76649 11.7061 1.83141C12.3232 1.89753 12.8507 2.03779 13.3086 2.36559C13.5939 2.56982 13.8436 2.81957 14.0479 3.10485C14.3756 3.56279 14.5149 4.09028 14.5811 4.70738C14.646 5.31335 14.6455 6.07362 14.6455 7.02379Z"
+                        fill="currentColor"
+                      ></path></svg></span
+                  ><b>Follow system</b></label
+                >
+              </div>
+            </div>
           </section>
         </div>
       </div>
     </dialog>
-    <dialog class="agent-dialog" :open="!!dialog" x-show="dialog" x-cloak @click.self="dialog = null">
-      <template x-if="dialog"><div class="dialog-box"><div class="dialog-head"><div><div class="eyebrow">Agent details</div><h2 x-text="dialog.name"></h2></div><button class="icon-btn" @click="dialog = null">×</button></div><div class="detail-group"><div class="detail-heading">Basics</div><div class="detail-row"><span>Name</span><b x-text="dialog.name"></b></div><div class="detail-row instruction-detail"><span>Instruction</span><b class="detail-instruction" x-text="dialog.instruction" :title="dialog.instruction"></b></div><div class="detail-row"><span>Provider</span><b x-text="providerName(dialog.provider) || 'Pi default'"></b></div><div class="detail-row"><span>Model</span><b x-text="modelName(dialog.provider, dialog.model) || 'Pi default'" class="mono"></b></div><div class="detail-row"><span>Created</span><b x-text="formatDate(dialog.created_at)"></b></div></div><div class="detail-group"><div class="detail-heading">Extensions</div><div class="reserved-grid"><div><span>Extensions</span><b x-text="resourceNames(dialog.extensions, 'extensions')"></b></div><div><span>Skills</span><b x-text="resourceNames(dialog.skills, 'skills')"></b></div><div><span>Tools</span><b x-text="dialog.tools?.length ? dialog.tools.join(', ') : 'Disabled'"></b></div><div><span>MCP servers</span><b>Not configured</b></div></div></div><div class="dialog-actions"><button class="btn btn-sm btn-ghost" @click="dialog = null">Close</button><button class="btn btn-sm btn-primary" @click="editAgent(dialog)">Edit</button></div></div></template>
+    <dialog
+      class="agent-dialog"
+      :open="!!dialog"
+      x-show="dialog"
+      x-cloak
+      @click.self="dialog = null"
+    >
+      <template x-if="dialog"
+        ><div class="dialog-box">
+          <div class="dialog-head">
+            <div>
+              <div class="eyebrow">Agent details</div>
+              <h2 x-text="dialog.name"></h2>
+            </div>
+            <button class="icon-btn" @click="dialog = null">×</button>
+          </div>
+          <div class="detail-group">
+            <div class="detail-heading">Basics</div>
+            <div class="detail-row">
+              <span>Name</span><b x-text="dialog.name"></b>
+            </div>
+            <div class="detail-row instruction-detail">
+              <span>Instruction</span
+              ><b
+                class="detail-instruction"
+                x-text="dialog.instruction"
+                :title="dialog.instruction"
+              ></b>
+            </div>
+            <div class="detail-row">
+              <span>Provider</span
+              ><b x-text="providerName(dialog.provider) || 'Pi default'"></b>
+            </div>
+            <div class="detail-row">
+              <span>Model</span
+              ><b
+                x-text="modelName(dialog.provider, dialog.model) || 'Pi default'"
+                class="mono"
+              ></b>
+            </div>
+            <div class="detail-row">
+              <span>Created</span><b x-text="formatDate(dialog.created_at)"></b>
+            </div>
+          </div>
+          <div class="detail-group">
+            <div class="detail-heading">Extensions</div>
+            <div class="reserved-grid">
+              <div>
+                <span>Extensions</span
+                ><b x-text="resourceNames(dialog.extensions, 'extensions')"></b>
+              </div>
+              <div>
+                <span>Skills</span
+                ><b x-text="resourceNames(dialog.skills, 'skills')"></b>
+              </div>
+              <div>
+                <span>Tools</span
+                ><b
+                  x-text="dialog.tools?.length ? dialog.tools.join(', ') : 'Disabled'"
+                ></b>
+              </div>
+              <div><span>MCP servers</span><b>Not configured</b></div>
+            </div>
+          </div>
+          <div class="dialog-actions">
+            <button class="btn btn-sm btn-ghost" @click="dialog = null">
+              Close</button
+            ><button class="btn btn-sm btn-primary" @click="editAgent(dialog)">
+              Edit
+            </button>
+          </div>
+        </div></template
+      >
     </dialog>
-    <dialog class="modal" :open="!!deleteChatTarget" x-show="deleteChatTarget" x-cloak @click.self="deleteChatTarget = null">
-      <div class="modal-box confirm-box"><div class="dialog-head"><div><div class="eyebrow">Delete chat</div><h2>Remove conversation?</h2></div><button class="icon-btn" @click="deleteChatTarget = null" aria-label="Close">×</button></div><p class="confirm-copy">This removes the Pi session and files generated by this chat. The Agent definition will remain.</p><div class="dialog-actions"><button type="button" class="btn btn-sm btn-ghost" @click="deleteChatTarget = null">Cancel</button><button type="button" class="btn btn-sm btn-error" @click="confirmDeleteChat()">Delete</button></div></div>
+    <dialog
+      class="modal"
+      :open="!!deleteChatTarget"
+      x-show="deleteChatTarget"
+      x-cloak
+      @click.self="deleteChatTarget = null"
+    >
+      <div class="modal-box confirm-box">
+        <div class="dialog-head">
+          <div>
+            <div class="eyebrow">Delete chat</div>
+            <h2>Remove conversation?</h2>
+          </div>
+          <button
+            class="icon-btn"
+            @click="deleteChatTarget = null"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        <p class="confirm-copy">
+          This removes the Pi session and files generated by this chat. The
+          Agent definition will remain.
+        </p>
+        <div class="dialog-actions">
+          <button
+            type="button"
+            class="btn btn-sm btn-ghost"
+            @click="deleteChatTarget = null"
+          >
+            Cancel</button
+          ><button
+            type="button"
+            class="btn btn-sm btn-error"
+            @click="confirmDeleteChat()"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
     </dialog>
-    <dialog class="modal" :open="!!confirmTarget" x-show="confirmTarget" x-cloak @click.self="confirmTarget = null">
-      <div class="modal-box confirm-box"><div class="dialog-head"><div><div class="eyebrow">Delete agent</div><h2>Remove <span x-text="confirmTarget?.name"></span>?</h2></div><button class="icon-btn" @click="confirmTarget = null" aria-label="Close">×</button></div><p class="confirm-copy">This agent definition will be removed. Existing chat sessions and their Pi history will remain available.</p><div class="dialog-actions"><button type="button" class="btn btn-ghost" @click="confirmTarget = null">Cancel</button><button type="button" class="btn btn-error" @click="confirmDelete()">Delete agent</button></div></div>
+    <dialog
+      class="modal"
+      :open="!!confirmTarget"
+      x-show="confirmTarget"
+      x-cloak
+      @click.self="confirmTarget = null"
+    >
+      <div class="modal-box confirm-box">
+        <div class="dialog-head">
+          <div>
+            <div class="eyebrow">Delete agent</div>
+            <h2>Remove <span x-text="confirmTarget?.name"></span>?</h2>
+          </div>
+          <button
+            class="icon-btn"
+            @click="confirmTarget = null"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        <p class="confirm-copy">
+          This agent definition will be removed. Existing chat sessions and
+          their Pi history will remain available.
+        </p>
+        <div class="dialog-actions">
+          <button
+            type="button"
+            class="btn btn-ghost"
+            @click="confirmTarget = null"
+          >
+            Cancel</button
+          ><button type="button" class="btn btn-error" @click="confirmDelete()">
+            Delete agent
+          </button>
+        </div>
+      </div>
     </dialog>
-    <dialog class="agent-dialog" :open="createDialog" x-show="createDialog" x-cloak @click.self="createDialog = false">
-      <div class="dialog-box"><div class="dialog-head"><div><h2 x-text="editingAgent ? 'Edit Agent' : 'New Agent'"></h2></div><button class="icon-btn" @click="createDialog = false">×</button></div><form @submit.prevent="submitAgent"><div class="form-field"><label for="new-agent-name">Agent name</label><input id="new-agent-name" class="input input-bordered" x-model="newAgentName" required maxlength="80" placeholder="e.g. researcher"></div><div class="form-field"><label for="new-agent-instruction">Instruction</label><textarea id="new-agent-instruction" class="textarea textarea-bordered" x-model="newAgentInstruction" required maxlength="10000" placeholder="Tell this agent how it should behave…"></textarea></div><div class="agent-model-fields"><div class="form-field"><label for="new-agent-provider">Provider</label><select id="new-agent-provider" class="select select-bordered" x-model="newAgentProvider" @change="changeAgentProvider()" required><template x-for="provider in resources.providers" :key="provider.id"><option :value="provider.id" x-text="provider.name"></option></template></select></div><div class="form-field"><label for="new-agent-model">Model</label><select id="new-agent-model" class="select select-bordered" x-model="newAgentModel" @change="changeAgentModel()" required><template x-for="model in modelsFor()" :key="model.id"><option :value="model.id" x-text="model.name"></option></template></select></div><div class="form-field"><label for="new-agent-thinking">Thinking effort</label><select id="new-agent-thinking" class="select select-bordered" x-model="newAgentThinkingLevel" required><template x-for="level in thinkingLevelsFor()" :key="level"><option :value="level" x-text="level"></option></template></select></div></div><div class="form-field"><label>Built-in tools</label><div class="tool-check-grid"><template x-for="tool in toolCatalog" :key="tool.name"><label class="tool-check"><input type="checkbox" :value="tool.name" :checked="newAgentTools.includes(tool.name)" @change="toggleAgentTool(tool.name)"><span><b x-text="tool.name"></b><small x-text="tool.description"></small></span></label></template></div></div><div class="form-field"><label>Extensions</label><div class="resource-check-grid"><template x-if="resources.extensions.length === 0"><span class="resource-empty">No extensions discovered</span></template><template x-for="item in resources.extensions" :key="item.id"><label class="resource-check" :title="item.description || item.path"><input type="checkbox" :value="item.path" :checked="newAgentExtensions.includes(item.path)" @change="toggleResource('extensions', item.path)"><span><b x-text="item.name"></b><small x-text="item.description || item.path"></small></span></label></template></div></div><div class="form-field"><label>Skills</label><div class="resource-check-grid"><template x-if="resources.skills.length === 0"><span class="resource-empty">No skills discovered</span></template><template x-for="item in resources.skills" :key="item.id"><label class="resource-check" :title="item.description || item.path"><input type="checkbox" :value="item.path" :checked="newAgentSkills.includes(item.path)" @change="toggleResource('skills', item.path)"><span><b x-text="item.name"></b><small x-text="item.description || item.path"></small></span></label></template></div></div><div class="form-field"><label>MCP servers</label><div class="resource-check-grid mcp-check-grid"><template x-if="resources.mcp_servers.length === 0"><span class="resource-empty">No MCP servers discovered</span></template><template x-for="server in resources.mcp_servers" :key="server.id"><label class="resource-check" :title="server.path"><input type="checkbox" :value="server.id" :checked="newAgentMcpServers.includes(server.id)" @change="toggleResource('mcp', server.id)"><span><b x-text="server.name"></b><small x-text="server.description || server.path"></small></span></label></template></div></div><div class="dialog-actions"><button type="button" class="btn btn-sm btn-ghost" @click="createDialog = false">Cancel</button><button type="submit" class="btn btn-sm btn-primary" :disabled="creating"><span x-text="editingAgent ? 'Save' : 'Create'"></span></button></div></form></div>
+    <dialog
+      class="agent-dialog"
+      :open="createDialog"
+      x-show="createDialog"
+      x-cloak
+      @click.self="createDialog = false"
+    >
+      <div class="dialog-box">
+        <div class="dialog-head">
+          <div>
+            <h2 x-text="editingAgent ? 'Edit Agent' : 'New Agent'"></h2>
+          </div>
+          <button class="icon-btn" @click="createDialog = false">×</button>
+        </div>
+        <form @submit.prevent="submitAgent">
+          <div class="form-field">
+            <label for="new-agent-name">Agent name</label
+            ><input
+              id="new-agent-name"
+              class="input input-bordered"
+              x-model="newAgentName"
+              required
+              maxlength="80"
+              placeholder="e.g. researcher"
+            />
+          </div>
+          <div class="form-field">
+            <label for="new-agent-instruction">Instruction</label
+            ><textarea
+              id="new-agent-instruction"
+              class="textarea textarea-bordered"
+              x-model="newAgentInstruction"
+              required
+              maxlength="10000"
+              placeholder="Tell this agent how it should behave…"
+            ></textarea>
+          </div>
+          <div class="agent-model-fields">
+            <div class="form-field">
+              <label for="new-agent-provider">Provider</label
+              ><select
+                id="new-agent-provider"
+                class="select select-bordered"
+                x-model="newAgentProvider"
+                @change="changeAgentProvider()"
+                required
+              >
+                <template
+                  x-for="provider in resources.providers"
+                  :key="provider.id"
+                  ><option :value="provider.id" x-text="provider.name"></option
+                ></template>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="new-agent-model">Model</label
+              ><select
+                id="new-agent-model"
+                class="select select-bordered"
+                x-model="newAgentModel"
+                @change="changeAgentModel()"
+                required
+              >
+                <template x-for="model in modelsFor()" :key="model.id"
+                  ><option :value="model.id" x-text="model.name"></option
+                ></template>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="new-agent-thinking">Thinking effort</label
+              ><select
+                id="new-agent-thinking"
+                class="select select-bordered"
+                x-model="newAgentThinkingLevel"
+                required
+              >
+                <template x-for="level in thinkingLevelsFor()" :key="level"
+                  ><option :value="level" x-text="level"></option
+                ></template>
+              </select>
+            </div>
+          </div>
+          <div class="form-field">
+            <label>Built-in tools</label>
+            <div class="tool-check-grid">
+              <template x-for="tool in toolCatalog" :key="tool.name"
+                ><label class="tool-check"
+                  ><input
+                    type="checkbox"
+                    :value="tool.name"
+                    :checked="newAgentTools.includes(tool.name)"
+                    @change="toggleAgentTool(tool.name)" /><span
+                    ><b x-text="tool.name"></b
+                    ><small x-text="tool.description"></small></span></label
+              ></template>
+            </div>
+          </div>
+          <div class="form-field">
+            <label>Extensions</label>
+            <div class="resource-check-grid">
+              <template x-if="resources.extensions.length === 0"
+                ><span class="resource-empty"
+                  >No extensions discovered</span
+                ></template
+              ><template x-for="item in resources.extensions" :key="item.id"
+                ><label
+                  class="resource-check"
+                  :title="item.description || item.path"
+                  ><input
+                    type="checkbox"
+                    :value="item.path"
+                    :checked="newAgentExtensions.includes(item.path)"
+                    @change="toggleResource('extensions', item.path)" /><span
+                    ><b x-text="item.name"></b
+                    ><small
+                      x-text="item.description || item.path"
+                    ></small></span></label
+              ></template>
+            </div>
+          </div>
+          <div class="form-field">
+            <label>Skills</label>
+            <div class="resource-check-grid">
+              <template x-if="resources.skills.length === 0"
+                ><span class="resource-empty"
+                  >No skills discovered</span
+                ></template
+              ><template x-for="item in resources.skills" :key="item.id"
+                ><label
+                  class="resource-check"
+                  :title="item.description || item.path"
+                  ><input
+                    type="checkbox"
+                    :value="item.path"
+                    :checked="newAgentSkills.includes(item.path)"
+                    @change="toggleResource('skills', item.path)" /><span
+                    ><b x-text="item.name"></b
+                    ><small
+                      x-text="item.description || item.path"
+                    ></small></span></label
+              ></template>
+            </div>
+          </div>
+          <div class="form-field">
+            <label>MCP servers</label>
+            <div class="resource-check-grid mcp-check-grid">
+              <template x-if="resources.mcp_servers.length === 0"
+                ><span class="resource-empty"
+                  >No MCP servers discovered</span
+                ></template
+              ><template
+                x-for="server in resources.mcp_servers"
+                :key="server.id"
+                ><label class="resource-check" :title="server.path"
+                  ><input
+                    type="checkbox"
+                    :value="server.id"
+                    :checked="newAgentMcpServers.includes(server.id)"
+                    @change="toggleResource('mcp', server.id)" /><span
+                    ><b x-text="server.name"></b
+                    ><small
+                      x-text="server.description || server.path"
+                    ></small></span></label
+              ></template>
+            </div>
+          </div>
+          <div class="dialog-actions">
+            <button
+              type="button"
+              class="btn btn-sm btn-ghost"
+              @click="createDialog = false"
+            >
+              Cancel</button
+            ><button
+              type="submit"
+              class="btn btn-sm btn-primary"
+              :disabled="creating"
+            >
+              <span x-text="editingAgent ? 'Save' : 'Create'"></span>
+            </button>
+          </div>
+        </form>
+      </div>
     </dialog>
     <div class="toast" x-show="error" x-text="error" x-cloak></div>
 
-    <dialog class="modal modal-middle" :open="cronBuilderOpen" x-show="cronBuilderOpen" x-cloak @click.self="cronBuilderOpen = false"><div class="modal-box cron-builder-dialog"><div class="dialog-head"><div><div class="eyebrow">Schedule</div><h2>Cron builder</h2></div><button class="icon-btn" @click="cronBuilderOpen = false" aria-label="Close">×</button></div><div class="cron-builder-body"><div class="cron-section"><label>Frequency</label><div class="join cron-frequency"><template x-for="option in [{id:'hourly',label:'Hourly'},{id:'daily',label:'Daily'},{id:'weekly',label:'Weekly'},{id:'monthly',label:'Monthly'},{id:'yearly',label:'Yearly'}]" :key="option.id"><button type="button" class="btn btn-sm join-item" :class="cronFrequency === option.id ? 'btn-primary' : 'btn-ghost'" @click="setCronFrequency(option.id)" x-text="option.label"></button></template></div></div><div class="cron-section" x-show="cronFrequency === 'weekly'"><label>Day of week</label><div class="cron-choice-grid cron-days"><template x-for="day in [{id:'0',label:'Sun'},{id:'1',label:'Mon'},{id:'2',label:'Tue'},{id:'3',label:'Wed'},{id:'4',label:'Thu'},{id:'5',label:'Fri'},{id:'6',label:'Sat'}]" :key="day.id"><button type="button" class="btn btn-sm" :class="cronDay.includes(day.id) ? 'btn-primary' : 'btn-ghost'" @click="toggleCronDay(day.id)" x-text="day.label"></button></template></div></div><div class="cron-extra-grid cron-date-month-grid"><div class="cron-section" x-show="cronFrequency === 'monthly' || cronFrequency === 'yearly'"><label for="cron-day-of-month">Day of month</label><select id="cron-day-of-month" class="select select-bordered" x-model="cronDayOfMonth" @change="autopilotCron=buildCron()"><template x-for="day in cronDaysOfMonth()" :key="day"><option :value="day" x-text="day"></option></template></select></div><div class="cron-section" x-show="cronFrequency === 'yearly'"><label for="cron-month">Month</label><select id="cron-month" class="select select-bordered" x-model="cronMonth" @change="autopilotCron=buildCron()"><template x-for="month in cronMonths()" :key="month"><option :value="month" x-text="month"></option></template></select></div></div><div class="cron-columns" x-show="cronFrequency !== 'hourly'"><div class="cron-section"><label>Hour</label><div class="cron-choice-grid cron-hours"><template x-for="hour in cronHours()" :key="hour"><button type="button" class="btn btn-sm" :class="cronHour === hour ? 'btn-primary' : 'btn-ghost'" @click="cronHour=hour;autopilotCron=buildCron()" x-text="hour.padStart(2,'0')"></button></template></div></div><div class="cron-section"><label>Minute</label><div class="cron-choice-grid cron-minutes"><template x-for="minute in ['00','05','10','15','20','25','30','35','40','45','50','55']" :key="minute"><button type="button" class="btn btn-sm" :class="cronMinute === String(Number(minute)) ? 'btn-primary' : 'btn-ghost'" @click="cronMinute=String(Number(minute));autopilotCron=buildCron()" x-text="minute"></button></template></div></div></div><div class="cron-section" x-show="cronFrequency === 'hourly'"><label>Minute</label><div class="cron-choice-grid cron-minutes"><template x-for="minute in ['00','05','10','15','20','25','30','35','40','45','50','55']" :key="minute"><button type="button" class="btn btn-sm" :class="cronMinute === String(Number(minute)) ? 'btn-primary' : 'btn-ghost'" @click="cronMinute=String(Number(minute));autopilotCron=buildCron()" x-text="minute"></button></template></div></div><p class="cron-preview">Schedule: <code x-text="buildCron()"></code></p></div><div class="dialog-actions"><button class="btn btn-sm btn-ghost" @click="cronBuilderOpen = false">Cancel</button><button class="btn btn-sm btn-primary" @click="applyCronBuilder()">Apply</button></div></div></dialog>
-    <aside class="files-drawer link-drawer" x-show="linkDrawerOpen" x-cloak x-transition aria-label="Web results"><div class="files-drawer-header"><div><h2 x-text="linkDrawerTitle"></h2><p x-text="linkDrawerItems.length + ' page' + (linkDrawerItems.length === 1 ? '' : 's')"></p></div><button type="button" class="icon-btn" @click="linkDrawerOpen = false" aria-label="Close web results">×</button></div><div class="files-drawer-body"><template x-for="item in linkDrawerItems" :key="item.url"><a class="web-result-card" :href="item.url" target="_blank" rel="noopener noreferrer"><template x-if="item.favicon"><img class="web-result-favicon" :src="item.favicon" alt="" loading="lazy"></template><span class="web-result-copy"><b x-text="item.title"></b><small x-text="item.url"></small><small x-show="item.date" x-text="item.date"></small><span x-show="item.snippet" x-text="item.snippet"></span></span><span class="file-open">↗</span></a></template></div></aside>
+    <dialog
+      class="modal modal-middle"
+      :open="cronBuilderOpen"
+      x-show="cronBuilderOpen"
+      x-cloak
+      @click.self="cronBuilderOpen = false"
+    >
+      <div class="modal-box cron-builder-dialog">
+        <div class="dialog-head">
+          <div>
+            <div class="eyebrow">Schedule</div>
+            <h2>Cron builder</h2>
+          </div>
+          <button
+            class="icon-btn"
+            @click="cronBuilderOpen = false"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        <div class="cron-builder-body">
+          <div class="cron-section">
+            <label>Frequency</label>
+            <div class="join cron-frequency">
+              <template
+                x-for="option in [{id:'hourly',label:'Hourly'},{id:'daily',label:'Daily'},{id:'weekly',label:'Weekly'},{id:'monthly',label:'Monthly'},{id:'yearly',label:'Yearly'}]"
+                :key="option.id"
+                ><button
+                  type="button"
+                  class="btn btn-sm join-item"
+                  :class="cronFrequency === option.id ? 'btn-primary' : 'btn-ghost'"
+                  @click="setCronFrequency(option.id)"
+                  x-text="option.label"
+                ></button
+              ></template>
+            </div>
+          </div>
+          <div class="cron-section" x-show="cronFrequency === 'weekly'">
+            <label>Day of week</label>
+            <div class="cron-choice-grid cron-days">
+              <template
+                x-for="day in [{id:'0',label:'Sun'},{id:'1',label:'Mon'},{id:'2',label:'Tue'},{id:'3',label:'Wed'},{id:'4',label:'Thu'},{id:'5',label:'Fri'},{id:'6',label:'Sat'}]"
+                :key="day.id"
+                ><button
+                  type="button"
+                  class="btn btn-sm"
+                  :class="cronDay.includes(day.id) ? 'btn-primary' : 'btn-ghost'"
+                  @click="toggleCronDay(day.id)"
+                  x-text="day.label"
+                ></button
+              ></template>
+            </div>
+          </div>
+          <div class="cron-extra-grid cron-date-month-grid">
+            <div
+              class="cron-section"
+              x-show="cronFrequency === 'monthly' || cronFrequency === 'yearly'"
+            >
+              <label for="cron-day-of-month">Day of month</label
+              ><select
+                id="cron-day-of-month"
+                class="select select-bordered"
+                x-model="cronDayOfMonth"
+                @change="autopilotCron=buildCron()"
+              >
+                <template x-for="day in cronDaysOfMonth()" :key="day"
+                  ><option :value="day" x-text="day"></option
+                ></template>
+              </select>
+            </div>
+            <div class="cron-section" x-show="cronFrequency === 'yearly'">
+              <label for="cron-month">Month</label
+              ><select
+                id="cron-month"
+                class="select select-bordered"
+                x-model="cronMonth"
+                @change="autopilotCron=buildCron()"
+              >
+                <template x-for="month in cronMonths()" :key="month"
+                  ><option :value="month" x-text="month"></option
+                ></template>
+              </select>
+            </div>
+          </div>
+          <div class="cron-columns" x-show="cronFrequency !== 'hourly'">
+            <div class="cron-section">
+              <label>Hour</label>
+              <div class="cron-choice-grid cron-hours">
+                <template x-for="hour in cronHours()" :key="hour"
+                  ><button
+                    type="button"
+                    class="btn btn-sm"
+                    :class="cronHour === hour ? 'btn-primary' : 'btn-ghost'"
+                    @click="cronHour=hour;autopilotCron=buildCron()"
+                    x-text="hour.padStart(2,'0')"
+                  ></button
+                ></template>
+              </div>
+            </div>
+            <div class="cron-section">
+              <label>Minute</label>
+              <div class="cron-choice-grid cron-minutes">
+                <template
+                  x-for="minute in ['00','05','10','15','20','25','30','35','40','45','50','55']"
+                  :key="minute"
+                  ><button
+                    type="button"
+                    class="btn btn-sm"
+                    :class="cronMinute === String(Number(minute)) ? 'btn-primary' : 'btn-ghost'"
+                    @click="cronMinute=String(Number(minute));autopilotCron=buildCron()"
+                    x-text="minute"
+                  ></button
+                ></template>
+              </div>
+            </div>
+          </div>
+          <div class="cron-section" x-show="cronFrequency === 'hourly'">
+            <label>Minute</label>
+            <div class="cron-choice-grid cron-minutes">
+              <template
+                x-for="minute in ['00','05','10','15','20','25','30','35','40','45','50','55']"
+                :key="minute"
+                ><button
+                  type="button"
+                  class="btn btn-sm"
+                  :class="cronMinute === String(Number(minute)) ? 'btn-primary' : 'btn-ghost'"
+                  @click="cronMinute=String(Number(minute));autopilotCron=buildCron()"
+                  x-text="minute"
+                ></button
+              ></template>
+            </div>
+          </div>
+          <p class="cron-preview">
+            Schedule: <code x-text="buildCron()"></code>
+          </p>
+        </div>
+        <div class="dialog-actions">
+          <button class="btn btn-sm btn-ghost" @click="cronBuilderOpen = false">
+            Cancel</button
+          ><button class="btn btn-sm btn-primary" @click="applyCronBuilder()">
+            Apply
+          </button>
+        </div>
+      </div>
+    </dialog>
+    <aside
+      class="files-drawer link-drawer"
+      x-show="linkDrawerOpen"
+      x-cloak
+      x-transition
+      aria-label="Web results"
+    >
+      <div class="files-drawer-header">
+        <div>
+          <h2 x-text="linkDrawerTitle"></h2>
+          <p
+            x-text="linkDrawerItems.length + ' page' + (linkDrawerItems.length === 1 ? '' : 's')"
+          ></p>
+        </div>
+        <button
+          type="button"
+          class="icon-btn"
+          @click="linkDrawerOpen = false"
+          aria-label="Close web results"
+        >
+          ×
+        </button>
+      </div>
+      <div class="files-drawer-body">
+        <template x-for="item in linkDrawerItems" :key="item.url"
+          ><a
+            class="web-result-card"
+            :href="item.url"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><template x-if="item.favicon"
+              ><img
+                class="web-result-favicon"
+                :src="item.favicon"
+                alt=""
+                loading="lazy" /></template
+            ><span class="web-result-copy"
+              ><b x-text="item.title"></b><small x-text="item.url"></small
+              ><small x-show="item.date" x-text="item.date"></small
+              ><span x-show="item.snippet" x-text="item.snippet"></span></span
+            ><span class="file-open">↗</span></a
+          ></template
+        >
+      </div>
+    </aside>
     <script src="/static/app.js?v=20260831a"></script>
   </body>
 </html>
