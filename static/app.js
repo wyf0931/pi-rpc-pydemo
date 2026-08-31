@@ -146,6 +146,8 @@ function platform() {
         // Public share view: the regular workspace APIs are auth-gated, so
         // only the token-gated share payload is fetched.
         await this.routeFromUrl();
+        this.renderIcons();
+        this.observeIcons();
         return;
       }
       await Promise.all([
@@ -159,6 +161,27 @@ function platform() {
         this.mode = this.resources.mode || "production";
       setInterval(() => this.loadHealth(), 5000);
       await this.routeFromUrl();
+      this.renderIcons();
+      this.observeIcons();
+    },
+    renderIcons() {
+      if (window.lucide?.createIcons) window.lucide.createIcons();
+    },
+    observeIcons() {
+      if (!window.MutationObserver) return;
+      const observer = new MutationObserver((mutations) => {
+        const hasIcons = mutations.some((mutation) =>
+          [...mutation.addedNodes].some(
+            (node) =>
+              node.nodeType === Node.ELEMENT_NODE &&
+              node.tagName?.toLowerCase() !== "svg" &&
+              (node.matches?.("[data-lucide]") ||
+                node.querySelector?.("[data-lucide]")),
+          ),
+        );
+        if (hasIcons) this.renderIcons();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
     },
     async api(path, options = {}) {
       const requestPath =
@@ -1742,7 +1765,7 @@ function platform() {
         items.length > 5
           ? '<span class="web-activity-more">View all</span>'
           : "";
-      return `<button type="button" class="web-activity" data-web-activity-id="${key}" onclick="window.omaPlatform.openWebActivity(this)"><span class="web-activity-icon">${name === "web_search" ? "⌕" : "▤"}</span><span>${label}</span><span class="web-activity-sites">${items
+      return `<button type="button" class="web-activity" data-web-activity-id="${key}" onclick="window.omaPlatform.openWebActivity(this)"><span class="web-activity-icon"><i data-lucide="${name === "web_search" ? "globe" : "bolt"}"></i></span><span>${label}</span><span class="web-activity-sites">${items
         .slice(0, 5)
         .map((item) =>
           item.favicon
@@ -1751,7 +1774,7 @@ function platform() {
         )
         .join(
           "",
-        )}</span>${viewAll}<span class="web-activity-arrow">›</span></button>`;
+        )}</span>${viewAll}<span class="web-activity-arrow"><i data-lucide="chevron-right"></i></span></button>`;
     },
     parseSearchResults(text) {
       const items = [];
