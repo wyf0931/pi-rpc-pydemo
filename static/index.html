@@ -43,6 +43,7 @@
         </aside><button type="button" class="mobile-sidebar-overlay" @click="mobileSidebarOpen = false" aria-label="Close chat history"></button>
 
         <section class="content-panel" x-show="page === 'chat'" x-cloak>
+          <aside class="files-drawer link-drawer" x-show="linkDrawerOpen" x-cloak x-transition aria-label="Web results"><div class="files-drawer-header"><div><h2 x-text="linkDrawerTitle"></h2><p x-text="linkDrawerItems.length + ' page' + (linkDrawerItems.length === 1 ? '' : 's')"></p></div><button type="button" class="icon-btn" @click="linkDrawerOpen = false" aria-label="Close web results">×</button></div><div class="files-drawer-body"><template x-for="item in linkDrawerItems" :key="item.url"><a class="web-result-card" :href="item.url" target="_blank" rel="noopener noreferrer"><template x-if="item.favicon"><img class="web-result-favicon" :src="item.favicon" alt="" loading="lazy"></template><span class="web-result-copy"><b x-text="item.title"></b><small x-text="item.url"></small><small x-show="item.date" x-text="item.date"></small><span x-show="item.snippet" x-text="item.snippet"></span></span><span class="file-open">↗</span></a></template></div></aside>
           <template x-if="!activeChat">
             <div class="chat-empty">
               <h1>Stay hungry. Stay foolish.</h1>
