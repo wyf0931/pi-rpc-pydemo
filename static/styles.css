@@ -3468,7 +3468,6 @@ body > .link-drawer {
 .app-shell.shared .mobile-topbar,
 .app-shell.shared .composer,
 .app-shell.shared .share-bar,
-.app-shell.shared .files-toggle,
 .app-shell.shared .message-actions {
  display: none;
 }

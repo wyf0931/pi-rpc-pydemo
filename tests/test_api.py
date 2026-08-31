@@ -283,3 +283,26 @@ def test_share_flow_public_and_revoked(client, temporary_agent):
     # Deleting the chat revokes the share.
     client.delete(f"/api/chats/{chat['id']}")
     assert client.get(f"/api/share/{token}").status_code == 404
+
+
+def test_shared_chat_files_endpoints(client, temporary_agent):
+    agent_id = temporary_agent({"name": "fileshare", "instruction": "x"}).json()["id"]
+    chat = client.post("/api/chats", json={"agent_id": agent_id}).json()
+    token = client.post(f"/api/chats/{chat['id']}/share").json()["token"]
+
+    # Chat without a Pi session yet: empty file list, still token-gated.
+    listed = client.get(f"/api/share/{token}/files")
+    assert listed.status_code == 200
+    assert listed.json()["files"] == []
+    assert (
+        client.get(f"/api/share/{token}/files/content?path=research/x.md").status_code
+        == 404
+    )
+
+    # Unknown tokens are rejected on both endpoints.
+    assert client.get("/api/share/nope/files").status_code == 404
+    assert client.get("/api/share/nope/files/content?path=x").status_code == 404
+
+    # Deleting the chat revokes the share.
+    client.delete(f"/api/chats/{chat['id']}")
+    assert client.get(f"/api/share/{token}/files").status_code == 404
