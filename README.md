@@ -276,6 +276,8 @@ This MVP is a single FastAPI application with a static frontend. The main endpoi
 | `GET /api/chats/{id}/messages` | Read history from Pi |
 | `POST /api/chats/{id}/messages` | Stream a Pi response as server-sent events |
 | `GET /api/chats/{id}/stream` | Replay + follow the active turn as SSE (204 when none) |
+| `POST /api/chats/{id}/share` | Create/reuse the unguessable public share token for a chat |
+| `GET /api/share/{token}` | Public read-only payload for a shared chat (token-gated) |
 | `GET /api/chats/{id}/files` | List files written or edited by that Chat |
 | `GET /api/chats/{id}/files/content` | Read an authorized Chat-generated text file |
 | `GET /api/chats/{id}/files/download` | Download an authorized Chat-generated file |

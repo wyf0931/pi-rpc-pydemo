@@ -53,6 +53,13 @@ function platform() {
     watchingChat: null,
     streamSource: null,
     pollTimer: null,
+    shareMode: false,
+    shareStep: null,
+    shareUrl: "",
+    creatingShare: false,
+    copiedShare: false,
+    copiedKey: "",
+    feedback: {},
     messagesLoading: false,
     filesOpen: false,
     filesLoading: false,
@@ -114,6 +121,13 @@ function platform() {
       : "light",
     async init() {
       this.setTheme(this.theme);
+      try {
+        this.feedback = JSON.parse(
+          localStorage.getItem("oma-feedback") || "{}",
+        );
+      } catch {
+        this.feedback = {};
+      }
       window.addEventListener("popstate", () => this.routeFromUrl());
       await Promise.all([
         this.loadAgents(),
@@ -564,6 +578,7 @@ function platform() {
     },
     newChat() {
       this.stopWatching();
+      this.resetShare();
       this.activeChat = null;
       this.messages = [];
       this.files = [];
@@ -578,6 +593,8 @@ function platform() {
       if (this.agents.length) this.selectedAgentId = this.agents[0].id;
     },
     async openChat(chat, updateUrl = true) {
+      this.stopWatching();
+      this.resetShare();
       this.page = "chat";
       this.activeChat = chat;
       this.files = [];
@@ -922,6 +939,90 @@ function platform() {
       }
       this.watchingChat = null;
       this.stopPolling();
+    },
+    isActionableAssistant(message) {
+      if (this.loading || message.role !== "assistant" || message._streaming)
+        return false;
+      if (!this.partsText(message.content).trim()) return false;
+      const candidates = this.messages.filter(
+        (item) =>
+          item.role === "assistant" &&
+          !item._streaming &&
+          this.partsText(item.content).trim() &&
+          this.messageVisible(item),
+      );
+      return (
+        candidates.length > 0 &&
+        candidates[candidates.length - 1]._key === message._key
+      );
+    },
+    copyMessage(message) {
+      const text = this.partsText(message.content);
+      navigator.clipboard?.writeText(text);
+      this.copiedKey = message._key;
+      setTimeout(() => {
+        if (this.copiedKey === message._key) this.copiedKey = "";
+      }, 1500);
+    },
+    feedbackFor(message) {
+      return (
+        (this.feedback || {})[`${this.activeChat?.id}:${message._key}`] || ""
+      );
+    },
+    rateMessage(message, value) {
+      const key = `${this.activeChat?.id}:${message._key}`;
+      const feedback = { ...(this.feedback || {}) };
+      if (feedback[key] === value) delete feedback[key];
+      else feedback[key] = value;
+      this.feedback = feedback;
+      localStorage.setItem("oma-feedback", JSON.stringify(feedback));
+    },
+    startShare() {
+      if (!this.activeChat) return;
+      this.shareMode = true;
+    },
+    cancelShare() {
+      this.shareMode = false;
+    },
+    openShareDialog() {
+      this.shareStep = "confirm";
+    },
+    closeShareDialog() {
+      this.shareStep = null;
+      this.copiedShare = false;
+    },
+    resetShare() {
+      this.shareMode = false;
+      this.shareStep = null;
+      this.shareUrl = "";
+      this.copiedShare = false;
+    },
+    async createShare() {
+      if (!this.activeChat || this.creatingShare) return;
+      this.creatingShare = true;
+      try {
+        const data = await this.api(
+          `/api/chats/${this.activeChat.id}/share`,
+          { method: "POST" },
+        );
+        this.shareUrl = `${location.origin}/share/${data.token}`;
+        this.shareStep = "created";
+        try {
+          await navigator.clipboard?.writeText(this.shareUrl);
+        } catch {}
+      } catch (e) {
+        this.showError(e);
+      } finally {
+        this.creatingShare = false;
+      }
+    },
+    copyShareLink() {
+      if (!this.shareUrl) return;
+      navigator.clipboard?.writeText(this.shareUrl);
+      this.copiedShare = true;
+      setTimeout(() => {
+        this.copiedShare = false;
+      }, 1500);
     },
     async abort() {
       if (!this.activeChat) return;
