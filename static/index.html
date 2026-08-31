@@ -23,7 +23,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260831c" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260831d" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null">
     <div
@@ -775,6 +775,37 @@
             <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'mcp_servers'}" :aria-selected="marketTab === 'mcp_servers'" @click="marketTab = 'mcp_servers'">MCP Servers</button>
             <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'agents'}" :aria-selected="marketTab === 'agents'" @click="marketTab = 'agents'">Agents</button>
             <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'agent_teams'}" :aria-selected="marketTab === 'agent_teams'" @click="marketTab = 'agent_teams'">Agent Teams</button>
+          </div>
+          <form class="market-search" @submit.prevent="searchMarketSkills()">
+            <label class="market-search-field">
+              <span aria-hidden="true">⌕</span>
+              <input class="input input-bordered" x-model="marketSearch" placeholder="Search skills.sh" aria-label="Search skills.sh" />
+            </label>
+            <input class="input input-bordered market-owner" x-model="marketOwner" placeholder="Owner (optional)" aria-label="Filter by owner" />
+            <button class="btn btn-primary" type="submit" :disabled="marketSearchLoading">
+              <span x-show="!marketSearchLoading">Search</span>
+              <span x-show="marketSearchLoading" class="loading loading-spinner loading-sm"></span>
+            </button>
+          </form>
+          <div class="market-search-state" x-show="marketSearchError || marketSearchResults.length || marketSearchLoading" x-cloak>
+            <div class="alert alert-error" x-show="marketSearchError" x-text="marketSearchError"></div>
+            <div class="market-search-results" x-show="!marketSearchLoading && !marketSearchError && marketSearchResults.length">
+              <template x-for="result in marketSearchResults" :key="result.url">
+                <article class="card card-border market-result-card bg-base-100">
+                  <div class="card-body">
+                    <div class="market-result-heading">
+                      <h2 class="card-title" x-text="result.skill"></h2>
+                      <span class="badge badge-ghost" x-text="result.installs + ' installs'"></span>
+                    </div>
+                    <p class="market-result-repo" x-text="result.repo"></p>
+                    <a class="link link-primary market-result-link" :href="result.url" target="_blank" rel="noopener noreferrer" x-text="result.url"></a>
+                  </div>
+                </article>
+              </template>
+            </div>
+            <div class="market-empty market-search-empty" x-show="!marketSearchLoading && !marketSearchError && !marketSearchResults.length">
+              No skills found.
+            </div>
           </div>
           <div class="market-content" x-show="marketTab === 'skills'">
             <div class="market-grid" x-show="resources.skills.length">
@@ -1996,6 +2027,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260831c"></script>
+    <script src="/static/app.js?v=20260831d"></script>
   </body>
 </html>

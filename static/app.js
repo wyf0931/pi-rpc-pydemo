@@ -75,6 +75,11 @@ function platform() {
     libraryPages: 1,
     libraryTotal: 0,
     marketTab: "skills",
+    marketSearch: "",
+    marketOwner: "",
+    marketSearchResults: [],
+    marketSearchLoading: false,
+    marketSearchError: "",
     searchOpen: false,
     chatSearchQuery: "",
     error: "",
@@ -212,6 +217,31 @@ function platform() {
           this.toolCatalog = this.resources.tools;
       } catch (e) {
         this.showError(e);
+      }
+    },
+    async searchMarketSkills() {
+      const query = this.marketSearch.trim();
+      if (!query) {
+        this.marketSearchResults = [];
+        this.marketSearchError = "Enter a skill or topic to search.";
+        return;
+      }
+      this.marketSearchLoading = true;
+      this.marketSearchError = "";
+      try {
+        const data = await this.api("/api/market/skills/search", {
+          method: "POST",
+          body: JSON.stringify({
+            query,
+            owner: this.marketOwner.trim() || null,
+          }),
+        });
+        this.marketSearchResults = data.results || [];
+      } catch (error) {
+        this.marketSearchResults = [];
+        this.marketSearchError = error.message;
+      } finally {
+        this.marketSearchLoading = false;
       }
     },
     async toggleFiles() {
