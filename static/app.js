@@ -123,7 +123,9 @@ function platform() {
       ? localStorage.getItem("pi-theme")
       : "light",
     async init() {
-      this.sharedMode = window.location.pathname.startsWith("/share/");
+      this.sharedMode =
+        window.location.pathname.startsWith("/share/") ||
+        new URLSearchParams(location.search).has("share");
       this.setTheme(this.theme);
       try {
         this.feedback = JSON.parse(
@@ -214,8 +216,22 @@ function platform() {
     },
     async toggleFiles() {
       this.filesOpen = !this.filesOpen;
-      if (this.filesOpen && this.activeChat && !this.files.length)
-        await this.loadChatFiles();
+      if (this.filesOpen && this.activeChat && !this.files.length) {
+        if (this.sharedMode) await this.loadSharedFiles();
+        else await this.loadChatFiles();
+      }
+    },
+    async loadSharedFiles() {
+      this.filesLoading = true;
+      try {
+        this.files = (
+          await this.api(`/api/share/${this.sharedToken}/files`)
+        ).files;
+      } catch (e) {
+        this.showError(e);
+      } finally {
+        this.filesLoading = false;
+      }
     },
     async loadChatFiles() {
       this.filesLoading = true;
@@ -253,10 +269,9 @@ function platform() {
     },
     openFile(file) {
       if (!this.activeChat) return;
-      const query = new URLSearchParams({
-        chat_id: this.activeChat.id,
-        path: file.path,
-      });
+      const query = this.sharedMode
+        ? new URLSearchParams({ share: this.sharedToken, path: file.path })
+        : new URLSearchParams({ chat_id: this.activeChat.id, path: file.path });
       this.openInternalTab(`/file-view?${query.toString()}`);
     },
     openLibraryFile(file) {
@@ -284,17 +299,26 @@ function platform() {
     },
     async loadFileViewer() {
       const params = new URLSearchParams(location.search);
+      const share = params.get("share");
       const chatId = params.get("chat_id");
       const path = params.get("path");
-      if (!chatId || !path) {
+      if ((!chatId && !share) || !path) {
         this.showError(new Error("File reference is incomplete"));
         return;
       }
       try {
-        const data = await this.api(
-          `/api/chats/${encodeURIComponent(chatId)}/files/content?path=${encodeURIComponent(path)}`,
-        );
-        this.fileViewer = { chatId, path, content: data.content };
+        const data = share
+          ? await this.api(
+              `/api/share/${encodeURIComponent(share)}/files/content?path=${encodeURIComponent(path)}`,
+            )
+          : await this.api(
+              `/api/chats/${encodeURIComponent(chatId)}/files/content?path=${encodeURIComponent(path)}`,
+            );
+        this.fileViewer = {
+          chatId: chatId || `share:${share}`,
+          path,
+          content: data.content,
+        };
         document.title = path.split("/").pop() || "File";
         setTimeout(() => this.renderMermaidDiagrams(), 0);
       } catch (e) {
@@ -999,9 +1023,7 @@ function platform() {
       this.page = "chat";
       this.messagesLoading = true;
       try {
-        const data = await this.api(
-          `/api/share/${encodeURIComponent(token)}`,
-        );
+        const data = await this.api(`/api/share/${encodeURIComponent(token)}`);
         this.activeChat = {
           ...(data.chat || {}),
           id: `share:${token}`,
