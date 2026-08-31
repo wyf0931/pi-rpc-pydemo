@@ -95,3 +95,33 @@ def test_storage_paths_expand_home(tmp_path: Path, monkeypatch):
     assert settings.data_dir == home / ".oma-studio" / "data"
     assert settings.pi_session_dir == home / ".oma-studio" / "data" / "pi-sessions"
     assert settings.pi_cwd == home / ".oma-studio" / "workspace"
+
+
+def test_skill_discovery_includes_skills_cli_source(tmp_path: Path):
+    pi_home = tmp_path / ".pi" / "agent"
+    skill_dir = pi_home / "skills" / "human-writing"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(
+        "---\nname: human-writing\ndescription: Writing helper\n---\n",
+        encoding="utf-8",
+    )
+    lock_path = tmp_path / ".agents" / ".skill-lock.json"
+    lock_path.parent.mkdir()
+    lock_path.write_text(
+        json.dumps(
+            {
+                "skills": {
+                    "human-writing": {
+                        "source": "owner/writing-skills",
+                        "skillPath": "skills/human-writing/SKILL.md",
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    from app.resources import discover_resources
+
+    skills = discover_resources(pi_home, tmp_path / "workspace")["skills"]
+    assert skills[0]["source"] == "owner/writing-skills"
