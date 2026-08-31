@@ -366,6 +366,15 @@ body {
  overflow: auto;
  padding: 28px 3px;
 }
+.chat-loading {
+ display: grid;
+ place-items: center;
+ align-content: center;
+ gap: 10px;
+ min-height: 220px;
+ color: var(--muted);
+ font-size: 14px;
+}
 .message {
  max-width: 88%;
  margin-bottom: 30px;
