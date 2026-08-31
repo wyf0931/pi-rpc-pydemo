@@ -2434,6 +2434,8 @@ pre,
  gap: 14px;
 }
 .market-result-card .card-body {
+ display: flex;
+ flex-direction: column;
  gap: 6px;
  padding: 16px;
 }
@@ -2448,6 +2450,15 @@ pre,
  overflow: hidden;
  text-overflow: ellipsis;
  white-space: nowrap;
+}
+.market-install-action {
+ flex: 0 0 auto;
+}
+.market-result-meta {
+ display: flex;
+ justify-content: flex-start;
+ margin-top: auto;
+ padding-top: 8px;
 }
 .market-result-repo,
 .market-result-link {
