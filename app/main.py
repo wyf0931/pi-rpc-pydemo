@@ -855,9 +855,7 @@ async def list_shared_chat_files(token: str):
         raise HTTPException(404, "Share not found")
     session_file = runtime.newest_session_file(chat)
     files = (
-        discover_session_files(session_file, settings.pi_cwd)
-        if session_file
-        else []
+        discover_session_files(session_file, settings.pi_cwd) if session_file else []
     )
     return {"files": files}
 
