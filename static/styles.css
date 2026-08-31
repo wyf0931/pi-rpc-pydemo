@@ -729,10 +729,14 @@ body {
 }
 .tool-block summary:before,
 .tool-result summary:before {
- content: "›";
+ content: "";
+ width: 7px;
+ height: 7px;
+ border-right: 1.5px solid currentColor;
+ border-bottom: 1.5px solid currentColor;
+ transform: rotate(-45deg);
  color: var(--color-primary);
- font-size: 18px;
- line-height: 10px;
+ transition: transform 0.15s;
 }
 .tool-block[open] summary:before,
 .tool-result[open] summary:before {
@@ -1952,10 +1956,13 @@ pre,
  display: none;
 }
 .process-disclosure summary:before {
- content: "›";
+ content: "";
+ width: 7px;
+ height: 7px;
+ border-right: 1.5px solid currentColor;
+ border-bottom: 1.5px solid currentColor;
+ transform: rotate(-45deg);
  color: var(--muted);
- font-size: 20px;
- line-height: 1;
  transition: transform 0.15s;
 }
 .process-disclosure[open] summary:before {
@@ -2613,23 +2620,6 @@ pre,
  overflow-y: auto;
  resize: none;
 }
-.sidebar-menu .menu-item:nth-child(4) .menu-svg {
- display: none;
-}
-.sidebar-menu .menu-item:nth-child(4) .menu-icon {
- background-color: currentColor;
- -webkit-mask: url("/static/market-icon.svg") center / 19px 19px no-repeat;
- mask: url("/static/market-icon.svg") center / 19px 19px no-repeat;
-}
-.sidebar-menu .menu-item:nth-child(4) .menu-icon:before {
- content: "";
- display: block;
- width: 19px;
- height: 19px;
- background: currentColor;
- -webkit-mask: inherit;
- mask: inherit;
-}
 .chat-search-dialog .modal-box {
  width: min(560px, calc(100vw - 32px));
  max-width: none;
@@ -3091,17 +3081,19 @@ pre,
   grid-template-columns: 1fr;
  }
 }
-.settings-trigger svg {
- display: none;
+.lucide {
+ width: 18px;
+ height: 18px;
+ stroke-width: 2;
 }
-.settings-trigger:before {
- content: "";
- display: block;
- width: 16px;
- height: 16px;
- background: currentColor;
- -webkit-mask: url("/static/settings-icon.svg") center / contain no-repeat;
- mask: url("/static/settings-icon.svg") center / contain no-repeat;
+.menu-icon .lucide {
+ width: 19px;
+ height: 19px;
+}
+.icon-send .lucide,
+.theme-option-icon .lucide {
+ width: 20px;
+ height: 20px;
 }
 .mobile-topbar,
 .mobile-sidebar-overlay {
