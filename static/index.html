@@ -24,7 +24,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260831l" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260831m" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null">
     <div
@@ -495,7 +495,7 @@
           </div>
           <div class="library-filters">
             <select
-              class="select select-bordered"
+              class="select filter-select"
               x-model="libraryAgentFilter"
               @change="loadLibrary(1)"
               aria-label="Filter by agent"
@@ -871,7 +871,7 @@
                 placeholder="Search autopilots"
                 aria-label="Search autopilots" /></label
             ><select
-              class="select select-bordered"
+              class="select filter-select"
               x-model="autopilotAgentFilter"
               @change="loadAutopilots()"
               aria-label="Filter by agent"
