@@ -75,6 +75,7 @@ function platform() {
     libraryPages: 1,
     libraryTotal: 0,
     marketTab: "skills",
+    marketInstallOpen: false,
     marketSearch: "",
     marketOwner: "",
     marketSearchResults: [],
@@ -245,6 +246,18 @@ function platform() {
         this.marketSearchLoading = false;
       }
     },
+    openMarketInstall() {
+      this.marketSearch = "";
+      this.marketOwner = "";
+      this.marketSearchResults = [];
+      this.marketSearchError = "";
+      this.marketInstallOpen = true;
+    },
+    closeMarketInstall() {
+      if (this.marketActionSkill) return;
+      this.marketInstallOpen = false;
+      this.marketSearchError = "";
+    },
     marketSkillInstalled(result) {
       return this.resources.skills.some(
         (item) => item.name === result.skill && item.source === result.repo,
@@ -259,6 +272,8 @@ function platform() {
           body: JSON.stringify({ source: result.repo, skill: result.skill }),
         });
         if (data.resources) this.resources = data.resources;
+        this.marketInstallOpen = false;
+        this.marketSearchResults = [];
       } catch (error) {
         this.marketSearchError = error.message;
       } finally {
@@ -279,6 +294,9 @@ function platform() {
       } finally {
         this.marketActionSkill = "";
       }
+    },
+    removeInstalledSkill(item) {
+      return this.removeMarketSkill({ skill: item.name });
     },
     async toggleFiles() {
       this.filesOpen = !this.filesOpen;
