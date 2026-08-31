@@ -1826,7 +1826,7 @@ function platform() {
       }
     },
     renderWebActivity(name, args) {
-      const result = args._webResult;
+      const result = args._webResult || args.webResult;
       if (!result) return null;
       const text = this.partsText(result.content || []);
       const items =
@@ -1835,21 +1835,34 @@ function platform() {
           : this.parseFetchResult(text, result, args);
       if (!items.length)
         return this.processLine(
-          name === "web_search" ? "Search" : "Browse",
+          name === "web_search" ? "Search" : "Read",
           name === "web_search" ? args.query || "" : args.url || "",
         );
+      return this.renderWebActivityItems(name, items);
+    },
+    renderWebActivityItems(name, items) {
       window.omaPlatform = this;
       const key = crypto.randomUUID();
       this.webActivities[key] = { kind: name, items };
       const label =
         name === "web_search"
           ? `Search found ${items.length} pages`
-          : `Browsed ${items.length} pages`;
+          : `Read ${items.length} pages`;
       const viewAll =
         items.length > 5
           ? '<span class="web-activity-more">View all</span>'
           : "";
-      return `<button type="button" class="web-activity" data-web-activity-id="${key}" onclick="window.omaPlatform.openWebActivity(this)"><span class="web-activity-icon"><i data-lucide="${name === "web_search" ? "globe" : "bolt"}"></i></span><span>${label}</span><span class="web-activity-sites">${items
+      const pages =
+        name === "web_fetch"
+          ? `<span class="web-activity-pages">${items
+              .slice(0, 5)
+              .map(
+                (item) =>
+                  `<a href="${this.escape(item.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${this.escape(item.title)} <i data-lucide="external-link"></i></a>`,
+              )
+              .join("<span class=\"web-activity-separator\"> · </span>")}</span>`
+          : "";
+      return `<div role="button" tabindex="0" class="web-activity" data-web-activity-id="${key}" onclick="window.omaPlatform.openWebActivity(this)" onkeydown="if(event.key === 'Enter' || event.key === ' ') window.omaPlatform.openWebActivity(this)"><span class="web-activity-icon"><i data-lucide="${name === "web_search" ? "globe" : "bolt"}"></i></span><span class="web-activity-label">${label}</span><span class="web-activity-sites">${items
         .slice(0, 5)
         .map((item) =>
           item.favicon
@@ -1858,7 +1871,7 @@ function platform() {
         )
         .join(
           "",
-        )}</span>${viewAll}<span class="web-activity-arrow"><i data-lucide="chevron-right"></i></span></button>`;
+        )}</span>${pages}${viewAll}<span class="web-activity-arrow"><i data-lucide="chevron-right"></i></span></div>`;
     },
     parseSearchResults(text) {
       const items = [];
@@ -1879,8 +1892,9 @@ function platform() {
     parseFetchResult(text, result, args) {
       const url = result.details?.sourceUrl || args.url || "";
       if (!url) return [];
+      const titleLine = text.match(/^\s*Title:\s*(.+)$/im)?.[1]?.trim();
       const heading = text.match(/^#{1,3}\s+(.+)$/m)?.[1]?.trim();
-      let title = heading || "";
+      let title = titleLine || heading || "";
       try {
         title = title || new URL(url).hostname;
       } catch {
@@ -1899,13 +1913,39 @@ function platform() {
       const activity = this.webActivities[button.dataset.webActivityId];
       if (!activity) return;
       this.linkDrawerTitle =
-        activity.kind === "web_search" ? "Search results" : "Browsed pages";
+        activity.kind === "web_search" ? "Search results" : "Read pages";
       this.linkDrawerItems = activity.items || [];
       this.linkDrawerOpen = true;
     },
     renderReasoning(parts, messageKey) {
-      const items = parts
-        .map((part) => this.renderReasoningPart(part))
+      const entries = [];
+      for (const part of parts) {
+        if (part.type === "toolCall" && part.name === "web_fetch") {
+          const args = this.toolArgs(part);
+          const result = args._webResult || part.webResult;
+          if (result) {
+            const fetchItems = this.parseFetchResult(
+              this.partsText(result.content || []),
+              result,
+              args,
+            );
+            if (fetchItems.length) {
+              const previous = entries[entries.length - 1];
+              if (previous?.kind === "web_fetch")
+                previous.items.push(...fetchItems);
+              else entries.push({ kind: "web_fetch", items: fetchItems });
+              continue;
+            }
+          }
+        }
+        entries.push({ part });
+      }
+      const items = entries
+        .map((entry) =>
+          entry.kind
+            ? this.renderWebActivityItems(entry.kind, entry.items)
+            : this.renderReasoningPart(entry.part),
+        )
         .filter(Boolean);
       const content = items
         .map(
@@ -1930,7 +1970,7 @@ function platform() {
       const label = seconds === null ? "Thought" : `Thought for ${seconds}s`;
       const reasoningKey = `${messageKey || "message"}:reasoning`;
       const checked = this.reasoningOpen[reasoningKey] ? " checked" : "";
-      return `<div class="collapse collapse-arrow reasoning-collapse"><input type="checkbox" data-reasoning-key="${this.escape(reasoningKey)}" onchange="window.omaPlatform.setReasoningOpen(this)"${checked} /><div class="collapse-title process-label">${label}</div><div class="collapse-content"><ul class="timeline timeline-compact timeline-snap-icon timeline-vertical reasoning-timeline">${content}</ul></div></div>`;
+      return `<div class="collapse reasoning-collapse"><input type="checkbox" data-reasoning-key="${this.escape(reasoningKey)}" onchange="window.omaPlatform.setReasoningOpen(this)"${checked} /><div class="collapse-title process-label"><i data-lucide="sparkle" aria-hidden="true"></i><span>${label}</span><i class="reasoning-chevron" data-lucide="chevron-down" aria-hidden="true"></i></div><div class="collapse-content"><ul class="timeline timeline-compact timeline-snap-icon timeline-vertical reasoning-timeline">${content}</ul></div></div>`;
     },
     renderProcessToolCall(name, args) {
       if (name === "web_search" || name === "web_fetch")
