@@ -349,6 +349,26 @@ def test_share_flow_public_and_revoked(client, temporary_agent):
     assert client.get(f"/api/share/{token}").status_code == 404
 
 
+def test_chat_title_can_be_updated(client, temporary_agent):
+    agent_id = temporary_agent({"name": "title-editor", "instruction": "x"}).json()[
+        "id"
+    ]
+    chat = client.post("/api/chats", json={"agent_id": agent_id}).json()
+
+    updated = client.patch(
+        f"/api/chats/{chat['id']}", json={"title": "A renamed conversation"}
+    )
+    assert updated.status_code == 200
+    assert updated.json()["title"] == "A renamed conversation"
+    assert client.get(f"/api/chats/{chat['id']}").json()["title"] == (
+        "A renamed conversation"
+    )
+
+    empty = client.patch(f"/api/chats/{chat['id']}", json={"title": "   "})
+    assert empty.status_code == 422
+    client.delete(f"/api/chats/{chat['id']}")
+
+
 def test_shared_chat_files_endpoints(client, temporary_agent):
     agent_id = temporary_agent({"name": "fileshare", "instruction": "x"}).json()["id"]
     chat = client.post("/api/chats", json={"agent_id": agent_id}).json()

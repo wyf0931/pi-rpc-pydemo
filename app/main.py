@@ -76,6 +76,10 @@ class ChatCreate(BaseModel):
     agent_id: str
 
 
+class ChatUpdate(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+
+
 class MessageCreate(BaseModel):
     content: str = Field(min_length=1, max_length=100000)
 
@@ -389,6 +393,16 @@ async def create_chat(payload: ChatCreate):
     # Pi accepts an externally supplied session id. The platform chat id is a UUID
     # and is therefore also a valid Pi session id.
     return store.create_chat(payload.agent_id, status="created")
+
+
+@app.patch("/api/chats/{chat_id}")
+async def update_chat(chat_id: str, payload: ChatUpdate):
+    if not payload.title.strip():
+        raise HTTPException(422, "Chat title cannot be empty")
+    chat = store.update_chat(chat_id, {"title": payload.title.strip()})
+    if not chat:
+        raise HTTPException(404, "Chat not found")
+    return chat
 
 
 @app.get("/api/chats/{chat_id}")

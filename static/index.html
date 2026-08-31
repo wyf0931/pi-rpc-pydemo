@@ -24,7 +24,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260831i" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260831k" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null">
     <div
@@ -333,7 +333,29 @@
           </template>
           <template x-if="activeChat">
             <div class="conversation">
-              <div class="conversation-toolbar">
+              <div class="chat-header">
+                <div class="chat-title-control">
+                  <button
+                    type="button"
+                    class="chat-title-display"
+                    x-show="!editingChatTitle"
+                    @click="startEditingChatTitle()"
+                    :title="sharedMode ? activeChat.title : 'Edit conversation title'"
+                    :aria-label="sharedMode ? activeChat.title : 'Edit conversation title'"
+                    x-text="activeChat.title"
+                  ></button>
+                  <input
+                    id="chat-title-input"
+                    class="input input-bordered chat-title-input"
+                    x-show="editingChatTitle"
+                    x-model="chatTitleDraft"
+                    maxlength="200"
+                    @keydown.enter.prevent="saveChatTitle()"
+                    @keydown.escape.prevent="cancelEditingChatTitle()"
+                    @blur="saveChatTitle()"
+                    aria-label="Conversation title"
+                  />
+                </div>
                 <button
                   type="button"
                   class="icon-btn files-toggle"
@@ -1977,6 +1999,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260831h"></script>
+    <script src="/static/app.js?v=20260831j"></script>
   </body>
 </html>

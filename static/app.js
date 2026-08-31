@@ -43,6 +43,9 @@ function platform() {
     agents: [],
     chats: [],
     activeChat: null,
+    editingChatTitle: false,
+    chatTitleDraft: "",
+    chatTitleSaving: false,
     messages: [],
     selectedAgentId: "",
     sidebarCollapsed: false,
@@ -208,6 +211,43 @@ function platform() {
         this.chats = (await this.api("/api/chats")).chats;
       } catch (e) {
         this.showError(e);
+      }
+    },
+    startEditingChatTitle() {
+      if (this.sharedMode || !this.activeChat) return;
+      this.chatTitleDraft = this.activeChat.title || "";
+      this.editingChatTitle = true;
+      this.$nextTick(() => {
+        document.getElementById("chat-title-input")?.focus();
+      });
+    },
+    cancelEditingChatTitle() {
+      this.editingChatTitle = false;
+      this.chatTitleDraft = "";
+    },
+    async saveChatTitle() {
+      if (!this.editingChatTitle || this.chatTitleSaving) return;
+      const title = this.chatTitleDraft.trim();
+      if (!title) {
+        this.showError(new Error("Chat title cannot be empty"));
+        this.chatTitleDraft = this.activeChat?.title || "";
+        return;
+      }
+      this.chatTitleSaving = true;
+      try {
+        const updated = await this.api(`/api/chats/${this.activeChat.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ title }),
+        });
+        this.activeChat = updated;
+        const sidebarChat = this.chats.find((chat) => chat.id === updated.id);
+        if (sidebarChat) Object.assign(sidebarChat, updated);
+        document.title = `${updated.title} · OMA studio`;
+        this.cancelEditingChatTitle();
+      } catch (error) {
+        this.showError(error);
+      } finally {
+        this.chatTitleSaving = false;
       }
     },
     openChatSearch() {
@@ -722,6 +762,7 @@ function platform() {
     newChat() {
       this.stopWatching();
       this.resetShare();
+      this.cancelEditingChatTitle();
       this.activeChat = null;
       this.messages = [];
       this.files = [];
@@ -739,6 +780,7 @@ function platform() {
       this.stopWatching();
       this.resetShare();
       this.page = "chat";
+      this.cancelEditingChatTitle();
       this.activeChat = chat;
       this.files = [];
       this.filesOpen = false;

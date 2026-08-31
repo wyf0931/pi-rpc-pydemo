@@ -277,6 +277,7 @@ This MVP is a single FastAPI application with a static frontend. The main endpoi
 | `GET /api/resources` | Discover extensions, skills, MCP servers, Providers, and Models |
 | `GET /api/chats` | List chat metadata |
 | `POST /api/chats` | Create a chat record and external Pi session ID |
+| `PATCH /api/chats/{id}` | Update chat metadata such as the session title |
 | `GET /api/chats/{id}/messages` | Read history from Pi |
 | `POST /api/chats/{id}/messages` | Stream a Pi response as server-sent events |
 | `GET /api/chats/{id}/stream` | Replay + follow the active turn as SSE (204 when none) |
