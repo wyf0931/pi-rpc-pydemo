@@ -23,7 +23,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260831f" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260831g" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null">
     <div
@@ -893,22 +893,29 @@
                     <div class="card-body">
                       <div class="market-result-heading">
                         <h2 class="card-title" x-text="result.skill"></h2>
-                        <span class="badge badge-ghost" x-text="result.installs + ' installs'"></span>
+                        <span
+                          class="badge badge-success badge-soft"
+                          x-show="marketSkillInstalled(result)"
+                        >Installed</span>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-primary btn-square market-install-action"
+                          x-show="!marketSkillInstalled(result)"
+                          :disabled="marketActionSkill === result.skill"
+                          :aria-label="'Install ' + result.skill"
+                          @click="installMarketSkill(result)"
+                        >
+                          <span x-show="marketActionSkill !== result.skill">+</span>
+                          <span
+                            x-show="marketActionSkill === result.skill"
+                            class="loading loading-spinner loading-xs"
+                          ></span>
+                        </button>
                       </div>
                       <p class="market-result-repo" x-text="result.repo"></p>
                       <a class="link link-primary market-result-link" :href="result.url" target="_blank" rel="noopener noreferrer" x-text="result.url"></a>
-                      <div class="card-actions justify-end">
-                        <span class="badge badge-success badge-soft" x-show="marketSkillInstalled(result)">Installed</span>
-                        <button
-                          type="button"
-                          class="btn btn-sm btn-primary"
-                          x-show="!marketSkillInstalled(result)"
-                          :disabled="marketActionSkill === result.skill"
-                          @click="installMarketSkill(result)"
-                        >
-                          <span x-show="marketActionSkill !== result.skill">Install</span>
-                          <span x-show="marketActionSkill === result.skill" class="loading loading-spinner loading-xs"></span>
-                        </button>
+                      <div class="market-result-meta">
+                        <span class="badge badge-ghost" x-text="result.installs + ' installs'"></span>
                       </div>
                     </div>
                   </article>
@@ -2087,6 +2094,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260831f"></script>
+    <script src="/static/app.js?v=20260831g"></script>
   </body>
 </html>
