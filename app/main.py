@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import json
 import time
 from datetime import UTC, datetime
@@ -279,12 +280,37 @@ def title_for(content: str) -> str:
 
 
 def visible_messages(messages: list[dict], mode: str = "production") -> list[dict]:
-    """Hide process-only tool results from the conversation transcript."""
-    return (
-        messages
-        if mode == "development"
-        else [message for message in messages if message.get("role") != "toolResult"]
-    )
+    """Attach web activity results to calls while hiding raw process results."""
+    results = {
+        message.get("toolCallId"): message
+        for message in messages
+        if message.get("role") == "toolResult"
+        and message.get("toolName") in {"web_search", "web_fetch"}
+    }
+    visible: list[dict] = []
+    for original in messages:
+        if (
+            original.get("role") == "toolResult"
+            and original.get("toolName") in {"web_search", "web_fetch"}
+        ):
+            continue
+        message = copy.deepcopy(original)
+        if message.get("role") == "assistant":
+            for part in message.get("content") or []:
+                if part.get("type") != "toolCall" or part.get("name") not in {"web_search", "web_fetch"}:
+                    continue
+                result = results.get(part.get("id"))
+                if result:
+                    part["webResult"] = result
+                    arguments = part.get("arguments")
+                    if isinstance(arguments, dict):
+                        arguments["_webResult"] = result
+                if message.get("timestamp") is not None:
+                    part["_timestamp"] = message["timestamp"]
+        if mode != "development" and message.get("role") == "toolResult":
+            continue
+        visible.append(message)
+    return visible
 
 
 @app.get("/api/chats")
