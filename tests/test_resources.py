@@ -6,20 +6,53 @@ from app.resources import discover_models
 
 
 def test_discovers_pi_model_catalog(tmp_path: Path):
-    (tmp_path / "models.json").write_text(json.dumps({"providers": {
-        "example": {"name": "Example Provider", "models": [
-            {"id": "example-fast", "name": "Example Fast", "reasoning": True},
-            {"id": "example-id-only"},
-        ]},
-        "empty": {"models": []},
-    }}), encoding="utf-8")
+    (tmp_path / "models.json").write_text(
+        json.dumps(
+            {
+                "providers": {
+                    "example": {
+                        "name": "Example Provider",
+                        "models": [
+                            {
+                                "id": "example-fast",
+                                "name": "Example Fast",
+                                "reasoning": True,
+                            },
+                            {"id": "example-id-only"},
+                        ],
+                    },
+                    "empty": {"models": []},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
 
-    assert discover_models(tmp_path) == [{
-        "id": "example", "name": "Example Provider", "models": [
-            {"id": "example-fast", "name": "Example Fast", "thinking_levels": ["minimal", "low", "medium", "high", "xhigh", "max"]},
-            {"id": "example-id-only", "name": "example-id-only", "thinking_levels": ["off"]},
-        ],
-    }]
+    assert discover_models(tmp_path) == [
+        {
+            "id": "example",
+            "name": "Example Provider",
+            "models": [
+                {
+                    "id": "example-fast",
+                    "name": "Example Fast",
+                    "thinking_levels": [
+                        "minimal",
+                        "low",
+                        "medium",
+                        "high",
+                        "xhigh",
+                        "max",
+                    ],
+                },
+                {
+                    "id": "example-id-only",
+                    "name": "example-id-only",
+                    "thinking_levels": ["off"],
+                },
+            ],
+        }
+    ]
 
 
 def test_reads_agent_defaults_from_dotenv(tmp_path: Path, monkeypatch):
@@ -29,7 +62,12 @@ def test_reads_agent_defaults_from_dotenv(tmp_path: Path, monkeypatch):
         encoding="utf-8",
     )
     monkeypatch.chdir(tmp_path)
-    for name in ("PI_DEFAULT_TOOLS", "PI_DEFAULT_EXTENSIONS", "PI_DEFAULT_SKILLS", "PI_DEFAULT_MCP_SERVERS"):
+    for name in (
+        "PI_DEFAULT_TOOLS",
+        "PI_DEFAULT_EXTENSIONS",
+        "PI_DEFAULT_SKILLS",
+        "PI_DEFAULT_MCP_SERVERS",
+    ):
         monkeypatch.delenv(name, raising=False)
 
     settings = get_settings()

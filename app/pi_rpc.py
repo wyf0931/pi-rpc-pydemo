@@ -114,7 +114,11 @@ class PiRpcClient:
             raw = await self.process.stderr.readline()
             if not raw:
                 break
-            print(f"[pi rpc] {raw.decode(errors='replace').rstrip()}", file=sys.stderr, flush=True)
+            print(
+                f"[pi rpc] {raw.decode(errors='replace').rstrip()}",
+                file=sys.stderr,
+                flush=True,
+            )
 
     async def _read_stdout(self) -> None:
         assert self.process and self.process.stdout
@@ -173,7 +177,9 @@ class PiRpcClient:
         await self.request("prompt", message=message)
         agent_finished = False
         while True:
-            event = await asyncio.wait_for(self.events.get(), timeout=self.stream_timeout)
+            event = await asyncio.wait_for(
+                self.events.get(), timeout=self.stream_timeout
+            )
             event_type = event.get("type")
             if event_type == "message_update":
                 assistant_event = event.get("assistantMessageEvent", {})
@@ -278,7 +284,9 @@ class PiRuntimeManager:
         if any(tool in tools for tool in PLATFORM_TOOLS):
             extension = Path(__file__).parent.parent / "extensions" / "oma-web-tools.ts"
             command += ["--extension", str(extension)]
-        extension_paths = [self._resource_path(path) for path in agent.get("extensions", [])]
+        extension_paths = [
+            self._resource_path(path) for path in agent.get("extensions", [])
+        ]
         if any("pi-mcp-adapter" in path for path in extension_paths):
             for tool in ("mcp", "mcpScript"):
                 if tool not in tools:
@@ -303,15 +311,22 @@ class PiRuntimeManager:
         environment = os.environ.copy()
         for name, value in {
             "JINA_API_KEY": getattr(self.settings, "jina_api_key", None),
-            "BAIDU_SEARCH_API_KEY": getattr(self.settings, "baidu_search_api_key", None),
-            "BAIDU_SEARCH_BASE_URL": getattr(self.settings, "baidu_search_base_url", None),
+            "BAIDU_SEARCH_API_KEY": getattr(
+                self.settings, "baidu_search_api_key", None
+            ),
+            "BAIDU_SEARCH_BASE_URL": getattr(
+                self.settings, "baidu_search_base_url", None
+            ),
         }.items():
             if value:
                 environment[name] = value
         return environment
 
     def _mcp_override(self, agent: dict) -> tuple[str | None, list[Path]]:
-        if not any("pi-mcp-adapter" in self._resource_path(path) for path in agent.get("extensions", [])):
+        if not any(
+            "pi-mcp-adapter" in self._resource_path(path)
+            for path in agent.get("extensions", [])
+        ):
             return None, []
         discovered = discover_resources(self.settings.pi_home, self.settings.pi_cwd)[
             "mcp_servers"

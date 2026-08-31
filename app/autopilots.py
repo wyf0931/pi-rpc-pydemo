@@ -12,7 +12,11 @@ def _parse_time(value: str | None) -> datetime | None:
         parsed = datetime.fromisoformat(value)
     except ValueError:
         return None
-    return parsed if parsed.tzinfo else parsed.replace(tzinfo=datetime.now().astimezone().tzinfo)
+    return (
+        parsed
+        if parsed.tzinfo
+        else parsed.replace(tzinfo=datetime.now().astimezone().tzinfo)
+    )
 
 
 def next_run_at(autopilot: dict, now: datetime | None = None) -> datetime | None:
@@ -40,7 +44,9 @@ def previous_run_at(autopilot: dict, now: datetime | None = None) -> datetime | 
 
 
 class AutopilotScheduler:
-    def __init__(self, store, executor: Callable[[dict], Awaitable[None]], interval: float = 15.0):
+    def __init__(
+        self, store, executor: Callable[[dict], Awaitable[None]], interval: float = 15.0
+    ):
         self.store = store
         self.executor = executor
         self.interval = interval
@@ -50,11 +56,14 @@ class AutopilotScheduler:
     async def start(self) -> None:
         for run in self.store.autopilot_runs.all():
             if run.get("status") == "running":
-                self.store.update_autopilot_run(run["id"], {
-                    "status": "cancelled",
-                    "finished_at": datetime.now(UTC).isoformat(),
-                    "error": "Application restarted before the run completed",
-                })
+                self.store.update_autopilot_run(
+                    run["id"],
+                    {
+                        "status": "cancelled",
+                        "finished_at": datetime.now(UTC).isoformat(),
+                        "error": "Application restarted before the run completed",
+                    },
+                )
         if not self.task or self.task.done():
             self.task = asyncio.create_task(self._loop())
 
@@ -79,12 +88,17 @@ class AutopilotScheduler:
             ends_at = _parse_time(autopilot.get("ends_at"))
             last_run = _parse_time(autopilot.get("last_run_at"))
             created_at = _parse_time(autopilot.get("created_at"))
-            if (scheduled and scheduled <= now and
-                    (not starts_at or scheduled >= starts_at) and
-                    (not ends_at or scheduled <= ends_at) and
-                    (not created_at or scheduled > created_at) and
-                    (not last_run or scheduled > last_run)):
-                self.store.update_autopilot(autopilot["id"], {"last_run_at": scheduled.isoformat()})
+            if (
+                scheduled
+                and scheduled <= now
+                and (not starts_at or scheduled >= starts_at)
+                and (not ends_at or scheduled <= ends_at)
+                and (not created_at or scheduled > created_at)
+                and (not last_run or scheduled > last_run)
+            ):
+                self.store.update_autopilot(
+                    autopilot["id"], {"last_run_at": scheduled.isoformat()}
+                )
                 self.running.add(autopilot["id"])
                 asyncio.create_task(self._execute(autopilot))
 

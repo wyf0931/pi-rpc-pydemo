@@ -284,15 +284,18 @@ def visible_messages(messages: list[dict], mode: str = "production") -> list[dic
     }
     visible: list[dict] = []
     for original in messages:
-        if (
-            original.get("role") == "toolResult"
-            and original.get("toolName") in {"web_search", "web_fetch"}
-        ):
+        if original.get("role") == "toolResult" and original.get("toolName") in {
+            "web_search",
+            "web_fetch",
+        }:
             continue
         message = copy.deepcopy(original)
         if message.get("role") == "assistant":
             for part in message.get("content") or []:
-                if part.get("type") != "toolCall" or part.get("name") not in {"web_search", "web_fetch"}:
+                if part.get("type") != "toolCall" or part.get("name") not in {
+                    "web_search",
+                    "web_fetch",
+                }:
                     continue
                 result = results.get(part.get("id"))
                 if result:
