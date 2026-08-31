@@ -23,7 +23,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260831b" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260831c" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null">
     <div
@@ -122,7 +122,11 @@
                   <path d="M17.64 18.67 20 21"></path></svg></span
               ><span class="menu-label">Autopilots</span>
             </button>
-            <button class="menu-item" @click="comingSoon('Market')">
+            <button
+              class="menu-item"
+              :class="{active: page === 'market'}"
+              @click="go('market')"
+            >
               <span class="menu-icon"
                 ><svg class="menu-svg" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"></path>
@@ -752,6 +756,80 @@
                   </svg>
                 </button></div
             ></template>
+          </div>
+        </section>
+        <section
+          class="content-panel market-page"
+          x-show="page === 'market'"
+          x-cloak
+        >
+          <div class="page-heading">
+            <div>
+              <h1>Market</h1>
+              <p>Browse the resources available in this workspace.</p>
+            </div>
+          </div>
+          <div class="tabs tabs-border market-tabs" role="tablist" aria-label="Market resources">
+            <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'skills'}" :aria-selected="marketTab === 'skills'" @click="marketTab = 'skills'">Skills</button>
+            <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'extensions'}" :aria-selected="marketTab === 'extensions'" @click="marketTab = 'extensions'">Extensions</button>
+            <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'mcp_servers'}" :aria-selected="marketTab === 'mcp_servers'" @click="marketTab = 'mcp_servers'">MCP Servers</button>
+            <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'agents'}" :aria-selected="marketTab === 'agents'" @click="marketTab = 'agents'">Agents</button>
+            <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'agent_teams'}" :aria-selected="marketTab === 'agent_teams'" @click="marketTab = 'agent_teams'">Agent Teams</button>
+          </div>
+          <div class="market-content" x-show="marketTab === 'skills'">
+            <div class="market-grid" x-show="resources.skills.length">
+              <template x-for="item in resources.skills" :key="item.id">
+                <article class="card card-border market-card bg-base-100" :title="item.description || item.path">
+                  <div class="card-body">
+                    <div class="market-card-top">
+                      <span class="agent-mark" x-text="initials(item.name)"></span>
+                      <span class="badge badge-soft badge-success badge-sm">Installed</span>
+                    </div>
+                    <h2 class="card-title" x-text="item.name"></h2>
+                    <p class="market-description" x-text="item.description || 'No description available'"></p>
+                  </div>
+                </article>
+              </template>
+            </div>
+            <div class="market-empty" x-show="!resources.skills.length">No skills discovered.</div>
+          </div>
+          <div class="market-content" x-show="marketTab === 'extensions'" x-cloak>
+            <div class="market-grid" x-show="resources.extensions.length">
+              <template x-for="item in resources.extensions" :key="item.id">
+                <article class="card card-border market-card bg-base-100" :title="item.description || item.path">
+                  <div class="card-body">
+                    <div class="market-card-top">
+                      <span class="agent-mark" x-text="initials(item.name)"></span>
+                      <span class="badge badge-soft badge-success badge-sm">Installed</span>
+                    </div>
+                    <h2 class="card-title" x-text="item.name"></h2>
+                    <p class="market-description" x-text="item.description || 'No description available'"></p>
+                  </div>
+                </article>
+              </template>
+            </div>
+            <div class="market-empty" x-show="!resources.extensions.length">No extensions discovered.</div>
+          </div>
+          <div class="market-content" x-show="marketTab === 'mcp_servers'" x-cloak>
+            <div class="market-grid" x-show="resources.mcp_servers.length">
+              <template x-for="item in resources.mcp_servers" :key="item.id">
+                <article class="card card-border market-card bg-base-100" :title="item.description || item.path">
+                  <div class="card-body">
+                    <div class="market-card-top">
+                      <span class="agent-mark" x-text="initials(item.name)"></span>
+                      <span class="badge badge-soft badge-info badge-sm">Available</span>
+                    </div>
+                    <h2 class="card-title" x-text="item.name"></h2>
+                    <p class="market-description" x-text="item.description || 'MCP server'"></p>
+                  </div>
+                </article>
+              </template>
+            </div>
+            <div class="market-empty" x-show="!resources.mcp_servers.length">No MCP servers discovered.</div>
+          </div>
+          <div class="market-empty" x-show="marketTab === 'agents' || marketTab === 'agent_teams'" x-cloak>
+            <h2>Coming soon</h2>
+            <p>This catalog is reserved for a future release.</p>
           </div>
         </section>
         <section
@@ -1918,6 +1996,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260831b"></script>
+    <script src="/static/app.js?v=20260831c"></script>
   </body>
 </html>
