@@ -28,7 +28,11 @@
   <body x-data="platform()" @keydown.escape="dialog = null">
     <div
       class="app-shell"
-      :class="{'sidebar-collapsed': sidebarCollapsed, 'mobile-sidebar-open': mobileSidebarOpen}"
+      :class="{
+        'sidebar-collapsed': sidebarCollapsed,
+        'mobile-sidebar-open': mobileSidebarOpen,
+        shared: sharedMode,
+      }"
     >
       <main class="workspace">
         <div class="mobile-topbar">
@@ -524,8 +528,8 @@
               </div>
               <div class="share-bar" x-show="shareMode" x-cloak>
                 <span class="share-hint"
-                  >Create a read-only link to this conversation. Anyone with
-                  the link can view it — no sign-in required.</span
+                  >Create a read-only link to this conversation. Anyone with the
+                  link can view it — no sign-in required.</span
                 >
                 <div class="share-bar-actions">
                   <button
@@ -1891,9 +1895,10 @@
               @click="createShare()"
               :disabled="creatingShare"
             >
-              <span x-text="creatingShare ? 'Creating…' : 'Create & copy'"></span>
-            </button>
-          </div></template
+              <span
+                x-text="creatingShare ? 'Creating…' : 'Create & copy'"
+              ></span>
+            </button></div></template
         ><template x-if="shareStep === 'created'"
           ><div class="share-link-row">
             <input
@@ -1909,9 +1914,8 @@
               @click="copyShareLink()"
             >
               <span x-text="copiedShare ? 'Copied' : 'Copy link'"></span>
-            </button>
-          </div></template
-        >
+            </button></div
+        ></template>
       </div>
     </dialog>
     <script src="/static/app.js?v=20260831b"></script>

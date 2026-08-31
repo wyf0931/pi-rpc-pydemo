@@ -814,7 +814,10 @@ async def create_chat_share(chat_id: str):
 
 @app.get("/api/share/{token}")
 async def get_shared_chat(token: str):
-    """Public, read-only view of a shared chat — token is the only gate."""
+    """Public, read-only view of a shared chat — token is the only gate.
+
+    The SPA route /share/{token} (served by the catch-all below) consumes
+    this payload and renders the regular chat view in read-only mode."""
     share = store.get_share(token)
     if not share:
         raise HTTPException(404, "Share not found")
@@ -837,13 +840,6 @@ async def get_shared_chat(token: str):
         },
         "messages": visible_messages(messages, "production"),
     }
-
-
-@app.get("/share/{token}")
-async def shared_chat_page(token: str):
-    # Serve the read-only share page for any token; the page itself reports
-    # unknown or revoked links after calling /api/share/{token}.
-    return FileResponse(static_dir / "share.html")
 
 
 @app.get("/{path:path}")

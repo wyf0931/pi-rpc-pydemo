@@ -53,6 +53,8 @@ function platform() {
     watchingChat: null,
     streamSource: null,
     pollTimer: null,
+    sharedMode: false,
+    sharedToken: "",
     shareMode: false,
     shareStep: null,
     shareUrl: "",
@@ -120,6 +122,7 @@ function platform() {
       ? localStorage.getItem("pi-theme")
       : "light",
     async init() {
+      this.sharedMode = window.location.pathname.startsWith("/share/");
       this.setTheme(this.theme);
       try {
         this.feedback = JSON.parse(
@@ -129,6 +132,12 @@ function platform() {
         this.feedback = {};
       }
       window.addEventListener("popstate", () => this.routeFromUrl());
+      if (this.sharedMode) {
+        // Public share view: the regular workspace APIs are auth-gated, so
+        // only the token-gated share payload is fetched.
+        await this.routeFromUrl();
+        return;
+      }
       await Promise.all([
         this.loadAgents(),
         this.loadChats(),
@@ -941,8 +950,8 @@ function platform() {
       this.stopPolling();
     },
     isActionableAssistant(message) {
-      if (this.loading || message.role !== "assistant" || message._streaming)
-        return false;
+      if (this.sharedMode || this.loading) return false;
+      if (message.role !== "assistant" || message._streaming) return false;
       if (!this.partsText(message.content).trim()) return false;
       const candidates = this.messages.filter(
         (item) =>
@@ -978,8 +987,32 @@ function platform() {
       localStorage.setItem("oma-feedback", JSON.stringify(feedback));
     },
     startShare() {
-      if (!this.activeChat) return;
+      if (!this.activeChat || this.sharedMode) return;
       this.shareMode = true;
+    },
+    async openSharedChat(token) {
+      this.sharedToken = token;
+      this.sharedMode = true;
+      this.page = "chat";
+      this.messagesLoading = true;
+      try {
+        const data = await this.api(
+          `/api/share/${encodeURIComponent(token)}`,
+        );
+        this.activeChat = {
+          ...(data.chat || {}),
+          id: `share:${token}`,
+          status: "ready",
+        };
+        this.messages = this.normalizeMessages(data.messages || []);
+        document.title = `${this.activeChat.title || "Shared conversation"} · OMA studio`;
+      } catch (e) {
+        this.activeChat = null;
+        this.messages = [];
+        this.showError(e);
+      } finally {
+        this.messagesLoading = false;
+      }
     },
     cancelShare() {
       this.shareMode = false;
@@ -1001,10 +1034,9 @@ function platform() {
       if (!this.activeChat || this.creatingShare) return;
       this.creatingShare = true;
       try {
-        const data = await this.api(
-          `/api/chats/${this.activeChat.id}/share`,
-          { method: "POST" },
-        );
+        const data = await this.api(`/api/chats/${this.activeChat.id}/share`, {
+          method: "POST",
+        });
         this.shareUrl = `${location.origin}/share/${data.token}`;
         this.shareStep = "created";
         try {
@@ -1543,6 +1575,11 @@ function platform() {
       if (window.location.pathname === "/autopilots") {
         this.page = "autopilots";
         await this.loadAutopilots();
+        return;
+      }
+      const shareMatch = window.location.pathname.match(/^\/share\/([^/]+)$/);
+      if (shareMatch) {
+        await this.openSharedChat(decodeURIComponent(shareMatch[1]));
         return;
       }
       const match = window.location.pathname.match(/^\/chat\/([^/]+)$/);
