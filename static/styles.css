@@ -2195,7 +2195,20 @@ pre,
 }
 .reasoning-collapse .collapse-title {
  min-height: 0;
- padding: 10px 36px 10px 12px;
+ display: flex;
+ align-items: center;
+ gap: 8px;
+ padding: 10px 12px;
+}
+.reasoning-collapse .collapse-title .lucide:first-child {
+ color: var(--color-primary);
+}
+.reasoning-chevron {
+ margin-left: 2px;
+ transition: transform 0.15s ease;
+}
+.reasoning-collapse > input:checked + .collapse-title .reasoning-chevron {
+ transform: rotate(180deg);
 }
 .reasoning-collapse .collapse-content {
  padding: 0 12px 10px;
@@ -3395,6 +3408,34 @@ h6,
  width: 20px;
  text-align: center;
  font-size: 18px;
+}
+.web-activity-label {
+ white-space: nowrap;
+}
+.web-activity-pages {
+ display: inline-flex;
+ min-width: 0;
+ overflow: hidden;
+ white-space: nowrap;
+}
+.web-activity-pages a {
+ overflow: hidden;
+ max-width: 220px;
+ color: inherit;
+ text-decoration: underline;
+ text-decoration-style: dotted;
+ text-underline-offset: 3px;
+ text-overflow: ellipsis;
+ white-space: nowrap;
+}
+.web-activity-pages .lucide {
+ width: 12px;
+ height: 12px;
+ vertical-align: -2px;
+}
+.web-activity-separator {
+ flex: 0 0 auto;
+ padding: 0 4px;
 }
 .web-activity-sites {
  display: flex;
