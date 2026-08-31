@@ -66,6 +66,7 @@ function platform() {
     copiedKey: "",
     feedback: {},
     messagesLoading: false,
+    reasoningOpen: Object.create(null),
     filesOpen: false,
     filesLoading: false,
     files: [],
@@ -133,6 +134,7 @@ function platform() {
       ? localStorage.getItem("pi-theme")
       : "light",
     async init() {
+      window.omaPlatform = this;
       this.sharedMode =
         window.location.pathname.startsWith("/share/") ||
         new URLSearchParams(location.search).has("share");
@@ -1010,14 +1012,15 @@ function platform() {
           this.watchingChat = null;
           return;
         }
-        this.messages = this.normalizeMessages(data.messages);
-        this.messages = [...this.messages];
-        if (chat.status !== "running") {
+        const normalized = this.normalizeMessages(data.messages);
+        this.messages = normalized;
+        const last = normalized[normalized.length - 1];
+        const finishedSnapshot = last?.role === "assistant" && !last._streaming;
+        if (chat.status !== "running" || finishedSnapshot) {
           this.watchingChat = null;
           this.loading = false;
           return;
         }
-        const last = this.messages[this.messages.length - 1];
         if (!last || last.role !== "assistant" || !last._streaming)
           this.messages.push({
             _key: crypto.randomUUID(),
@@ -1066,7 +1069,7 @@ function platform() {
         const data = await this.api(
           `/api/chats/${chatId}/messages?mode=${this.mode}`,
         );
-        this.messages = this.normalizeMessages(data.messages);
+        this.setMessagesIfChanged(data.messages);
         const chat = await this.api(`/api/chats/${chatId}`);
         if (this.activeChat?.id === chatId) {
           this.activeChat = chat;
@@ -1074,7 +1077,6 @@ function platform() {
           if (found) Object.assign(found, chat);
         }
         this.loading = false;
-        this.messages = [...this.messages];
       } catch (e) {
         this.showError(e);
       }
@@ -1093,21 +1095,26 @@ function platform() {
               `/api/chats/${chatId}/messages?mode=${this.mode}`,
             );
             if (this.activeChat?.id === chatId) {
-              this.messages = this.normalizeMessages(data.messages);
+        this.setMessagesIfChanged(data.messages);
               this.activeChat = chat;
               const found = this.chats.find((c) => c.id === chatId);
               if (found) Object.assign(found, chat);
             }
             this.loading = false;
             this.stopPolling();
-            this.messages = [...this.messages];
             return;
           }
           const data = await this.api(
             `/api/chats/${chatId}/messages?mode=${this.mode}`,
           );
-          if (this.activeChat?.id === chatId)
-            this.messages = this.normalizeMessages(data.messages);
+          if (this.activeChat?.id === chatId) {
+            const normalized = this.setMessagesIfChanged(data.messages);
+            const last = normalized[normalized.length - 1];
+            if (last?.role === "assistant" && !last._streaming) {
+              this.loading = false;
+              this.stopPolling();
+            }
+          }
         } catch {}
       }, 3000);
     },
@@ -1124,6 +1131,38 @@ function platform() {
       }
       this.watchingChat = null;
       this.stopPolling();
+    },
+    setReasoningOpen(input) {
+      const key = input.dataset.reasoningKey;
+      if (key) this.reasoningOpen[key] = input.checked;
+    },
+    stableMessageKey(message, index) {
+      return (
+        message.id ||
+        `${message.role || "message"}:${message.timestamp || ""}:${index}`
+      );
+    },
+    messagesFingerprint(messages) {
+      return messages
+        .map((message) => {
+          const parts = (message.content || [])
+            .map(
+              (part) =>
+                `${part.type || ""}:${part.text || part.thinking || part.name || ""}:${JSON.stringify(part.arguments || "")}`,
+            )
+            .join("\u001f");
+          return `${message.role || ""}|${message.stopReason || ""}|${message._streaming ? "1" : "0"}|${parts}`;
+        })
+        .join("\u001e");
+    },
+    setMessagesIfChanged(rawMessages) {
+      const normalized = this.normalizeMessages(rawMessages);
+      if (
+        this.messagesFingerprint(normalized) !==
+        this.messagesFingerprint(this.messages)
+      )
+        this.messages = normalized;
+      return normalized;
     },
     isActionableAssistant(message) {
       if (this.sharedMode || this.loading) return false;
@@ -1255,14 +1294,14 @@ function platform() {
           assistantGroup = null;
         }
       };
-      for (const message of messages) {
+      for (const [index, message] of messages.entries()) {
         if (message.role === "toolResult" && this.mode !== "development")
           continue;
         if (message.role === "user") {
           flushAssistant();
           archived.push({
             ...message,
-            _key: message.id || crypto.randomUUID(),
+            _key: this.stableMessageKey(message, index),
           });
           continue;
         }
@@ -1270,14 +1309,14 @@ function platform() {
           flushAssistant();
           archived.push({
             ...message,
-            _key: message.id || crypto.randomUUID(),
+            _key: this.stableMessageKey(message, index),
           });
           continue;
         }
         if (message.role === "assistant") {
           if (!assistantGroup)
             assistantGroup = {
-              _key: message.id || crypto.randomUUID(),
+              _key: this.stableMessageKey(message, index),
               role: "assistant",
               content: [],
               _reasoningParts: [],
@@ -1302,7 +1341,7 @@ function platform() {
           continue;
         }
         flushAssistant();
-        archived.push({ ...message, _key: message.id || crypto.randomUUID() });
+        archived.push({ ...message, _key: this.stableMessageKey(message, index) });
       }
       flushAssistant();
       return archived;
@@ -1318,7 +1357,10 @@ function platform() {
           : "";
       if (role === "assistant") {
         const text = this.partsText(parts);
-        const reasoning = this.renderReasoning(message._reasoningParts || []);
+        const reasoning = this.renderReasoning(
+          message._reasoningParts || [],
+          message._key,
+        );
         if (message._streaming && !text)
           return (
             reasoning ||
@@ -1861,7 +1903,7 @@ function platform() {
       this.linkDrawerItems = activity.items || [];
       this.linkDrawerOpen = true;
     },
-    renderReasoning(parts) {
+    renderReasoning(parts, messageKey) {
       const items = parts
         .map((part) => this.renderReasoningPart(part))
         .filter(Boolean);
@@ -1886,7 +1928,9 @@ function platform() {
             )
           : null;
       const label = seconds === null ? "Thought" : `Thought for ${seconds}s`;
-      return `<div class="collapse collapse-arrow reasoning-collapse"><input type="checkbox" /><div class="collapse-title process-label">${label}</div><div class="collapse-content"><ul class="timeline timeline-compact timeline-snap-icon timeline-vertical reasoning-timeline">${content}</ul></div></div>`;
+      const reasoningKey = `${messageKey || "message"}:reasoning`;
+      const checked = this.reasoningOpen[reasoningKey] ? " checked" : "";
+      return `<div class="collapse collapse-arrow reasoning-collapse"><input type="checkbox" data-reasoning-key="${this.escape(reasoningKey)}" onchange="window.omaPlatform.setReasoningOpen(this)"${checked} /><div class="collapse-title process-label">${label}</div><div class="collapse-content"><ul class="timeline timeline-compact timeline-snap-icon timeline-vertical reasoning-timeline">${content}</ul></div></div>`;
     },
     renderProcessToolCall(name, args) {
       if (name === "web_search" || name === "web_fetch")
