@@ -23,7 +23,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260831e" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260831f" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null">
     <div
@@ -768,13 +768,6 @@
               <h1>Market</h1>
               <p>Browse the resources available in this workspace.</p>
             </div>
-            <button
-              class="btn btn-primary btn-sm"
-              x-show="marketTab === 'skills'"
-              @click="openMarketInstall()"
-            >
-              + Install
-            </button>
           </div>
           <div class="tabs tabs-border market-tabs" role="tablist" aria-label="Market resources">
             <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'skills'}" :aria-selected="marketTab === 'skills'" @click="marketTab = 'skills'">Skills</button>
@@ -782,6 +775,18 @@
             <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'mcp_servers'}" :aria-selected="marketTab === 'mcp_servers'" @click="marketTab = 'mcp_servers'">MCP Servers</button>
             <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'agents'}" :aria-selected="marketTab === 'agents'" @click="marketTab = 'agents'">Agents</button>
             <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'agent_teams'}" :aria-selected="marketTab === 'agent_teams'" @click="marketTab = 'agent_teams'">Agent Teams</button>
+          </div>
+          <div
+            class="market-catalog-toolbar"
+            x-show="marketTab === 'skills'"
+            x-cloak
+          >
+            <button
+              class="btn btn-primary btn-sm"
+              @click="openMarketInstall()"
+            >
+              + Install
+            </button>
           </div>
           <div class="market-content" x-show="marketTab === 'skills'">
             <div class="market-grid" x-show="resources.skills.length">
@@ -2082,6 +2087,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260831e"></script>
+    <script src="/static/app.js?v=20260831f"></script>
   </body>
 </html>
