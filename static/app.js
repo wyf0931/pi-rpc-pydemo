@@ -80,6 +80,7 @@ function platform() {
     marketSearchResults: [],
     marketSearchLoading: false,
     marketSearchError: "",
+    marketActionSkill: "",
     searchOpen: false,
     chatSearchQuery: "",
     error: "",
@@ -242,6 +243,39 @@ function platform() {
         this.marketSearchError = error.message;
       } finally {
         this.marketSearchLoading = false;
+      }
+    },
+    marketSkillInstalled(result) {
+      return this.resources.skills.some((item) => item.name === result.skill);
+    },
+    async installMarketSkill(result) {
+      this.marketActionSkill = result.skill;
+      this.marketSearchError = "";
+      try {
+        const data = await this.api("/api/market/skills/install", {
+          method: "POST",
+          body: JSON.stringify({ source: result.repo, skill: result.skill }),
+        });
+        if (data.resources) this.resources = data.resources;
+      } catch (error) {
+        this.marketSearchError = error.message;
+      } finally {
+        this.marketActionSkill = "";
+      }
+    },
+    async removeMarketSkill(result) {
+      this.marketActionSkill = result.skill;
+      this.marketSearchError = "";
+      try {
+        const data = await this.api("/api/market/skills/remove", {
+          method: "POST",
+          body: JSON.stringify({ skill: result.skill }),
+        });
+        if (data.resources) this.resources = data.resources;
+      } catch (error) {
+        this.marketSearchError = error.message;
+      } finally {
+        this.marketActionSkill = "";
       }
     },
     async toggleFiles() {

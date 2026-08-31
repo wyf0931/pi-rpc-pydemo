@@ -1,4 +1,6 @@
-from app.market import parse_skill_search
+import asyncio
+
+from app.market import install_skill, parse_skill_search, remove_skill
 
 
 def test_parse_skill_search_pairs_results_with_urls():
@@ -27,3 +29,42 @@ owner/collection@small-skill 1,234 installs
 
 def test_parse_skill_search_ignores_unpaired_result():
     assert parse_skill_search("owner/repo@skill 10K installs\n") == []
+
+
+def test_install_skill_uses_copy_and_pi_target(monkeypatch):
+    calls = []
+
+    async def fake_run(command, timeout):
+        calls.append((command, timeout))
+        return ""
+
+    monkeypatch.setattr("app.market._run_skills_cli", fake_run)
+    asyncio.run(install_skill("owner/repo", "skill-name"))
+    assert calls == [
+        (
+            [
+                "add",
+                "owner/repo",
+                "--skill",
+                "skill-name",
+                "-g",
+                "-a",
+                "pi",
+                "-y",
+                "--copy",
+            ],
+            120,
+        )
+    ]
+
+
+def test_remove_skill_uses_global_cli(monkeypatch):
+    calls = []
+
+    async def fake_run(command, timeout):
+        calls.append((command, timeout))
+        return ""
+
+    monkeypatch.setattr("app.market._run_skills_cli", fake_run)
+    asyncio.run(remove_skill("skill-name"))
+    assert calls == [(["remove", "skill-name", "-g", "-y"], 120)]

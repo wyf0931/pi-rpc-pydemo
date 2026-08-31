@@ -10,6 +10,8 @@ RESULT_RE = re.compile(
     re.IGNORECASE,
 )
 URL_RE = re.compile(r"^\s*[└├╰`\-]*\s*(?P<url>https?://\S+)\s*$")
+SOURCE_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+SKILL_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
 @dataclass(frozen=True)
@@ -60,28 +62,59 @@ def parse_skill_search(output: str) -> list[dict[str, str]]:
     return [result.as_dict() for result in results]
 
 
-async def search_skills(query: str, owner: str | None = None) -> list[dict[str, str]]:
-    command = ["npx", "-y", "skills", "find", query]
-    if owner:
-        command.extend(["--owner", owner])
+async def _run_skills_cli(command: list[str], timeout: float) -> str:
     environment = os.environ.copy()
     environment["DISABLE_TELEMETRY"] = "1"
     process = await asyncio.create_subprocess_exec(
+        "npx",
+        "-y",
+        "skills",
         *command,
         env=environment,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
     try:
-        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60)
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
     except TimeoutError:
         process.kill()
         await process.wait()
-        raise TimeoutError("skills CLI search timed out after 60 seconds") from None
+        raise TimeoutError(
+            f"skills CLI command timed out after {int(timeout)} seconds"
+        ) from None
 
     if process.returncode:
         detail = stderr.decode("utf-8", errors="replace").strip()
         raise RuntimeError(
             detail or f"skills CLI exited with code {process.returncode}"
         )
-    return parse_skill_search(stdout.decode("utf-8", errors="replace"))
+    return stdout.decode("utf-8", errors="replace")
+
+
+def validate_skill_source(source: str, skill: str) -> None:
+    if not SOURCE_RE.fullmatch(source):
+        raise ValueError("Skill source must use the owner/repository format")
+    if not SKILL_NAME_RE.fullmatch(skill):
+        raise ValueError("Skill name contains unsupported characters")
+
+
+async def search_skills(query: str, owner: str | None = None) -> list[dict[str, str]]:
+    command = ["find", query]
+    if owner:
+        command.extend(["--owner", owner])
+    output = await _run_skills_cli(command, timeout=60)
+    return parse_skill_search(output)
+
+
+async def install_skill(source: str, skill: str) -> None:
+    validate_skill_source(source, skill)
+    await _run_skills_cli(
+        ["add", source, "--skill", skill, "-g", "-a", "pi", "-y", "--copy"],
+        timeout=120,
+    )
+
+
+async def remove_skill(skill: str) -> None:
+    if not SKILL_NAME_RE.fullmatch(skill):
+        raise ValueError("Skill name contains unsupported characters")
+    await _run_skills_cli(["remove", skill, "-g", "-y"], timeout=120)

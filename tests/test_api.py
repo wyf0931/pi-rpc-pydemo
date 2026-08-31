@@ -108,6 +108,48 @@ def test_market_skill_search(client, monkeypatch):
     assert response.json()["results"][0]["skill"] == "python"
 
 
+def test_market_skill_install(client, monkeypatch):
+    called = {}
+
+    async def fake_install(source, skill):
+        called.update(source=source, skill=skill)
+
+    monkeypatch.setattr("app.main.install_skill", fake_install)
+    response = client.post(
+        "/api/market/skills/install",
+        json={"source": "acme/skills", "skill": "python"},
+    )
+    assert response.status_code == 200
+    assert called == {"source": "acme/skills", "skill": "python"}
+
+
+def test_market_skill_install_rejects_unsafe_source(client, monkeypatch):
+    async def fail_install(*args):
+        raise AssertionError("unsafe source must not reach the CLI")
+
+    monkeypatch.setattr("app.main.install_skill", fail_install)
+    response = client.post(
+        "/api/market/skills/install",
+        json={"source": "../../repo", "skill": "python"},
+    )
+    assert response.status_code == 422
+
+
+def test_market_skill_remove(client, monkeypatch):
+    called = []
+
+    async def fake_remove(skill):
+        called.append(skill)
+
+    monkeypatch.setattr("app.main.remove_skill", fake_remove)
+    response = client.post(
+        "/api/market/skills/remove",
+        json={"skill": "python"},
+    )
+    assert response.status_code == 200
+    assert called == ["python"]
+
+
 def test_create_agent_and_missing_chat(client, temporary_agent):
     response = temporary_agent(
         {"name": f"writer-{uuid4()}", "instruction": "Write clearly"}
