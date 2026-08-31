@@ -799,6 +799,18 @@
                     </div>
                     <p class="market-result-repo" x-text="result.repo"></p>
                     <a class="link link-primary market-result-link" :href="result.url" target="_blank" rel="noopener noreferrer" x-text="result.url"></a>
+                    <div class="card-actions justify-end">
+                      <button
+                        type="button"
+                        class="btn btn-sm"
+                        :class="marketSkillInstalled(result) ? 'btn-error btn-outline' : 'btn-primary'"
+                        :disabled="marketActionSkill === result.skill"
+                        @click="marketSkillInstalled(result) ? removeMarketSkill(result) : installMarketSkill(result)"
+                      >
+                        <span x-show="marketActionSkill !== result.skill" x-text="marketSkillInstalled(result) ? 'Uninstall' : 'Install'"></span>
+                        <span x-show="marketActionSkill === result.skill" class="loading loading-spinner loading-xs"></span>
+                      </button>
+                    </div>
                   </div>
                 </article>
               </template>
