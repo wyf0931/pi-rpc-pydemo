@@ -246,7 +246,9 @@ function platform() {
       }
     },
     marketSkillInstalled(result) {
-      return this.resources.skills.some((item) => item.name === result.skill);
+      return this.resources.skills.some(
+        (item) => item.name === result.skill && item.source === result.repo,
+      );
     },
     async installMarketSkill(result) {
       this.marketActionSkill = result.skill;

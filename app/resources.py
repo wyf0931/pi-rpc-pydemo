@@ -35,7 +35,7 @@ def _frontmatter(path: Path) -> dict:
     return frontmatter
 
 
-def _skill_metadata(path: Path) -> dict:
+def _skill_metadata(path: Path, source: str | None = None) -> dict:
     frontmatter = _frontmatter(path)
     directory = path.parent
     return {
@@ -44,7 +44,27 @@ def _skill_metadata(path: Path) -> dict:
         "description": frontmatter.get("description", ""),
         "path": str(directory),
         "type": "skill",
+        "source": source,
     }
+
+
+def _skill_sources(pi_home: Path) -> dict[str, str]:
+    lock_path = pi_home.parents[1] / ".agents" / ".skill-lock.json"
+    if not lock_path.is_file():
+        return {}
+    try:
+        raw = json.loads(lock_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    sources: dict[str, str] = {}
+    for name, entry in (raw.get("skills") or {}).items():
+        if not isinstance(entry, dict) or not isinstance(entry.get("source"), str):
+            continue
+        sources[name] = entry["source"]
+        skill_path = entry.get("skillPath")
+        if isinstance(skill_path, str):
+            sources[Path(skill_path).parent.name] = entry["source"]
+    return sources
 
 
 def _extension_metadata(resource_path: Path, package: dict | None = None) -> dict:
@@ -110,6 +130,7 @@ def discover_resources(pi_home: Path, cwd: Path) -> dict:
     mcp_servers: list[dict] = []
     seen_extensions: set[str] = set()
     seen_skills: set[str] = set()
+    skill_sources = _skill_sources(pi_home)
 
     for root in extension_roots:
         if not root.is_dir():
@@ -176,7 +197,8 @@ def discover_resources(pi_home: Path, cwd: Path) -> dict:
                 continue
             seen_skills.add(resolved)
             try:
-                skills.append(_skill_metadata(path))
+                metadata = _skill_metadata(path, skill_sources.get(path.parent.name))
+                skills.append(metadata)
             except OSError:
                 continue
     config_paths = [
