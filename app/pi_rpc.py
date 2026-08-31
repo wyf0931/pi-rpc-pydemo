@@ -37,6 +37,10 @@ class ActiveTurn:
         queue: asyncio.Queue = asyncio.Queue()
         replay = list(self.events)
         self.subscribers.add(queue)
+        if self.finished:
+            # The end sentinel was broadcast before this viewer attached;
+            # deliver it directly so resumed streams terminate.
+            queue.put_nowait(None)
         return queue, replay
 
     def unsubscribe(self, queue: asyncio.Queue) -> None:

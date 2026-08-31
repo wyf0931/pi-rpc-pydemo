@@ -191,3 +191,14 @@ def test_message_stream_sends_keepalive_when_idle(client, monkeypatch, temporary
                 break
     assert any(": keepalive" in chunk for chunk in chunks)
     client.delete(f"/api/chats/{chat['id']}")
+
+
+def test_finished_turn_subscribe_receives_end_sentinel():
+    from app.pi_rpc import ActiveTurn
+
+    turn = ActiveTurn("chat-1")
+    turn.record({"type": "delta", "delta": "x"})
+    turn.close()
+    queue, replay = turn.subscribe()
+    assert len(replay) == 1
+    assert queue.get_nowait() is None
