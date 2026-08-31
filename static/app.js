@@ -74,6 +74,7 @@ function platform() {
     libraryPage: 1,
     libraryPages: 1,
     libraryTotal: 0,
+    marketTab: "skills",
     searchOpen: false,
     chatSearchQuery: "",
     error: "",
@@ -351,6 +352,8 @@ function platform() {
       const path =
         page === "agents"
           ? "/agents"
+          : page === "market"
+            ? "/market"
           : page === "library"
             ? "/library"
             : page === "autopilots"
@@ -1570,6 +1573,10 @@ function platform() {
       if (window.location.pathname === "/library") {
         this.page = "library";
         await this.loadLibrary(1);
+        return;
+      }
+      if (window.location.pathname === "/market") {
+        this.page = "market";
         return;
       }
       if (window.location.pathname === "/autopilots") {
