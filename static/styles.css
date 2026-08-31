@@ -2034,7 +2034,7 @@ pre,
  fill: currentColor;
  stroke: none;
 }
-.conversation-toolbar {
+.chat-header {
  display: flex;
  justify-content: flex-end;
  min-height: 34px;
@@ -3575,7 +3575,7 @@ body > .link-drawer {
 }
 
 /* Keep the chat chrome attached to the viewport while the conversation scrolls. */
-.conversation-toolbar {
+.chat-header {
  position: fixed;
  inset: 0 0 auto 300px;
  z-index: 30;
@@ -3588,17 +3588,44 @@ body > .link-drawer {
  background: color-mix(in srgb, var(--color-base-100) 94%, transparent);
  backdrop-filter: blur(12px);
 }
-.app-shell.sidebar-collapsed .conversation-toolbar {
+.app-shell.sidebar-collapsed .chat-header {
  left: 78px;
 }
-.conversation-toolbar .files-toggle {
+.chat-header .files-toggle {
  margin-left: auto;
+}
+.chat-title-control {
+ min-width: 0;
+ flex: 1;
+}
+.chat-title-display {
+ display: block;
+ max-width: 20ch;
+ overflow: hidden;
+ border: 0;
+ background: transparent;
+ color: var(--ink);
+ font: 500 14px var(--font-sans);
+ text-align: left;
+ text-overflow: ellipsis;
+ white-space: nowrap;
+ cursor: pointer;
+}
+.chat-title-display:hover {
+ color: var(--color-primary);
+}
+.chat-title-input {
+ width: min(360px, 100%);
+ min-height: 36px;
+ height: 36px;
+ padding: 6px 10px;
+ font-size: 14px;
 }
 .content-panel:has(.conversation) .message-list {
  padding-top: 84px;
 }
 @media (max-width: 800px) {
- .conversation-toolbar {
+ .chat-header {
   inset: 56px 0 auto 0;
   min-height: 44px;
   padding: 4px 14px;
