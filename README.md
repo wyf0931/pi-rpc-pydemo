@@ -275,6 +275,7 @@ This MVP is a single FastAPI application with a static frontend. The main endpoi
 | `POST /api/chats` | Create a chat record and external Pi session ID |
 | `GET /api/chats/{id}/messages` | Read history from Pi |
 | `POST /api/chats/{id}/messages` | Stream a Pi response as server-sent events |
+| `GET /api/chats/{id}/stream` | Replay + follow the in-progress turn as SSE (204 when idle) |
 | `GET /api/chats/{id}/files` | List files written or edited by that Chat |
 | `GET /api/chats/{id}/files/content` | Read an authorized Chat-generated text file |
 | `GET /api/chats/{id}/files/download` | Download an authorized Chat-generated file |

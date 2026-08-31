@@ -12,6 +12,21 @@ SUPPORTED_TOOLS = BUILTIN_TOOLS + PLATFORM_TOOLS
 def now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
+def pi_terminal_failure(messages: list[dict]) -> str | None:
+    """Return a user-facing error when Pi ends a turn without an answer."""
+    for message in reversed(messages):
+        if message.get("role") != "assistant":
+            continue
+        reason = message.get("stopReason")
+        if reason not in {"aborted", "error"}:
+            return None
+        return message.get("errorMessage") or (
+            "The agent turn was aborted before a final answer was generated."
+            if reason == "aborted"
+            else "The agent turn failed before a final answer was generated."
+        )
+    return None
+
 class Store:
     def __init__(self, path: Path):
         path.parent.mkdir(parents=True, exist_ok=True)

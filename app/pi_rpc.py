@@ -8,11 +8,51 @@ from pathlib import Path
 from typing import Any
 
 from .resources import discover_resources
-from .store import PLATFORM_TOOLS
+from .store import PLATFORM_TOOLS, pi_terminal_failure
 
 
 class PiRpcError(RuntimeError):
     pass
+
+
+class ActiveTurn:
+    """One agent turn, tracked server-side independent of any SSE viewer.
+
+    Events are recorded in a replay buffer and broadcast to subscriber
+    queues, so viewers can disconnect, refresh, or attach from another tab
+    without affecting the underlying pi run (mirrors the resumable-stream
+    pattern used by LibreChat / the Vercel AI SDK).
+    """
+
+    def __init__(self, chat_id: str) -> None:
+        self.chat_id = chat_id
+        self.events: list[dict] = []
+        self.subscribers: set[asyncio.Queue] = set()
+        self.final_event: dict = {}
+        self.error: str | None = None
+        self.finished = False
+        self.task: asyncio.Task | None = None
+
+    def subscribe(self) -> tuple[asyncio.Queue, list[dict]]:
+        queue: asyncio.Queue = asyncio.Queue()
+        replay = list(self.events)
+        self.subscribers.add(queue)
+        return queue, replay
+
+    def unsubscribe(self, queue: asyncio.Queue) -> None:
+        self.subscribers.discard(queue)
+
+    def record(self, event: dict) -> None:
+        if event.get("type") == "done":
+            self.final_event = event.get("event", {})
+        self.events.append(event)
+        for queue in list(self.subscribers):
+            queue.put_nowait(event)
+
+    def close(self) -> None:
+        self.finished = True
+        for queue in list(self.subscribers):
+            queue.put_nowait(None)
 
 
 class PiRpcClient:
@@ -23,10 +63,16 @@ class PiRpcClient:
         command: list[str],
         cwd: str,
         timeout: float = 120.0,
+        stream_timeout: float = 600.0,
         cleanup_paths: list[Path] | None = None,
         env: dict[str, str] | None = None,
     ):
-        self.command, self.cwd, self.timeout = command, cwd, timeout
+        self.command, self.cwd = command, cwd
+        # `timeout` bounds RPC request/response round-trips; `stream_timeout`
+        # bounds the idle gap between streaming events. A model turn can stay
+        # silent for minutes before its first delta (e.g. GLM on a ~30k-token
+        # context), and aborting mid-generation throws the answer away.
+        self.timeout, self.stream_timeout = timeout, stream_timeout
         self.cleanup_paths = cleanup_paths or []
         self.env = env
         self.process: asyncio.subprocess.Process | None = None
@@ -123,7 +169,7 @@ class PiRpcClient:
         await self.request("prompt", message=message)
         agent_finished = False
         while True:
-            event = await asyncio.wait_for(self.events.get(), timeout=self.timeout)
+            event = await asyncio.wait_for(self.events.get(), timeout=self.stream_timeout)
             event_type = event.get("type")
             if event_type == "message_update":
                 assistant_event = event.get("assistantMessageEvent", {})
@@ -198,6 +244,7 @@ class PiRuntimeManager:
         self.settings, self.store = settings, store
         self.clients: dict[str, PiRpcClient] = {}
         self.locks: dict[str, asyncio.Lock] = {}
+        self.turns: dict[str, ActiveTurn] = {}
 
     def _command(self, agent: dict, session_id: str, create: bool = False) -> list[str]:
         command = [
@@ -280,7 +327,9 @@ class PiRuntimeManager:
         path.write_text(json.dumps(config), encoding="utf-8")
         return str(path), [path]
 
-    async def _start(self, chat: dict, create: bool = False) -> PiRpcClient:
+    async def _start(
+        self, chat: dict, create: bool = False, register: bool = True
+    ) -> PiRpcClient:
         agent = self.store.get_agent(chat["agent_id"])
         if not agent:
             raise PiRpcError("Agent no longer exists")
@@ -295,10 +344,11 @@ class PiRuntimeManager:
             env=self._environment(),
         )
         state = await client.start()
-        actual_id = state.get("data", {}).get("sessionId") or chat.get("session_id")
-        self.clients[chat["id"]] = client
-        self.locks.setdefault(chat["id"], asyncio.Lock())
-        self.store.update_chat(chat["id"], {"session_id": actual_id, "status": "ready"})
+        if register:
+            actual_id = state.get("data", {}).get("sessionId") or chat.get("session_id")
+            self.clients[chat["id"]] = client
+            self.locks.setdefault(chat["id"], asyncio.Lock())
+            self.store.update_chat(chat["id"], {"session_id": actual_id})
         return client
 
     async def send(self, chat: dict, message: str) -> dict:
@@ -329,13 +379,82 @@ class PiRuntimeManager:
                 self.clients.pop(chat["id"], None)
 
     async def messages(self, chat: dict) -> list:
-        client = await self._start(chat)
+        # Ephemeral client: never registered in self.clients and never
+        # touches chat status, so it is safe while a turn is streaming.
+        client = await self._start(chat, register=False)
         try:
             response = await client.request("get_messages")
             return response.get("data", {}).get("messages", [])
         finally:
             await client.close()
-            self.clients.pop(chat["id"], None)
+
+    def active_turn(self, chat_id: str) -> ActiveTurn | None:
+        return self.turns.get(chat_id)
+
+    def start_turn(
+        self, chat: dict, message: str, session_name: str | None = None
+    ) -> ActiveTurn:
+        chat_id = chat["id"]
+        lock = self.locks.setdefault(chat_id, asyncio.Lock())
+        current = self.turns.get(chat_id)
+        if lock.locked() or (current is not None and not current.finished):
+            raise PiRpcError("Chat is busy")
+        turn = ActiveTurn(chat_id)
+        self.turns[chat_id] = turn
+        turn.task = asyncio.create_task(
+            self._run_turn(turn, chat, message, session_name, lock)
+        )
+        return turn
+
+    async def _run_turn(
+        self,
+        turn: ActiveTurn,
+        chat: dict,
+        message: str,
+        session_name: str | None,
+        lock: asyncio.Lock,
+    ) -> None:
+        chat_id = chat["id"]
+        await lock.acquire()
+        try:
+            client = await self._start(chat, create=True)
+            try:
+                if session_name:
+                    await client.request("set_session_name", name=session_name)
+                async for event in client.stream_prompt(message):
+                    turn.record(event)
+            finally:
+                await client.close()
+                self.clients.pop(chat_id, None)
+        except asyncio.CancelledError:
+            self.store.update_chat(chat_id, {"status": "stopped"})
+            raise
+        except (PiRpcError, TimeoutError, OSError) as exc:
+            turn.error = str(exc)
+            self.store.update_chat(chat_id, {"status": "error"})
+        else:
+            failure = pi_terminal_failure(turn.final_event.get("messages", []))
+            if failure or turn.error:
+                self.store.update_chat(chat_id, {"status": "error"})
+            else:
+                self.store.update_chat(chat_id, {"status": "ready"})
+        finally:
+            lock.release()
+            turn.close()
+
+    def newest_session_file(self, chat: dict) -> Path | None:
+        """Newest transcript file for a chat (pi may roll files per turn)."""
+        session_id = chat.get("session_id") or chat.get("id")
+        if not session_id or not self.settings.pi_session_dir.is_dir():
+            return None
+        candidates = [
+            path
+            for path in self.settings.pi_session_dir.iterdir()
+            if path.is_file() and path.name.endswith(f"_{session_id}.jsonl")
+        ]
+        if not candidates:
+            return None
+        return max(candidates, key=lambda path: path.stat().st_mtime)
 
     async def abort(self, chat_id: str) -> None:
         client = self.clients.get(chat_id)
@@ -344,6 +463,9 @@ class PiRuntimeManager:
             self.store.update_chat(chat_id, {"status": "stopped"})
 
     async def close_chat(self, chat_id: str) -> None:
+        turn = self.turns.get(chat_id)
+        if turn and turn.task and not turn.task.done():
+            turn.task.cancel()
         client = self.clients.get(chat_id)
         if client:
             await client.close()
