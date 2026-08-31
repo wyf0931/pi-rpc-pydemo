@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from app.main import pi_terminal_failure
+from app.main import pi_terminal_failure, visible_messages
 
 
 def test_pi_terminal_failure_distinguishes_failed_and_successful_turns():
@@ -13,6 +13,21 @@ def test_pi_terminal_failure_distinguishes_failed_and_successful_turns():
     assert pi_terminal_failure([
         {"role": "assistant", "stopReason": "stop", "content": [{"type": "text", "text": "done"}]}
     ]) is None
+
+
+def test_visible_messages_attaches_web_results_to_calls():
+    messages = [
+        {"role": "assistant", "timestamp": "2026-08-30T00:00:00Z", "content": [{
+            "type": "toolCall", "id": "call-1", "name": "web_search", "arguments": {"query": "news"}
+        }]},
+        {"role": "toolResult", "toolCallId": "call-1", "toolName": "web_search", "content": [{"type": "text", "text": "# Web Search: news"}]},
+    ]
+
+    visible = visible_messages(messages)
+
+    assert len(visible) == 1
+    assert visible[0]["content"][0]["webResult"]["toolName"] == "web_search"
+    assert "_webResult" in visible[0]["content"][0]["arguments"]
 
 
 def test_health_and_agents(client):
