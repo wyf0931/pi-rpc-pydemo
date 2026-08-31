@@ -174,7 +174,10 @@ secrets: `OMA_DEPLOY_KEY` (deploy-only SSH private key), `OMA_DEPLOY_HOST`,
 (credentials for the post-deploy smoke check). Until the platform ships its
 own user auth, NGINX fronts the site with HTTP Basic Auth
 (`/etc/nginx/.htpasswd-oma-studio` on the server); the smoke check and browser
-access both go through it.
+access both go through it. Share pages (`/share/*`) and their public API
+(`/api/share/*`) are the one exception: the unguessable token in the link is
+the only gate, so NGINX turns basic auth off for those locations on the
+server.
 
 Manual deploy / rollback:
 
