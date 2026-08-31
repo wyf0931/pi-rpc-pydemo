@@ -126,6 +126,90 @@ data/           Legacy runtime data (pre-normalization archive, gitignored, supe
 - **Never commit:** `data/`, `.env`, `.run/`, `research/`, `.superpowers/`,
   `.playwright-cli/`, `node_modules/`, `.venv/` (all gitignored runtime/scratch).
 
+## Multi-agent Issue loop
+
+Issues are the source of truth for work. Do not invent work from chat context or
+silently broaden an issue. At startup, a worker is given a priority, for example
+`start processing P0 tasks` or `start processing P1 tasks`.
+
+Priority meanings for this repository:
+
+- `priority:p0` — a substantial product/module task or a blocking architectural capability.
+- `priority:p1` — a focused bug fix, UI adjustment, small feature, documentation change, or cleanup.
+
+Use these labels consistently. A worker must query GitHub before choosing work:
+
+```bash
+gh issue list --state open --label priority:p0 --limit 50 \
+  --json number,title,labels,assignees,updatedAt,url
+```
+
+Choose the highest-priority unclaimed issue, then claim it before editing code:
+
+1. Confirm `gh auth status` and identify the current user with `gh api user --jq .login`.
+2. Assign the issue to that user when possible.
+3. Add `status:in-progress` and comment with the intended scope, dependencies, and branch name.
+4. If the issue is already assigned or marked in progress, skip it. Never have two workers implement the same issue.
+
+The P0 and P1 workers may develop independently, but worktree isolation is mandatory.
+Each issue gets one branch and one worktree, preferably including the issue number:
+
+```bash
+git fetch origin
+git worktree add /private/tmp/pi-rpc-pydemo-issue-42 -b feat/issue-42-short-name origin/main
+```
+
+Parallel work is allowed only when the issues are independent. Do not modify the
+same high-conflict files as an active P0 task without an explicit Issue comment
+coordinating the ownership. Subtasks may be parallelized inside a P0, but they
+must still produce separately reviewable commits and cannot share a worktree.
+
+Before publishing, the worker must run formatting first, then validation:
+
+```bash
+uv run ruff format app tests
+uv run ruff check
+uvx pyright app tests
+uv run pytest -q
+git diff --check
+git status --short
+```
+
+For UI changes, also run the relevant local browser smoke check at desktop and
+mobile widths. The worker must inspect the final diff and confirm that generated
+files, `.env`, runtime data, and unrelated concurrent changes are not included.
+
+After validation, comment the commit SHA, test results, and any known limitation
+on the Issue, then move it to `status:ready-to-merge`. The worker may merge and
+push its branch as requested by this project, but the merge gate is serialized:
+
+```bash
+git fetch origin
+git switch main
+git pull --ff-only origin main
+git merge --no-ff <issue-branch> -m "merge: <issue summary>"
+uv run ruff format --check app tests
+uv run ruff check
+uvx pyright app tests
+uv run pytest -q
+git push origin main
+```
+
+Only one worker may perform this merge/push sequence at a time. On macOS/Linux,
+use an atomic directory under the shared Git directory as a short-lived merge
+lock, for example `mkdir "$GIT_COMMON_DIR/oma-merge.lock"`; if it already exists,
+wait or skip the merge. Never force-push. If push is rejected, release the lock,
+rebase or merge the new `origin/main` into the feature branch, rerun validation,
+and retry.
+
+The push triggers `.github/workflows/ci.yml`, which runs CI and production deploy.
+The worker must inspect the workflow result with `gh run view` and comment it on
+the Issue. A successful deploy is not user acceptance: keep the Issue in
+`status:awaiting-user` until the product owner verifies the production behavior.
+If the owner finds a problem, open a new Issue (linked to the original) rather
+than silently changing scope or closing the old one. A worker may close an Issue
+only after the acceptance criteria and production smoke check are satisfied.
+
 ## Development workflow
 
 The repo has one long-lived branch, `main`, and `origin` (GitHub) is the deployment
@@ -141,13 +225,13 @@ green light from the user.
    `.venv`/`node_modules` (gitignored) — run `uv sync` (and `npm install` if touching
    CSS) before testing there.
 3. **Commit small and often** on the feature branch, following the conventional style.
-4. **Self-test, then stop — do not merge.** Before reporting completion, `uv run
-   pytest -q` must pass in the branch (worktree). Then summarize what changed and how
-   it was verified, and **wait for the user's explicit confirmation**. Do not merge,
-   do not push to `origin`, even if everything is green.
-5. **After user confirmation:** merge the feature branch into `main`
-   (`git merge --no-ff <branch>` unless the user asks otherwise), run the test suite
-   once more on `main`, then push: `git push origin main`. The push is the deploy step:
+4. **Self-test before merge.** Run formatting, lint, type checking, tests, and
+   `git diff --check` in the worktree. Record the result on the GitHub Issue.
+   The autonomous Issue loop may merge after these checks; an explicit user
+   confirmation is still required for work outside a claimed Issue.
+5. **Merge and push after validation:** merge the feature branch into `main`
+   (`git merge --no-ff <branch>`), run the full validation suite once more on `main`,
+   then push: `git push origin main`. The push is the deploy step:
    GitHub Actions (`.github/workflows/ci.yml`) runs lint/type/tests and, on success,
    auto-deploys the pushed SHA to `tx-oma-app` (see README "Production deployment").
    Add `[skip deploy]` to the merge commit message to skip the deploy.

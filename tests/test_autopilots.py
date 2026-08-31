@@ -6,8 +6,10 @@ from app.store import Store
 
 
 def test_naive_schedule_times_are_timezone_aware(tmp_path):
-    value = next_run_at({"cron": "10 0 * * *", "starts_at": "2026-08-29T00:00"},
-                        datetime(2026, 8, 29, 0, 1, tzinfo=UTC))
+    value = next_run_at(
+        {"cron": "10 0 * * *", "starts_at": "2026-08-29T00:00"},
+        datetime(2026, 8, 29, 0, 1, tzinfo=UTC),
+    )
     assert value is not None and value.tzinfo is not None
 
 

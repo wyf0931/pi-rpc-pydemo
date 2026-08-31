@@ -59,7 +59,9 @@ def test_new_chat_defaults_to_its_own_session_id(tmp_path: Path):
 def test_autopilot_and_run_metadata(tmp_path: Path):
     store = Store(tmp_path / "db.json")
     agent = store.ensure_default_agent()
-    autopilot = store.create_autopilot("Daily brief", "Summarize today", agent["id"], "0 9 * * *")
+    autopilot = store.create_autopilot(
+        "Daily brief", "Summarize today", agent["id"], "0 9 * * *"
+    )
     assert store.list_autopilots()[0]["name"] == "Daily brief"
     run = store.create_autopilot_run(autopilot["id"], "chat-1", "session-1")
     store.update_autopilot_run(run["id"], {"status": "success", "duration_ms": 123})
@@ -80,9 +82,14 @@ def test_viewing_a_chat_does_not_change_ordering(tmp_path: Path):
     store.update_chat(first["id"], {"status": "ready"})
     assert [c["id"] for c in store.list_chats()] == [second["id"], first["id"]]
     touched = store.get_chat(first["id"])
-    assert touched is not None and touched["last_activity_at"] == first["last_activity_at"]
+    assert (
+        touched is not None and touched["last_activity_at"] == first["last_activity_at"]
+    )
 
     # Explicit activity (a sent message) is what moves a chat to the top.
     time.sleep(0.01)
-    store.update_chat(first["id"], {"status": "running", "last_activity_at": "2026-09-01T00:00:00+00:00"})
+    store.update_chat(
+        first["id"],
+        {"status": "running", "last_activity_at": "2026-09-01T00:00:00+00:00"},
+    )
     assert [c["id"] for c in store.list_chats()] == [first["id"], second["id"]]
