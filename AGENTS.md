@@ -180,5 +180,6 @@ green light from the user.
 - When `pi-mcp-adapter` is enabled, `pi_rpc.py` writes a temporary MCP config that
   disables all non-selected servers and passes `--mcp-config`; it is deleted via
   `cleanup_paths` on process close.
+- Dynamic HTML returned through Alpine `x-html` must not embed raw JSON in attributes; HTML entity decoding can make it invalid for `JSON.parse`. Store structured data in Alpine state and pass only a short key through the rendered markup.
 - Some CDN deps are intentionally unpinned majors (daisyui@5, Tailwind browser@4,
   mermaid@11); changing this is a project decision, not a drive-by fix.
