@@ -23,7 +23,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260831" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260831b" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null">
     <div
@@ -392,16 +392,116 @@
                     x-show="messageVisible(message)"
                   >
                     <div
-                      class="message-label"
-                      x-text="message.role === 'assistant' ? agentName(activeChat.agent_id) : message.role"
-                    ></div>
-                    <div
                       class="message-body"
                       x-html="renderMessage(message)"
-                    ></div></article
+                    ></div>
+                    <div
+                      class="message-actions"
+                      x-show="isActionableAssistant(message)"
+                    >
+                      <button
+                        type="button"
+                        class="action-btn"
+                        :class="{ active: copiedKey === message._key }"
+                        @click="copyMessage(message)"
+                        :title="copiedKey === message._key ? 'Copied' : 'Copy'"
+                        aria-label="Copy"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path
+                            d="M20 6 9 17l-5-5"
+                            x-show="copiedKey === message._key"
+                          />
+                          <rect
+                            x="9"
+                            y="9"
+                            width="13"
+                            height="13"
+                            rx="2"
+                            x-show="copiedKey !== message._key"
+                          />
+                          <path
+                            d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                            x-show="copiedKey !== message._key"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        class="action-btn"
+                        :class="{ active: feedbackFor(message) === 'up' }"
+                        @click="rateMessage(message, 'up')"
+                        title="Good response"
+                        aria-label="Good response"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path d="M7 10v12" />
+                          <path
+                            d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        class="action-btn"
+                        :class="{ active: feedbackFor(message) === 'down' }"
+                        @click="rateMessage(message, 'down')"
+                        title="Bad response"
+                        aria-label="Bad response"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path d="M17 14V2" />
+                          <path
+                            d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        class="action-btn"
+                        @click="startShare()"
+                        title="Share"
+                        aria-label="Share"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path d="m15 14 5-5-5-5" />
+                          <path
+                            d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0a5.5 5.5 0 0 0 5.5 5.5H15"
+                          />
+                        </svg>
+                      </button>
+                    </div></article
                 ></template>
               </div>
-              <div class="composer">
+              <div class="composer" x-show="!shareMode" x-cloak>
                 <textarea
                   id="conversation-message"
                   name="message"
@@ -421,6 +521,31 @@
                 >
                   <span x-text="loading ? '×' : '↗'"></span>
                 </button>
+              </div>
+              <div class="share-bar" x-show="shareMode" x-cloak>
+                <span class="share-hint"
+                  >Create a read-only link to this conversation. Anyone with
+                  the link can view it — no sign-in required.</span
+                >
+                <div class="share-bar-actions">
+                  <button
+                    type="button"
+                    class="btn btn-ghost"
+                    @click="cancelShare()"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    @click="openShareDialog()"
+                    :disabled="creatingShare"
+                  >
+                    <span
+                      x-text="creatingShare ? 'Creating…' : 'Create share link'"
+                    ></span>
+                  </button>
+                </div>
               </div>
             </div>
           </template>
@@ -1734,6 +1859,61 @@
         >
       </div>
     </aside>
-    <script src="/static/app.js?v=20260831a"></script>
+    <dialog
+      class="modal modal-middle"
+      :open="shareStep !== null"
+      x-show="shareStep !== null"
+      x-cloak
+      @click.self="closeShareDialog()"
+    >
+      <div class="modal-box share-dialog">
+        <div class="dialog-head">
+          <h2>Create share link</h2>
+          <button
+            type="button"
+            class="icon-btn"
+            @click="closeShareDialog()"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        <template x-if="shareStep === 'confirm'"
+          ><div>
+            <p class="share-warning">
+              Anyone with the link can view this conversation — no password or
+              sign-in required. Check for sensitive or private content before
+              sharing.
+            </p>
+            <button
+              type="button"
+              class="btn btn-primary create-share-btn"
+              @click="createShare()"
+              :disabled="creatingShare"
+            >
+              <span x-text="creatingShare ? 'Creating…' : 'Create & copy'"></span>
+            </button>
+          </div></template
+        ><template x-if="shareStep === 'created'"
+          ><div class="share-link-row">
+            <input
+              class="share-link-input"
+              :value="shareUrl"
+              readonly
+              @focus="$event.target.select()"
+              aria-label="Share link"
+            />
+            <button
+              type="button"
+              class="btn btn-primary copy-link-btn"
+              @click="copyShareLink()"
+            >
+              <span x-text="copiedShare ? 'Copied' : 'Copy link'"></span>
+            </button>
+          </div></template
+        >
+      </div>
+    </dialog>
+    <script src="/static/app.js?v=20260831b"></script>
   </body>
 </html>

@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shared conversation · OMA studio</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
+    />
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #f7f7f8;
+        color: #1d1d1f;
+        font: 15px/1.75 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #1a1a1c;
+          color: #ececf0;
+        }
+        .bubble.assistant {
+          background: #26262a;
+        }
+        .share-footer,
+        .share-head {
+          border-color: #33333a;
+        }
+        .bubble.user {
+          background: #3b3b46;
+          color: #ececf0;
+        }
+        .share-head h1 {
+          color: #ececf0;
+        }
+        .share-head p {
+          color: #9a9aa4;
+        }
+      }
+      .share-wrap {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 28px 20px 80px;
+      }
+      .share-head {
+        border-bottom: 1px solid #e4e4e8;
+        padding-bottom: 18px;
+        margin-bottom: 26px;
+      }
+      .share-head h1 {
+        font-size: 20px;
+        font-weight: 700;
+        margin: 0 0 6px;
+      }
+      .share-head p {
+        margin: 0;
+        color: #86868c;
+        font-size: 13px;
+      }
+      .message {
+        margin: 0 0 18px;
+        display: flex;
+      }
+      .message.user {
+        justify-content: flex-end;
+      }
+      .bubble {
+        max-width: 86%;
+        padding: 10px 16px;
+        border-radius: 16px;
+        overflow-wrap: anywhere;
+      }
+      .bubble.user {
+        background: #ececf1;
+        border-bottom-right-radius: 4px;
+      }
+      .bubble.assistant {
+        background: #ffffff;
+        border: 1px solid #ececf0;
+        border-top-left-radius: 4px;
+      }
+      @media (prefers-color-scheme: dark) {
+        .bubble.assistant {
+          border-color: #33333a;
+        }
+      }
+      .bubble p {
+        margin: 0.4em 0;
+      }
+      .bubble pre {
+        overflow-x: auto;
+        background: #f2f2f5;
+        padding: 12px;
+        border-radius: 10px;
+        font-size: 13px;
+      }
+      .bubble details {
+        margin: 4px 0;
+        font-size: 13px;
+        color: #86868c;
+      }
+      .share-footer {
+        margin-top: 34px;
+        padding-top: 16px;
+        border-top: 1px solid #e4e4e8;
+        color: #86868c;
+        font-size: 12px;
+        text-align: center;
+      }
+      .share-error {
+        text-align: center;
+        color: #86868c;
+        padding: 60px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="share-wrap">
+      <header class="share-head">
+        <h1 id="share-title">Shared conversation</h1>
+        <p id="share-meta">OMA studio</p>
+      </header>
+      <section id="share-messages">
+        <div class="share-error">
+          <span class="loading loading-dots loading-sm"></span>
+        </div>
+      </section>
+      <footer class="share-footer">Shared via OMA studio · read-only</footer>
+    </main>
+    <script>
+      const token = decodeURIComponent(
+        location.pathname.split("/").pop() || ""
+      );
+      const escape = (text) => {
+        const div = document.createElement("div");
+        div.textContent = text ?? "";
+        return div.innerHTML;
+      };
+      const textNodes = (text) => {
+        const frag = document.createDocumentFragment();
+        (text ?? "").split("\n").forEach((line, index) => {
+          if (index) frag.append(document.createElement("br"));
+          frag.append(document.createTextNode(line));
+        });
+        return frag;
+      };
+      const appendMarkdown = (target, source) => {
+        try {
+          const doc = new DOMParser().parseFromString(
+            DOMPurify.sanitize(marked.parse(source || "")),
+            "text/html"
+          );
+          target.append(...doc.body.childNodes);
+        } catch {
+          target.append(textNodes(source));
+        }
+      };
+      const render = (data) => {
+        document.getElementById("share-title").textContent =
+          data.chat?.title || "Shared conversation";
+        const date = data.chat?.created_at
+          ? new Date(data.chat.created_at).toLocaleDateString(undefined, {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })
+          : "";
+        document.getElementById("share-meta").textContent = date
+          ? `Conversation from ${date} · read-only`
+          : "OMA studio · read-only";
+        const root = document.getElementById("share-messages");
+        root.innerHTML = "";
+        for (const message of data.messages || []) {
+          const item = document.createElement("article");
+          item.className = `message ${message.role}`;
+          const bubble = document.createElement("div");
+          bubble.className = `bubble ${message.role}`;
+          const parts = message.content || [];
+          if (message.role === "assistant") {
+            for (const part of parts) {
+              if (part.type === "thinking" && part.thinking) {
+                const details = document.createElement("details");
+                const summary = document.createElement("summary");
+                summary.textContent = "Thinking";
+                const body = document.createElement("div");
+                appendMarkdown(body, part.thinking);
+                details.append(summary, body);
+                bubble.append(details);
+              } else if (part.type === "text" && part.text) {
+                const block = document.createElement("div");
+                appendMarkdown(block, part.text);
+                bubble.append(block);
+              }
+            }
+          } else {
+            const text = parts
+              .filter((part) => part.type === "text")
+              .map((part) => part.text || "")
+              .join("\n");
+            bubble.append(textNodes(text));
+          }
+          item.append(bubble);
+          root.append(item);
+        }
+        if (!(data.messages || []).length) {
+          root.innerHTML =
+            '<div class="share-error">This conversation has no visible messages.</div>';
+        }
+      };
+      const fail = () => {
+        document.getElementById("share-title").textContent =
+          "Link unavailable";
+        document.getElementById("share-messages").innerHTML =
+          '<div class="share-error">This share link is invalid or the conversation is no longer shared.</div>';
+      };
+      fetch(`/api/share/${encodeURIComponent(token)}`)
+        .then((response) => {
+          if (!response.ok) throw new Error("not found");
+          return response.json();
+        })
+        .then(render)
+        .catch(fail);
+    </script>
+  </body>
+</html>

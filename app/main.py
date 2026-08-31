@@ -799,6 +799,50 @@ static_dir = Path(__file__).parent.parent / "static"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
+@app.post("/api/chats/{chat_id}/share")
+async def create_chat_share(chat_id: str):
+    """Create (or reuse) the unguessable public share token for a chat."""
+    chat = store.get_chat(chat_id)
+    if not chat:
+        raise HTTPException(404, "Chat not found")
+    share = store.create_share(chat_id)
+    return {"token": share["token"], "url": f"/share/{share['token']}"}
+
+
+@app.get("/api/share/{token}")
+async def get_shared_chat(token: str):
+    """Public, read-only view of a shared chat — token is the only gate."""
+    share = store.get_share(token)
+    if not share:
+        raise HTTPException(404, "Share not found")
+    chat = store.get_chat(share["chat_id"])
+    if not chat:
+        raise HTTPException(404, "Share not found")
+    if chat["status"] != "created" and _has_session_file(chat):
+        try:
+            messages = await runtime.messages(chat)
+        except PiRpcError as exc:
+            raise HTTPException(503, str(exc)) from exc
+    else:
+        messages = []
+    return {
+        "chat": {
+            "title": chat.get("title"),
+            "created_at": chat.get("created_at"),
+            "updated_at": chat.get("updated_at"),
+            "agent_id": chat.get("agent_id"),
+        },
+        "messages": visible_messages(messages, "production"),
+    }
+
+
+@app.get("/share/{token}")
+async def shared_chat_page(token: str):
+    # Serve the read-only share page for any token; the page itself reports
+    # unknown or revoked links after calling /api/share/{token}.
+    return FileResponse(static_dir / "share.html")
+
+
 @app.get("/{path:path}")
 async def spa(path: str):
     return FileResponse(static_dir / "index.html")

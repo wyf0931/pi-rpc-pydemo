@@ -1,3 +1,4 @@
+import secrets
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
@@ -38,6 +39,7 @@ class Store:
         self.chats = self.db.table("chats")
         self.autopilots = self.db.table("autopilots")
         self.autopilot_runs = self.db.table("autopilot_runs")
+        self.shares = self.db.table("shares")
 
     def ensure_default_agent(self, default_tools: list[str] | None = None) -> dict:
         agent = self.agents.get(Query().id == "default-assistant")
@@ -163,7 +165,25 @@ class Store:
         return None
 
     def delete_chat(self, chat_id: str) -> bool:
+        self.shares.remove(Query().chat_id == chat_id)
         return bool(self.chats.remove(Query().id == chat_id))
+
+    def get_share(self, token: str) -> dict | None:
+        matches = self.shares.search(Query().token == token)
+        return matches[0] if matches else None
+
+    def create_share(self, chat_id: str) -> dict:
+        """Create (or reuse) the unguessable public share token for a chat."""
+        existing = self.shares.search(Query().chat_id == chat_id)
+        if existing:
+            return existing[0]
+        share = {
+            "token": secrets.token_urlsafe(12),
+            "chat_id": chat_id,
+            "created_at": now_iso(),
+        }
+        self.shares.insert(share)
+        return share
 
     def list_autopilots(self) -> list[dict]:
         return sorted(

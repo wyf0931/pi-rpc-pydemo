@@ -253,3 +253,33 @@ def test_finished_turn_subscribe_receives_end_sentinel():
     queue, replay = turn.subscribe()
     assert len(replay) == 1
     assert queue.get_nowait() is None
+
+
+def test_share_flow_public_and_revoked(client, temporary_agent):
+    agent_id = temporary_agent({"name": "sharer", "instruction": "x"}).json()["id"]
+    chat = client.post("/api/chats", json={"agent_id": agent_id}).json()
+
+    created = client.post(f"/api/chats/{chat['id']}/share")
+    assert created.status_code == 200
+    token = created.json()["token"]
+    assert created.json()["url"] == f"/share/{token}"
+
+    # Idempotent: sharing again returns the same token.
+    again = client.post(f"/api/chats/{chat['id']}/share")
+    assert again.json()["token"] == token
+
+    # Public read-only payload (no auth layer in tests; token is the gate).
+    shared = client.get(f"/api/share/{token}")
+    assert shared.status_code == 200
+    assert shared.json()["messages"] == []
+    assert shared.json()["chat"]["title"] == chat["title"]
+
+    # The page itself is served for any token shape.
+    assert client.get(f"/share/{token}").status_code == 200
+
+    # Unknown tokens are 404.
+    assert client.get("/api/share/not-a-token").status_code == 404
+
+    # Deleting the chat revokes the share.
+    client.delete(f"/api/chats/{chat['id']}")
+    assert client.get(f"/api/share/{token}").status_code == 404
