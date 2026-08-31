@@ -2,11 +2,12 @@ import asyncio
 import copy
 import json
 import time
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -16,11 +17,17 @@ from .files import (
     delete_chat_files,
     discover_chat_files,
     discover_session_files,
+    read_session_messages,
     resolve_chat_file,
 )
-from .pi_rpc import PiRpcError, PiRuntimeManager
+from .pi_rpc import ActiveTurn, PiRpcError, PiRuntimeManager
 from .resources import discover_resources
-from .store import SUPPORTED_TOOLS, Store, now_iso
+from .store import (
+    SUPPORTED_TOOLS,
+    Store,
+    now_iso,
+    pi_terminal_failure,
+)
 
 settings = get_settings()
 settings.data_dir.mkdir(parents=True, exist_ok=True)
@@ -28,23 +35,11 @@ settings.pi_session_dir.mkdir(parents=True, exist_ok=True)
 store = Store(settings.data_dir / "platform.json")
 store.ensure_default_agent(list(settings.pi_default_tools))
 runtime = PiRuntimeManager(settings, store)
+
+# SSE heartbeat cadence. Any proxy/browser idle timeout must be far larger
+# than this (Cloudflare cuts idle streams at ~100s).
+SSE_KEEPALIVE_SECONDS = 20.0
 app = FastAPI(title="Pi Agent Platform")
-
-
-def pi_terminal_failure(messages: list[dict]) -> str | None:
-    """Return a user-facing error when Pi ends a turn without an answer."""
-    for message in reversed(messages):
-        if message.get("role") != "assistant":
-            continue
-        reason = message.get("stopReason")
-        if reason not in {"aborted", "error"}:
-            return None
-        return message.get("errorMessage") or (
-            "The agent turn was aborted before a final answer was generated."
-            if reason == "aborted"
-            else "The agent turn failed before a final answer was generated."
-        )
-    return None
 
 
 def _has_session_file(chat: dict) -> bool:
@@ -315,8 +310,11 @@ def visible_messages(messages: list[dict], mode: str = "production") -> list[dic
 
 @app.get("/api/chats")
 async def list_chats():
-    chats = [chat for chat in store.list_chats()
-             if chat.get("title") != "New conversation" or _has_session_file(chat)]
+    chats = [
+        chat
+        for chat in store.list_chats()
+        if chat.get("title") != "New conversation" or _has_session_file(chat)
+    ]
     return {"chats": chats}
 
 
@@ -348,7 +346,8 @@ async def delete_chat(chat_id: str):
     await runtime.close_chat(chat_id)
     session_id = chat.get("session_id") or chat_id
     session_paths = [
-        path for path in settings.pi_session_dir.iterdir()
+        path
+        for path in settings.pi_session_dir.iterdir()
         if path.is_file() and path.name.endswith(f"_{session_id}.jsonl")
     ]
     if not session_paths:
@@ -358,7 +357,7 @@ async def delete_chat(chat_id: str):
     try:
         messages = await runtime.messages(chat)
     except PiRpcError:
-        pass
+        messages = []
     protected_paths: set[str] = set()
     for other_chat in store.list_chats():
         if other_chat["id"] == chat_id:
@@ -397,6 +396,13 @@ async def get_messages(chat_id: str, mode: str = "production"):
         return {"messages": []}
     if not _has_session_file(chat):
         raise HTTPException(404, "Pi session not found for this chat")
+    if runtime.active_turn(chat_id) is not None:
+        # A turn is streaming: read the transcript from disk instead of
+        # spawning a second pi process on the busy session. Refreshes and
+        # shared links see everything persisted so far.
+        session_file = runtime.newest_session_file(chat)
+        messages = read_session_messages(session_file) if session_file else []
+        return {"messages": visible_messages(messages, mode)}
     try:
         return {"messages": visible_messages(await runtime.messages(chat), mode)}
     except PiRpcError as exc:
@@ -505,72 +511,150 @@ async def download_chat_file(chat_id: str, path: str):
     )
 
 
+def _sse_data(event: dict) -> str:
+    return f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+
+
+def _absorb_turn_event(
+    event: dict, text: str, tools: list[dict]
+) -> tuple[str, list[dict]]:
+    if event["type"] == "delta":
+        text += event["delta"]
+    elif event["type"] == "final":
+        text = event["text"]
+    elif event["type"] == "tool":
+        tools.append(event)
+    return text, tools
+
+
+def _pump_failure_reason(turn: ActiveTurn) -> str | None:
+    """Error from a crashed run task, so viewers fail instead of hanging."""
+    task = turn.task
+    if task is None or not task.done() or task.cancelled():
+        return None
+    exc = task.exception()
+    if exc is None or turn.finished:
+        return None
+    return str(exc)
+
+
+async def _turn_event_stream(
+    turn: ActiveTurn,
+    queue: asyncio.Queue,
+    replay: list[dict],
+) -> AsyncIterator[str]:
+    """SSE view of a server-side turn: replay what already happened, then
+    follow live events. Viewer disconnects only unsubscribe — the turn keeps
+    running and stays resumable at GET /api/chats/{id}/stream."""
+    text = ""
+    tools: list[dict] = []
+    try:
+        for event in replay:
+            text, tools = _absorb_turn_event(event, text, tools)
+            yield _sse_data(event)
+        while True:
+            try:
+                event = await asyncio.wait_for(
+                    queue.get(), timeout=SSE_KEEPALIVE_SECONDS
+                )
+            except TimeoutError:
+                failure = _pump_failure_reason(turn)
+                if failure is not None:
+                    # The run task died with an unexpected error; surface it
+                    # instead of streaming keepalives forever.
+                    store.update_chat(turn.chat_id, {"status": "error"})
+                    yield _sse_data({"type": "error", "error": failure})
+                    return
+                yield ": keepalive\n\n"
+                continue
+            if event is None:
+                break
+            text, tools = _absorb_turn_event(event, text, tools)
+            yield _sse_data(event)
+        failure = pi_terminal_failure(turn.final_event.get("messages", []))
+        error = failure or turn.error
+        if error:
+            yield _sse_data({"type": "error", "error": error})
+            return
+        updated = store.get_chat(turn.chat_id)
+        if not updated:
+            return
+        turn_messages = visible_messages(
+            [
+                message
+                for message in turn.final_event.get("messages", [])
+                if message.get("role") == "assistant"
+                or message.get("role") == "toolResult"
+            ],
+            "development",
+        )
+        yield _sse_data(
+            {
+                "type": "complete",
+                "chat": updated,
+                "assistant": text,
+                "tools": tools,
+                "messages": turn_messages,
+            }
+        )
+    finally:
+        turn.unsubscribe(queue)
+
+
+SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+
+
 @app.post("/api/chats/{chat_id}/messages")
 async def send_message(chat_id: str, payload: MessageCreate, mode: str = "production"):
     chat = store.get_chat(chat_id)
     if not chat:
         raise HTTPException(404, "Chat not found")
+    store.update_chat(
+        chat_id,
+        {
+            "status": "running",
+            "last_activity_at": now_iso(),
+            "title": title_for(payload.content)
+            if chat["title"] == "New conversation"
+            else chat["title"],
+        },
+    )
     try:
-        store.update_chat(
-            chat_id,
-            {
-                "status": "running",
-                "last_activity_at": now_iso(),
-                "title": title_for(payload.content)
-                if chat["title"] == "New conversation"
-                else chat["title"],
-            },
-        )
-
-        async def events():
-            text = ""
-            tools = []
-            final_event = {}
-            try:
-                async for event in runtime.stream(
-                    chat,
-                    payload.content,
-                    session_name=title_for(payload.content)
-                    if chat["title"] == "New conversation"
-                    else None,
-                ):
-                    if event["type"] == "delta":
-                        text += event["delta"]
-                    elif event["type"] == "final":
-                        text = event["text"]
-                    elif event["type"] == "tool":
-                        tools.append(event)
-                    elif event["type"] == "done":
-                        final_event = event.get("event", {})
-                    yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
-                failure = pi_terminal_failure(final_event.get("messages", []))
-                if failure:
-                    updated = store.update_chat(chat_id, {"status": "error"}) or chat
-                    yield f"data: {json.dumps({'type': 'error', 'error': failure, 'chat': updated}, ensure_ascii=False)}\n\n"
-                    return
-                updated = store.update_chat(chat_id, {"status": "ready"}) or chat
-                turn_messages = visible_messages(
-                    [
-                        message
-                        for message in final_event.get("messages", [])
-                        if message.get("role") == "assistant"
-                        or message.get("role") == "toolResult"
-                    ],
-                    "development",
-                )
-                yield f"data: {json.dumps({'type': 'complete', 'chat': updated, 'assistant': text, 'tools': tools, 'messages': turn_messages}, ensure_ascii=False)}\n\n"
-            except PiRpcError as exc:
-                store.update_chat(chat_id, {"status": "error"})
-                yield f"data: {json.dumps({'type': 'error', 'error': str(exc)}, ensure_ascii=False)}\n\n"
-
-        return StreamingResponse(
-            events(),
-            media_type="text/event-stream",
-            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        turn = runtime.start_turn(
+            chat,
+            payload.content,
+            session_name=title_for(payload.content)
+            if chat["title"] == "New conversation"
+            else None,
         )
     except PiRpcError as exc:
-        store.update_chat(chat_id, {"status": "error"})
+        if "busy" not in str(exc).casefold():
+            store.update_chat(chat_id, {"status": "error"})
         raise HTTPException(503, str(exc)) from exc
+    queue, replay = turn.subscribe()
+    return StreamingResponse(
+        _turn_event_stream(turn, queue, replay),
+        media_type="text/event-stream",
+        headers=SSE_HEADERS,
+    )
+
+
+@app.get("/api/chats/{chat_id}/stream")
+async def resume_chat_stream(chat_id: str):
+    """Replay + follow the active turn, so refreshes, shared links, and
+    other tabs stay in sync. 204 when nothing is running."""
+    chat = store.get_chat(chat_id)
+    if not chat:
+        raise HTTPException(404, "Chat not found")
+    turn = runtime.active_turn(chat_id)
+    if turn is None:
+        return Response(status_code=204)
+    queue, replay = turn.subscribe()
+    return StreamingResponse(
+        _turn_event_stream(turn, queue, replay),
+        media_type="text/event-stream",
+        headers=SSE_HEADERS,
+    )
 
 
 @app.post("/api/chats/{chat_id}/abort")
@@ -585,39 +669,57 @@ async def abort_chat(chat_id: str):
 def _autopilot_view(item: dict) -> dict:
     agent = store.get_agent(item["agent_id"]) or {}
     upcoming = next_run_at(item)
-    return {**item, "agent_name": agent.get("name", "Unknown agent"),
-            "status": "active" if item.get("enabled") else "paused",
-            "next_run_at": upcoming.isoformat() if upcoming else None}
+    return {
+        **item,
+        "agent_name": agent.get("name", "Unknown agent"),
+        "status": "active" if item.get("enabled") else "paused",
+        "next_run_at": upcoming.isoformat() if upcoming else None,
+    }
 
 
 async def execute_autopilot(autopilot: dict) -> None:
     chat = store.create_autopilot_chat(autopilot["agent_id"], autopilot["name"])
     run = store.create_autopilot_run(autopilot["id"], chat["id"], chat["id"])
     started = time.monotonic()
-    prompt = f'{autopilot["instruction"].strip()}\n\nCurrent time: {datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")}'
+    prompt = f"{autopilot['instruction'].strip()}\n\nCurrent time: {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S')}"
     try:
-        async for _event in runtime.stream(chat, prompt, session_name=autopilot["name"]):
+        async for _event in runtime.stream(
+            chat, prompt, session_name=autopilot["name"]
+        ):
             pass
         # Autopilot output is real activity: surface the chat in the sidebar.
         store.update_chat(chat["id"], {"last_activity_at": now_iso()})
-        store.update_autopilot_run(run["id"], {
-            "status": "success", "finished_at": datetime.now(UTC).isoformat(),
-            "duration_ms": round((time.monotonic() - started) * 1000),
-        })
+        store.update_autopilot_run(
+            run["id"],
+            {
+                "status": "success",
+                "finished_at": datetime.now(UTC).isoformat(),
+                "duration_ms": round((time.monotonic() - started) * 1000),
+            },
+        )
         store.update_chat(chat["id"], {"status": "ready"})
     except asyncio.CancelledError:
-        store.update_autopilot_run(run["id"], {
-            "status": "cancelled", "finished_at": datetime.now(UTC).isoformat(),
-            "duration_ms": round((time.monotonic() - started) * 1000),
-            "error": "Application stopped before the run completed",
-        })
+        store.update_autopilot_run(
+            run["id"],
+            {
+                "status": "cancelled",
+                "finished_at": datetime.now(UTC).isoformat(),
+                "duration_ms": round((time.monotonic() - started) * 1000),
+                "error": "Application stopped before the run completed",
+            },
+        )
         store.update_chat(chat["id"], {"status": "stopped"})
         raise
     except (PiRpcError, OSError, TimeoutError) as exc:
-        store.update_autopilot_run(run["id"], {
-            "status": "error", "finished_at": datetime.now(UTC).isoformat(),
-            "duration_ms": round((time.monotonic() - started) * 1000), "error": str(exc),
-        })
+        store.update_autopilot_run(
+            run["id"],
+            {
+                "status": "error",
+                "finished_at": datetime.now(UTC).isoformat(),
+                "duration_ms": round((time.monotonic() - started) * 1000),
+                "error": str(exc),
+            },
+        )
         store.update_chat(chat["id"], {"status": "error"})
 
 
@@ -638,10 +740,16 @@ async def create_autopilot(payload: AutopilotCreate):
         raise HTTPException(404, "Agent not found")
     if next_run_at({"cron": payload.cron}) is None:
         raise HTTPException(400, "Invalid cron expression")
-    return _autopilot_view(store.create_autopilot(
-        payload.name, payload.instruction, payload.agent_id, payload.cron,
-        payload.starts_at, payload.ends_at,
-    ))
+    return _autopilot_view(
+        store.create_autopilot(
+            payload.name,
+            payload.instruction,
+            payload.agent_id,
+            payload.cron,
+            payload.starts_at,
+            payload.ends_at,
+        )
+    )
 
 
 @app.patch("/api/autopilots/{autopilot_id}")

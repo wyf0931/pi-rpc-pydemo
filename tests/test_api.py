@@ -92,3 +92,102 @@ def test_empty_chat_is_hidden_from_history(client):
     chat = client.post("/api/chats", json={"agent_id": agent_id}).json()
     assert all(item["id"] != chat["id"] for item in client.get("/api/chats").json()["chats"])
     assert client.get(f"/api/chats/{chat['id']}").status_code == 404
+
+
+class _DummyClient:
+    """Stand-in for PiRpcClient so turn tests never spawn a real pi process."""
+
+    async def request(self, *args, **kwargs):
+        return {}
+
+    async def close(self):
+        pass
+
+
+def test_resume_stream_returns_204_without_active_turn(client, temporary_agent):
+    agent_id = temporary_agent({"name": "resumer", "instruction": "x"}).json()["id"]
+    chat = client.post("/api/chats", json={"agent_id": agent_id}).json()
+    response = client.get(f"/api/chats/{chat['id']}/stream")
+    assert response.status_code == 204
+
+
+def test_turn_survives_viewer_disconnect(client, monkeypatch, temporary_agent):
+    """A dropped SSE connection must not abort the run: refreshes and other
+    tabs reconnect to the still-running turn instead of losing the answer."""
+    import asyncio
+    import time as time_module
+
+    import app.main as main_module
+
+    agent_id = temporary_agent({"name": "resilient", "instruction": "x"}).json()["id"]
+    chat = client.post("/api/chats", json={"agent_id": agent_id}).json()
+
+    class SlowClient(_DummyClient):
+        async def stream_prompt(self, message):
+            yield {"type": "delta", "delta": "partial"}
+            await asyncio.sleep(1.2)
+            yield {
+                "type": "done",
+                "event": {
+                    "messages": [
+                        {
+                            "role": "assistant",
+                            "stopReason": "stop",
+                            "content": [{"type": "text", "text": "done"}],
+                        }
+                    ]
+                },
+            }
+
+    async def fake_start(chat, create=False, register=True):
+        return SlowClient()
+
+    monkeypatch.setattr(main_module.runtime, "_start", fake_start)
+
+    with client.stream(
+        "POST", f"/api/chats/{chat['id']}/messages", json={"content": "hi"}
+    ) as response:
+        for chunk in response.iter_text():
+            if '"delta"' in chunk:
+                break
+
+    deadline = time_module.time() + 5
+    status = ""
+    while time_module.time() < deadline:
+        status = client.get(f"/api/chats/{chat['id']}").json()["status"]
+        if status == "ready":
+            break
+        time_module.sleep(0.2)
+    assert status == "ready"
+    client.delete(f"/api/chats/{chat['id']}")
+
+
+def test_message_stream_sends_keepalive_when_idle(client, monkeypatch, temporary_agent):
+    import asyncio
+
+    import app.main as main_module
+
+    agent_id = temporary_agent({"name": "heartbeat", "instruction": "x"}).json()["id"]
+    chat = client.post("/api/chats", json={"agent_id": agent_id}).json()
+
+    class IdleClient(_DummyClient):
+        async def stream_prompt(self, message):
+            yield {"type": "delta", "delta": "partial"}
+            await asyncio.sleep(10)
+
+    async def fake_start(chat, create=False, register=True):
+        return IdleClient()
+
+    monkeypatch.setattr(main_module.runtime, "_start", fake_start)
+    monkeypatch.setattr(main_module, "SSE_KEEPALIVE_SECONDS", 0.2)
+
+    chunks = []
+    with client.stream(
+        "POST", f"/api/chats/{chat['id']}/messages", json={"content": "hi"}
+    ) as response:
+        for chunk in response.iter_text():
+            chunks.append(chunk)
+            if ": keepalive" in "".join(chunks):
+                break
+    assert any(": keepalive" in chunk for chunk in chunks)
+    client.delete(f"/api/chats/{chat['id']}")
