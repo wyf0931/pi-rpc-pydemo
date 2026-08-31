@@ -3573,3 +3573,37 @@ body > .link-drawer {
 .app-shell.shared .workspace {
  grid-template-columns: 1fr;
 }
+
+/* Keep the chat chrome attached to the viewport while the conversation scrolls. */
+.conversation-toolbar {
+ position: fixed;
+ inset: 0 0 auto 300px;
+ z-index: 30;
+ display: flex;
+ align-items: center;
+ justify-content: flex-end;
+ min-height: 56px;
+ padding: 8px clamp(28px, 7vw, 110px);
+ border-bottom: 1px solid var(--line);
+ background: color-mix(in srgb, var(--color-base-100) 94%, transparent);
+ backdrop-filter: blur(12px);
+}
+.app-shell.sidebar-collapsed .conversation-toolbar {
+ left: 78px;
+}
+.conversation-toolbar .files-toggle {
+ margin-left: auto;
+}
+.content-panel:has(.conversation) .message-list {
+ padding-top: 84px;
+}
+@media (max-width: 800px) {
+ .conversation-toolbar {
+  inset: 56px 0 auto 0;
+  min-height: 44px;
+  padding: 4px 14px;
+ }
+ .content-panel:has(.conversation) .message-list {
+  padding-top: 68px;
+ }
+}
