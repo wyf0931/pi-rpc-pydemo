@@ -24,7 +24,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260901h" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260901i" />
   </head>
   <body
     x-data="platform()"
@@ -424,54 +424,54 @@
                         aria-label="Session usage"
                       ></div>
                       <div class="message-actions">
-                      <button
-                        type="button"
-                        class="action-btn"
-                        :class="{ active: copiedKey === message._key }"
-                        @click="copyMessage(message)"
-                        :title="copiedKey === message._key ? 'Copied' : 'Copy'"
-                        aria-label="Copy"
-                      >
-                        <i
-                          data-lucide="check"
-                          x-show="copiedKey === message._key"
-                          aria-hidden="true"
-                        ></i>
-                        <i
-                          data-lucide="copy"
-                          x-show="copiedKey !== message._key"
-                          aria-hidden="true"
-                        ></i>
-                      </button>
-                      <button
-                        type="button"
-                        class="action-btn"
-                        :class="{ active: feedbackFor(message) === 'up' }"
-                        @click="rateMessage(message, 'up')"
-                        title="Good response"
-                        aria-label="Good response"
-                      >
-                        <i data-lucide="thumbs-up" aria-hidden="true"></i>
-                      </button>
-                      <button
-                        type="button"
-                        class="action-btn"
-                        :class="{ active: feedbackFor(message) === 'down' }"
-                        @click="rateMessage(message, 'down')"
-                        title="Bad response"
-                        aria-label="Bad response"
-                      >
-                        <i data-lucide="thumbs-down" aria-hidden="true"></i>
-                      </button>
-                      <button
-                        type="button"
-                        class="action-btn"
-                        @click="startShare()"
-                        title="Share"
-                        aria-label="Share"
-                      >
-                        <i data-lucide="share-2" aria-hidden="true"></i>
-                      </button>
+                        <button
+                          type="button"
+                          class="action-btn"
+                          :class="{ active: copiedKey === message._key }"
+                          @click="copyMessage(message)"
+                          :title="copiedKey === message._key ? 'Copied' : 'Copy'"
+                          aria-label="Copy"
+                        >
+                          <i
+                            data-lucide="check"
+                            x-show="copiedKey === message._key"
+                            aria-hidden="true"
+                          ></i>
+                          <i
+                            data-lucide="copy"
+                            x-show="copiedKey !== message._key"
+                            aria-hidden="true"
+                          ></i>
+                        </button>
+                        <button
+                          type="button"
+                          class="action-btn"
+                          :class="{ active: feedbackFor(message) === 'up' }"
+                          @click="rateMessage(message, 'up')"
+                          title="Good response"
+                          aria-label="Good response"
+                        >
+                          <i data-lucide="thumbs-up" aria-hidden="true"></i>
+                        </button>
+                        <button
+                          type="button"
+                          class="action-btn"
+                          :class="{ active: feedbackFor(message) === 'down' }"
+                          @click="rateMessage(message, 'down')"
+                          title="Bad response"
+                          aria-label="Bad response"
+                        >
+                          <i data-lucide="thumbs-down" aria-hidden="true"></i>
+                        </button>
+                        <button
+                          type="button"
+                          class="action-btn"
+                          @click="startShare()"
+                          title="Share"
+                          aria-label="Share"
+                        >
+                          <i data-lucide="share-2" aria-hidden="true"></i>
+                        </button>
                       </div>
                     </div></article
                 ></template>
@@ -686,10 +686,11 @@
               @click="leaveFileViewer()"
               aria-label="Back"
               title="Back"
-            ><i data-lucide="arrow-left" aria-hidden="true"></i></button
-            ><div class="file-view-header">
-              <span class="file-view-path" x-text="fileViewer.path"></span
-              ></div
+            >
+              <i data-lucide="arrow-left" aria-hidden="true"></i>
+            </button>
+            <div class="file-view-header">
+              <span class="file-view-path" x-text="fileViewer.path"></span></div
           ></template>
           <template x-if="fileViewer"
             ><article
@@ -735,17 +736,17 @@
                 <p class="agent-instruction" x-text="agent.instruction"></p>
                 <div class="card-bottom">
                   <span x-text="chatCount(agent.id) + ' chats' "></span>
-                </div>
-                <button
-                  type="button"
-                  class="trash-btn"
-                  x-show="!agent.protected"
-                  @click.stop="deleteAgent(agent)"
-                  title="Delete agent"
-                  aria-label="Delete agent"
-                >
-                  <i data-lucide="trash-2" aria-hidden="true"></i>
-                </button></div
+                  <button
+                    type="button"
+                    class="trash-btn"
+                    x-show="!agent.protected"
+                    @click.stop="deleteAgent(agent)"
+                    title="Delete agent"
+                    aria-label="Delete agent"
+                  >
+                    <i data-lucide="trash-2" aria-hidden="true"></i>
+                  </button>
+                </div></div
             ></template>
           </div>
         </section>
@@ -1441,7 +1442,7 @@
             class="btn btn-sm btn-primary"
             @click="runAutopilot(autopilotRunsItem)"
           >
-            <i data-lucide="play" aria-hidden="true"></i> Run now
+            <i data-lucide="play" aria-hidden="true"></i> Run
           </button>
         </div>
         <div class="autopilot-runs-table">

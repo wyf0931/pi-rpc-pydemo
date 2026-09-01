@@ -565,6 +565,7 @@ body {
 }
 .card-bottom {
  display: flex;
+ align-items: center;
  justify-content: space-between;
  color: var(--muted);
  font: 10px "DM Mono";
@@ -868,9 +869,9 @@ body {
  overflow: hidden;
 }
 .trash-btn {
- position: absolute;
- right: 14px;
- bottom: 12px;
+ position: static;
+ flex: none;
+ margin-left: auto;
  width: 30px;
  height: 30px;
  padding: 7px;
@@ -2920,6 +2921,7 @@ pre,
 .autopilot-runs-toolbar {
  display: flex;
  justify-content: flex-end;
+ padding-top: 12px;
  margin: 0 0 12px;
 }
 .autopilot-dialog,
