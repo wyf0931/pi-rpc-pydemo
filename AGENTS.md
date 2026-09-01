@@ -18,7 +18,7 @@ session transcripts**. Status: MVP, single user, localhost.
 | API | FastAPI + Pydantic | Request validation lives in Pydantic models in `app/main.py`. |
 | Storage | TinyDB (file `~/.oma-studio/data/platform.json`) | Metadata only. See invariants below. |
 | Agent runtime | Pi RPC subprocess | One short-lived Pi process per operation (send / stream / messages). |
-| Frontend | Plain static HTML/JS/CSS in `static/` | No bundler. Alpine.js + DaisyUI 5 + Tailwind browser build via CDN. |
+| Frontend | Plain static HTML/JS/CSS in `static/` | No bundler. Alpine.js + DaisyUI 5 + Tailwind browser build via CDN; Lucide is the required icon system for all UI icons. |
 | Markdown rendering | marked + DOMPurify + highlight.js + mermaid (CDN) | Sanitized HTML only; never inject raw model output. |
 | Typography CSS | Tailwind CLI (`npm run build:css`) | The only frontend build step; output is committed to `static/typography.css`. |
 
@@ -121,6 +121,11 @@ data/           Legacy runtime data (pre-normalization archive, gitignored, supe
   endpoints change.
 - **Static assets:** when editing `static/styles.css`, `static/app.js`, or
   `static/typography.css`, bump the `?v=` cache-busting query in `static/index.html`.
+- **Icons:** use Lucide via the CDN UMD build and `data-lucide` attributes for all
+  UI icons, including markup rendered from Alpine templates or `x-html`; do not
+  add hand-written SVG icons, text glyph icons, or CSS mask icon assets. Keep the
+  single render helper in `static/app.js` and preserve its dynamic re-render
+  coverage.
 - **Errors:** raise `HTTPException` with clear messages; map `PiRpcError` to 503.
 - **Style:** modern stdlib typing (`str | None`), dataclasses for settings, no linter is
   configured yet — keep formatting consistent with surrounding code.
