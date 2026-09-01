@@ -920,7 +920,6 @@ body {
 }
 .agent-model-fields {
  display: grid;
- grid-template-columns: 1fr 1fr;
  gap: 16px;
 }
 .agent-model-fields .form-field {
@@ -928,11 +927,6 @@ body {
 }
 .agent-model-fields .select {
  width: 100%;
-}
-@media (max-width: 640px) {
- .agent-model-fields {
-  grid-template-columns: 1fr;
- }
 }
 .agent-model-fields {
  grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -965,9 +959,6 @@ body {
  text-transform: uppercase;
  letter-spacing: 0.08em;
  margin-bottom: 8px;
-}
-.tool-check-grid {
- grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .tool-check,
 .resource-check {
@@ -1048,9 +1039,6 @@ body {
 }
 .agent-dialog .dialog-box {
  max-width: 760px;
-}
-.tool-check-grid {
- grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .tool-check {
  padding: 8px;
@@ -1234,10 +1222,6 @@ body {
  padding-top: 16px;
  margin-top: 24px;
 }
-.workspace {
- height: 100vh;
- min-height: 0;
-}
 .history-panel {
  height: 100vh;
 }
@@ -1333,13 +1317,6 @@ body {
 .sidebar-footer .theme-picker > span {
  font: 11px "DM Mono";
  color: var(--muted);
-}
-.content-panel:has(.conversation) {
- padding-left: 0;
- padding-right: 0;
-}
-.conversation {
- width: 100%;
 }
 .content-panel:has(.conversation) {
  padding-left: clamp(28px, 7vw, 110px);
