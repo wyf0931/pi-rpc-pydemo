@@ -1,3 +1,4 @@
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from app.store import Store
@@ -88,8 +89,9 @@ def test_viewing_a_chat_does_not_change_ordering(tmp_path: Path):
 
     # Explicit activity (a sent message) is what moves a chat to the top.
     time.sleep(0.01)
+    future_activity = (datetime.now(UTC) + timedelta(seconds=1)).isoformat()
     store.update_chat(
         first["id"],
-        {"status": "running", "last_activity_at": "2026-09-01T00:00:00+00:00"},
+        {"status": "running", "last_activity_at": future_activity},
     )
     assert [c["id"] for c in store.list_chats()] == [first["id"], second["id"]]
