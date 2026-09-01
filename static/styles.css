@@ -513,7 +513,7 @@ body {
  transform: translateY(-3px);
  border-color: var(--color-primary);
 }
-.agent-card-identity {
+.agent-card .agent-card-identity {
  justify-content: flex-start;
  gap: 12px;
 }
@@ -521,9 +521,14 @@ body {
  margin: 0;
  font-weight: 600;
  min-width: 0;
+ flex: 1;
  overflow: hidden;
  text-overflow: ellipsis;
  white-space: nowrap;
+}
+.agent-card-identity {
+ justify-content: flex-start;
+ gap: 12px;
 }
 .card-top {
  display: flex;
