@@ -1496,6 +1496,7 @@ body {
  display: grid;
  grid-template-columns: 112px minmax(0, 1fr);
  gap: 20px;
+ padding-top: 16px;
  align-items: start;
 }
 .avatar-upload-panel {
@@ -1548,7 +1549,10 @@ body {
 .agent-form-main {
  min-width: 0;
 }
-.agent-form-main .form-field:first-child {
+.agent-form-main > .form-field:first-child {
+ margin-top: 0;
+}
+.agent-model-fields .form-field {
  margin-top: 0;
 }
 .agent-instruction-field {
