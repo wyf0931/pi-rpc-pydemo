@@ -203,13 +203,43 @@ function platform() {
         path.includes("/messages") && !path.includes("?")
           ? `${path}?mode=${this.mode}`
           : path;
+      const requestId = crypto.randomUUID();
+      const headers = new Headers(options.headers || {});
+      headers.set("Content-Type", "application/json");
+      headers.set("X-Request-ID", requestId);
       const response = await fetch(requestPath, {
-        headers: { "Content-Type": "application/json" },
         ...options,
+        headers,
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Request failed");
+      const responseId = response.headers.get("X-Request-ID") || requestId;
+      const contentType = response.headers.get("content-type") || "";
+      let data = null;
+      if (contentType.includes("json")) {
+        try {
+          data = await response.json();
+        } catch {
+          data = null;
+        }
+      } else {
+        await response.text();
+      }
+      if (!response.ok) {
+        throw this.errorFromResponse(response, responseId, data);
+      }
+      if (data === null) {
+        const error = new Error(
+          `Server returned a non-JSON response (request_id: ${responseId})`,
+        );
+        error.requestId = responseId;
+        throw error;
+      }
       return data;
+    },
+    errorFromResponse(response, requestId, data = null) {
+      const detail = data?.detail || `Server returned ${response.status}`;
+      const error = new Error(`${detail} (request_id: ${requestId})`);
+      error.requestId = requestId;
+      return error;
     },
     async loadAgents() {
       try {
@@ -905,14 +935,28 @@ function platform() {
       this.loading = true;
       const chatId = this.activeChat.id;
       try {
+        const requestId = crypto.randomUUID();
         const response = await fetch(`/api/chats/${chatId}/messages`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-Request-ID": requestId,
+          },
           body: JSON.stringify({ content }),
         });
         if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.detail || "Request failed");
+          const responseId =
+            response.headers.get("X-Request-ID") || requestId;
+          const contentType = response.headers.get("content-type") || "";
+          let data = null;
+          if (contentType.includes("json")) {
+            try {
+              data = await response.json();
+            } catch {}
+          } else {
+            await response.text();
+          }
+          throw this.errorFromResponse(response, responseId, data);
         }
         const reader = response.body.getReader();
         const decoder = new TextDecoder();

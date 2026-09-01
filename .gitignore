@@ -6,6 +6,7 @@ __pycache__/
 .playwright-cli/
 node_modules/
 data/
+logs/
 workspace/
 research/
 .superpowers/

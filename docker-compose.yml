@@ -30,6 +30,7 @@ services:
       PI_HOME: /home/node/.pi/agent
       PI_PLATFORM_DATA_DIR: /app/data
       PI_SESSION_DIR: /app/data/pi-sessions
+      PI_LOG_DIR: /app/logs
       # Keep this equal to the cwd recorded in migrated Pi session files.
       # New installations can leave it at /workspace.
       PI_CWD: ${PI_DOCKER_CWD:-/workspace}
@@ -47,6 +48,8 @@ services:
       # Agent working directory. PI_DOCKER_CWD keeps migrated session projects
       # addressable inside the container.
       - ${PI_CWD:-./workspace}:${PI_DOCKER_CWD:-/workspace}
+      # Application JSONL logs survive container replacement/crashes.
+      - ${PI_LOG_DIR:-./logs}:/app/logs
       # Pi home: extensions, skills, mcp.json, models.json, provider auth.
       - ~/.pi/agent:/home/node/.pi/agent
     healthcheck:

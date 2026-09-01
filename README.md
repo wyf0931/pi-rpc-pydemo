@@ -116,16 +116,21 @@ docker compose up --build
 | --- | --- | --- |
 | `${PI_PLATFORM_DATA_DIR:-./data}` | `/app/data` | Platform metadata + Pi session transcripts |
 | `${PI_CWD:-./workspace}` | `${PI_DOCKER_CWD:-/workspace}` | Agent working directory |
+| `${PI_LOG_DIR:-./logs}` | `/app/logs` | Rotating JSONL application logs with request IDs |
 | `~/.pi/agent` | `/home/node/.pi/agent` | Extensions, skills, MCP config, model catalog, provider auth |
 
 Compose reads `.env` for `PI_PROVIDER`, `PI_MODEL`, the resource defaults, `PI_PLATFORM_DATA_DIR`,
-`PI_CWD`, and optional `PI_DOCKER_CWD`; container-internal paths are fixed in `docker-compose.yml`. This means a local
+`PI_CWD`, `PI_LOG_DIR`, and optional `PI_DOCKER_CWD`; container-internal paths are fixed in `docker-compose.yml`. This means a local
 `.env` with `PI_PLATFORM_DATA_DIR=data` shares the repository's existing metadata and Pi
 sessions with Docker. No reverse proxy or extra services — FastAPI serves the API and UI
 directly, and `init: true` reaps the short-lived Pi subprocesses the app spawns. When the
 host reaches model providers through a VPN/proxy, set `OMA_PROXY` (e.g. with
 Colima: `http://192.168.5.2:7897`) and the container pins its outbound model
 calls to it via Node 24 proxy support.
+
+Application logs are written as rotating JSONL to `PI_LOG_DIR` and also emitted to stdout. Each HTTP
+request receives an `X-Request-ID` response header; use that value to search the mounted log file after
+an error. Request logs intentionally omit prompts, model output, credentials, and other sensitive payloads.
 
 Notes:
 
@@ -202,6 +207,7 @@ Create `.env` from the example and adjust paths for your machine:
 PI_CLI_PATH=pi
 PI_PLATFORM_DATA_DIR=/absolute/path/to/.oma-studio/data
 PI_SESSION_DIR=/absolute/path/to/.oma-studio/data/pi-sessions
+PI_LOG_DIR=/absolute/path/to/.oma-studio/logs
 PI_CWD=/absolute/path/to/.oma-studio/workspace
 PI_HOME=~/.pi/agent
 PI_PROVIDER=deepseek
