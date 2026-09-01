@@ -66,6 +66,14 @@ function platform() {
     copiedKey: "",
     feedback: {},
     messagesLoading: false,
+    sessionUsage: {
+      input: 0,
+      output: 0,
+      cacheRead: 0,
+      cost: 0,
+      search: 0,
+      fetch: 0,
+    },
     reasoningOpen: Object.create(null),
     filesOpen: false,
     filesLoading: false,
@@ -138,6 +146,7 @@ function platform() {
       window.omaPlatform = this;
       this.sharedMode =
         window.location.pathname.startsWith("/share/") ||
+        window.location.pathname === "/file-view" ||
         new URLSearchParams(location.search).has("share");
       this.setTheme(this.theme);
       try {
@@ -431,14 +440,15 @@ function platform() {
     openFile(file) {
       if (!this.activeChat) return;
       const query = this.sharedMode
-        ? new URLSearchParams({ share: this.sharedToken, path: file.path })
-        : new URLSearchParams({ chat_id: this.activeChat.id, path: file.path });
+        ? new URLSearchParams({ share: this.sharedToken, path: file.path, from: "chat" })
+        : new URLSearchParams({ chat_id: this.activeChat.id, path: file.path, from: "chat" });
       this.openInternalTab(`/file-view?${query.toString()}`);
     },
     openLibraryFile(file) {
       const query = new URLSearchParams({
         chat_id: file.chat_id,
         path: file.path,
+        from: "library",
       });
       this.openInternalTab(`/file-view?${query.toString()}`);
     },
@@ -454,6 +464,16 @@ function platform() {
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
+    },
+    leaveFileViewer() {
+      const params = new URLSearchParams(location.search);
+      if (document.referrer.startsWith(location.origin) && history.length > 1) {
+        history.back();
+      } else if (params.get("from") === "chat" && params.get("chat_id")) {
+        location.assign(`/chat/${encodeURIComponent(params.get("chat_id"))}`);
+      } else {
+        location.assign("/library");
+      }
     },
     downloadUrl(file) {
       return `/api/chats/${encodeURIComponent(file.chat_id)}/files/download?path=${encodeURIComponent(file.path)}`;
@@ -1163,7 +1183,7 @@ function platform() {
                 `${part.type || ""}:${part.text || part.thinking || part.name || ""}:${JSON.stringify(part.arguments || "")}`,
             )
             .join("\u001f");
-          return `${message.role || ""}|${message.stopReason || ""}|${message._streaming ? "1" : "0"}|${parts}`;
+          return `${message.role || ""}|${message.stopReason || ""}|${message._streaming ? "1" : "0"}|${JSON.stringify(message._usage || {})}|${parts}`;
         })
         .join("\u001e");
     },
@@ -1294,6 +1314,14 @@ function platform() {
     },
     normalizeMessages(messages) {
       const archived = [];
+      const sessionUsage = {
+        input: 0,
+        output: 0,
+        cacheRead: 0,
+        cost: 0,
+        search: 0,
+        fetch: 0,
+      };
       let assistantGroup = null;
       const flushAssistant = () => {
         if (assistantGroup) {
@@ -1337,6 +1365,16 @@ function platform() {
           const hasToolCall =
             (message.content || []).some((part) => part.type === "toolCall") ||
             message.stopReason === "toolUse";
+          const usage = message.usage || {};
+          sessionUsage.input += Number(usage.input) || 0;
+          sessionUsage.output += Number(usage.output) || 0;
+          sessionUsage.cacheRead += Number(usage.cacheRead) || 0;
+          sessionUsage.cost += Number(usage.cost?.total) || 0;
+          for (const part of message.content || []) {
+            if (part.type !== "toolCall") continue;
+            if (part.name === "web_search") sessionUsage.search += 1;
+            if (part.name === "web_fetch") sessionUsage.fetch += 1;
+          }
           const isFinal =
             !hasToolCall &&
             ["stop", "length", "aborted", "error"].includes(
@@ -1356,6 +1394,7 @@ function platform() {
         archived.push({ ...message, _key: this.stableMessageKey(message, index) });
       }
       flushAssistant();
+      this.sessionUsage = sessionUsage;
       return archived;
     },
     renderMessage(message) {
@@ -1918,6 +1957,26 @@ function platform() {
       }
       return [{ title, url, snippet: "", favicon: this.faviconFor(url) }];
     },
+    formatCompactNumber(value) {
+      const number = Number(value) || 0;
+      if (number >= 1000000) return `${(number / 1000000).toFixed(1)}M`;
+      if (number >= 1000) return `${(number / 1000).toFixed(1)}k`;
+      return String(Math.round(number));
+    },
+    sessionUsageMarkup() {
+      const usage = this.sessionUsage || {};
+      const stat = (icon, label, value) =>
+        `<span class="usage-stat" title="${label}"><i data-lucide="${icon}" aria-hidden="true"></i><span>${this.escape(value)}</span></span>`;
+      return [
+        stat("arrow-up", "Input tokens", this.formatCompactNumber(usage.input)),
+        stat("arrow-down", "Output tokens", this.formatCompactNumber(usage.output)),
+        stat("zap", "Cached input tokens", this.formatCompactNumber(usage.cacheRead)),
+        usage.search || usage.fetch
+          ? `<span class="usage-stat usage-tools" title="Web tool calls"><i data-lucide="globe" aria-hidden="true"></i><span>search ${usage.search || 0} · fetch ${usage.fetch || 0}</span></span>`
+          : "",
+        stat("coins", "Estimated cost", `$${(Number(usage.cost) || 0).toFixed(2)}`),
+      ].join("");
+    },
     faviconFor(url) {
       try {
         return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(new URL(url).hostname)}&sz=32`;
@@ -1981,7 +2040,7 @@ function platform() {
                   toolName === "web_search"
                     ? "globe"
                     : toolName === "web_fetch"
-                      ? "file-spreadsheet"
+                      ? "globe"
                       : "dot",
               }
             : null;
@@ -1990,7 +2049,7 @@ function platform() {
       const content = items
         .map(
           (item, index) =>
-            `<li><hr class="${index === 0 ? "invisible" : ""}" /><div class="timeline-start">${item.html}</div><div class="timeline-middle">${item.marker === "globe" || item.marker === "file-spreadsheet" ? `<i data-lucide="${item.marker}" aria-hidden="true"></i>` : '<span class="reasoning-dot">•</span>'}</div>${index < items.length - 1 ? "<hr />" : ""}</li>`,
+            `<li><hr class="${index === 0 ? "invisible" : ""}" /><div class="timeline-start">${item.html}</div><div class="timeline-middle">${item.marker === "globe" ? `<i data-lucide="globe" aria-hidden="true"></i>` : '<span class="reasoning-dot">•</span>'}</div>${index < items.length - 1 ? "<hr />" : ""}</li>`,
         )
         .join("");
       if (!content) return "";
