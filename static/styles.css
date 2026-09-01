@@ -3531,6 +3531,10 @@ h6,
  max-width: 20ch;
  align-items: center;
  gap: 4px;
+ overflow: visible;
+}
+.web-activity-page-title {
+ min-width: 0;
  overflow: hidden;
  text-overflow: ellipsis;
  white-space: nowrap;
@@ -3567,13 +3571,10 @@ h6,
  white-space: nowrap;
 }
 .web-activity-pages .lucide {
- width: 12px;
- height: 12px;
- vertical-align: -2px;
-}
-.web-activity-separator {
- flex: 0 0 auto;
- padding: 0 4px;
+ width: 15px;
+ height: 15px;
+ flex: none;
+ vertical-align: -3px;
 }
 .web-activity-sites {
  display: flex;
