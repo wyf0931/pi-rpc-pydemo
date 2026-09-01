@@ -1,6 +1,6 @@
 import asyncio
 
-from app.market import install_skill, parse_skill_search, remove_skill
+from app.market import install_skill, parse_skill_search
 
 
 def test_parse_skill_search_pairs_results_with_urls():
@@ -56,15 +56,3 @@ def test_install_skill_uses_copy_and_pi_target(monkeypatch):
             120,
         )
     ]
-
-
-def test_remove_skill_uses_global_cli(monkeypatch):
-    calls = []
-
-    async def fake_run(command, timeout):
-        calls.append((command, timeout))
-        return ""
-
-    monkeypatch.setattr("app.market._run_skills_cli", fake_run)
-    asyncio.run(remove_skill("skill-name"))
-    assert calls == [(["remove", "skill-name", "-g", "-y"], 120)]

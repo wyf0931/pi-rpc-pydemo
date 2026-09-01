@@ -2603,10 +2603,6 @@ pre,
  color: var(--muted);
  font-size: 12px;
 }
-.market-uninstall {
- align-self: flex-end;
- margin-top: auto;
-}
 @media (max-width: 640px) {
  .market-search {
   flex-wrap: wrap;
@@ -2630,7 +2626,6 @@ pre,
 }
 .market-card {
  min-width: 0;
- min-height: 170px;
  color: var(--ink);
 }
 .market-card .card-body {
