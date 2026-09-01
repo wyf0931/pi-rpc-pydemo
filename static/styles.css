@@ -973,6 +973,9 @@ body {
 }
 .agent-model-fields .select {
  width: 100%;
+ border-color: var(--line);
+ background: var(--color-base-100);
+ color: var(--ink);
 }
 @media (max-width: 720px) {
  .agent-model-fields {
