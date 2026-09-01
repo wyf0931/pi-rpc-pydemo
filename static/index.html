@@ -25,7 +25,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260901u" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260901v" />
   </head>
   <body
     x-data="platform()"
@@ -1994,17 +1994,6 @@
                   placeholder="e.g. researcher"
                 />
               </div>
-              <div class="form-field">
-                <label for="new-agent-instruction">Instruction</label
-                ><textarea
-                  id="new-agent-instruction"
-                  class="textarea textarea-bordered"
-                  x-model="newAgentInstruction"
-                  required
-                  maxlength="10000"
-                  placeholder="Tell this agent how it should behave…"
-                ></textarea>
-              </div>
               <div class="agent-model-fields">
             <div class="form-field">
               <label for="new-agent-provider">Provider</label
@@ -2051,6 +2040,17 @@
             </div>
               </div>
             </div>
+          </div>
+          <div class="form-field agent-instruction-field">
+            <label for="new-agent-instruction">Instruction</label
+            ><textarea
+              id="new-agent-instruction"
+              class="textarea textarea-bordered"
+              x-model="newAgentInstruction"
+              required
+              maxlength="10000"
+              placeholder="Tell this agent how it should behave…"
+            ></textarea>
           </div>
           <div class="form-field">
             <label>Built-in tools</label>
