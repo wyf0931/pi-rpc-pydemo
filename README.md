@@ -314,6 +314,8 @@ This MVP is a single FastAPI application with a static frontend. The main endpoi
 | `POST /api/agents` | Create an Agent definition |
 | `PATCH /api/agents/{id}` | Update an Agent definition |
 | `DELETE /api/agents/{id}` | Delete a non-default Agent |
+| `GET /api/agents/{id}/avatar` | Read an Agent avatar |
+| `PUT /api/agents/{id}/avatar` | Upload or replace an Agent avatar |
 | `GET /api/resources` | Discover extensions, skills, MCP servers, Providers, and Models |
 | `GET /api/chats` | List chat metadata |
 | `POST /api/chats` | Create a chat record and external Pi session ID |

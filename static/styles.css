@@ -1486,6 +1486,70 @@ body {
  font: 11px "DM Mono";
  font-weight: 500;
 }
+.agent-avatar-image,
+.agent-mark-image {
+ object-fit: cover;
+ overflow: hidden;
+}
+.agent-form-layout {
+ display: grid;
+ grid-template-columns: 150px minmax(0, 1fr);
+ gap: 24px;
+ align-items: start;
+}
+.avatar-upload-panel {
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ gap: 10px;
+ padding-top: 20px;
+}
+.avatar-upload {
+ width: 128px;
+ height: 128px;
+ display: grid;
+ place-items: center;
+ overflow: hidden;
+ border: 1px dashed var(--line);
+ border-radius: 50%;
+ background: var(--color-base-200);
+ color: var(--muted);
+ cursor: pointer;
+ transition: border-color 0.15s, color 0.15s;
+}
+.avatar-upload:hover {
+ border-color: var(--color-primary);
+ color: var(--color-primary);
+}
+.avatar-upload-image {
+ width: 100%;
+ height: 100%;
+ object-fit: cover;
+}
+.avatar-upload-placeholder {
+ display: grid;
+ place-items: center;
+ gap: 6px;
+ text-align: center;
+ font-size: 11px;
+}
+.avatar-upload-placeholder .lucide {
+ width: 24px;
+ height: 24px;
+}
+.avatar-upload-note {
+ margin: 0;
+ color: var(--muted);
+ font-size: 10px;
+ line-height: 1.4;
+ text-align: center;
+}
+.agent-form-main {
+ min-width: 0;
+}
+.agent-form-main .form-field:first-child {
+ margin-top: 0;
+}
 .picker-chevron {
  margin-left: 10px;
  color: var(--muted);
@@ -4003,5 +4067,13 @@ body > .link-drawer {
  }
  .content-panel:has(.conversation) .message-list {
   padding-top: 68px;
+ }
+}
+@media (max-width: 800px) {
+ .agent-form-layout {
+  grid-template-columns: 1fr;
+ }
+ .avatar-upload-panel {
+  padding-top: 0;
  }
 }

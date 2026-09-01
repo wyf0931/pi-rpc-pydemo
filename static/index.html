@@ -25,7 +25,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260901s" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260901u" />
   </head>
   <body
     x-data="platform()"
@@ -324,10 +324,17 @@
                         aria-haspopup="listbox"
                         :aria-expanded="agentPickerOpen"
                       >
-                        <span
-                          class="agent-avatar"
-                          x-text="initials(agentName(selectedAgentId))"
-                        ></span
+                        <template x-if="avatarUrl(agents.find((agent) => agent.id === selectedAgentId))"
+                          ><img
+                            class="agent-avatar agent-avatar-image"
+                            :src="avatarUrl(agents.find((agent) => agent.id === selectedAgentId))"
+                            alt=""
+                        /></template
+                        ><template x-if="!avatarUrl(agents.find((agent) => agent.id === selectedAgentId))"
+                          ><span
+                            class="agent-avatar"
+                            x-text="initials(agentName(selectedAgentId))"
+                        ></span></template
                         ><span x-text="agentName(selectedAgentId)"></span
                         ><i
                           class="picker-chevron"
@@ -349,10 +356,17 @@
                             :aria-selected="selectedAgentId === agent.id"
                             @click="chooseAgent(agent.id)"
                           >
-                            <span
-                              class="agent-avatar"
-                              x-text="initials(agent.name)"
-                            ></span
+                            <template x-if="avatarUrl(agent)"
+                              ><img
+                                class="agent-avatar agent-avatar-image"
+                                :src="avatarUrl(agent)"
+                                :alt="agent.name + ' avatar'"
+                            /></template
+                            ><template x-if="!avatarUrl(agent)"
+                              ><span
+                                class="agent-avatar"
+                                x-text="initials(agent.name)"
+                            ></span></template
                             ><span
                               ><b x-text="agent.name"></b
                               ><small x-text="agent.instruction"></small
@@ -765,10 +779,19 @@
                 @keydown.enter="dialog = agent"
               >
                 <div class="card-top agent-card-identity">
-                  <span
-                    class="agent-mark large"
-                    x-text="initials(agent.name)"
-                  ></span>
+                  <template x-if="avatarUrl(agent)">
+                    <img
+                      class="agent-mark large agent-avatar-image"
+                      :src="avatarUrl(agent)"
+                      :alt="agent.name + ' avatar'"
+                    />
+                  </template>
+                  <template x-if="!avatarUrl(agent)">
+                    <span
+                      class="agent-mark large"
+                      x-text="initials(agent.name)"
+                    ></span>
+                  </template>
                   <h3 x-text="agent.name"></h3>
                 </div>
                 <p class="agent-instruction" x-text="agent.instruction"></p>
@@ -1930,29 +1953,59 @@
           </button>
         </div>
         <form @submit.prevent="submitAgent">
-          <div class="form-field">
-            <label for="new-agent-name">Agent name</label
-            ><input
-              id="new-agent-name"
-              class="input input-bordered"
-              x-model="newAgentName"
-              required
-              maxlength="80"
-              placeholder="e.g. researcher"
-            />
-          </div>
-          <div class="form-field">
-            <label for="new-agent-instruction">Instruction</label
-            ><textarea
-              id="new-agent-instruction"
-              class="textarea textarea-bordered"
-              x-model="newAgentInstruction"
-              required
-              maxlength="10000"
-              placeholder="Tell this agent how it should behave…"
-            ></textarea>
-          </div>
-          <div class="agent-model-fields">
+          <div class="agent-form-layout">
+            <div class="avatar-upload-panel">
+              <input
+                id="new-agent-avatar"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                @change="uploadAgentAvatar($event)"
+                hidden
+              />
+              <label class="avatar-upload" for="new-agent-avatar">
+                <template
+                  x-if="newAgentAvatarPreview || (editingAgent && avatarUrl(editingAgent))"
+                  ><img
+                    class="avatar-upload-image"
+                    :src="newAgentAvatarPreview || avatarUrl(editingAgent)"
+                    alt=""
+                /></template>
+                <template
+                  x-if="!newAgentAvatarPreview && !(editingAgent && avatarUrl(editingAgent))"
+                  ><span class="avatar-upload-placeholder">
+                    <i data-lucide="image-plus" aria-hidden="true"></i>
+                    <span>Choose avatar</span>
+                  </span></template
+                >
+              </label>
+              <p class="avatar-upload-note">
+                JPEG, PNG, WebP, or GIF · 5 MB max
+              </p>
+            </div>
+            <div class="agent-form-main">
+              <div class="form-field">
+                <label for="new-agent-name">Agent name</label
+                ><input
+                  id="new-agent-name"
+                  class="input input-bordered"
+                  x-model="newAgentName"
+                  required
+                  maxlength="80"
+                  placeholder="e.g. researcher"
+                />
+              </div>
+              <div class="form-field">
+                <label for="new-agent-instruction">Instruction</label
+                ><textarea
+                  id="new-agent-instruction"
+                  class="textarea textarea-bordered"
+                  x-model="newAgentInstruction"
+                  required
+                  maxlength="10000"
+                  placeholder="Tell this agent how it should behave…"
+                ></textarea>
+              </div>
+              <div class="agent-model-fields">
             <div class="form-field">
               <label for="new-agent-provider">Provider</label
               ><select
@@ -1995,6 +2048,8 @@
                   ><option :value="level" x-text="level"></option
                 ></template>
               </select>
+            </div>
+              </div>
             </div>
           </div>
           <div class="form-field">
@@ -2347,6 +2402,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260901h"></script>
+    <script src="/static/app.js?v=20260901i"></script>
   </body>
 </html>
