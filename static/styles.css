@@ -71,6 +71,32 @@ body {
 [x-cloak] {
  display: none !important;
 }
+.app-boot {
+ position: fixed;
+ inset: 0;
+ z-index: 100;
+ display: grid;
+ place-content: center;
+ justify-items: center;
+ gap: 14px;
+ background: var(--bg);
+ color: var(--muted);
+ font: 14px var(--font-sans);
+}
+.app-boot-brand {
+ display: flex;
+ align-items: center;
+ gap: 10px;
+ color: var(--ink);
+ font-size: 18px;
+ font-weight: 700;
+}
+.app-boot-brand img {
+ width: 30px;
+ height: 30px;
+ border-radius: 50%;
+ object-fit: cover;
+}
 .app-shell {
  min-height: 100vh;
  background: var(--bg);
