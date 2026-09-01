@@ -41,6 +41,7 @@ ENV HOME=/home/node \
     PI_HOME=/home/node/.pi/agent \
     PI_PLATFORM_DATA_DIR=/app/data \
     PI_SESSION_DIR=/app/data/pi-sessions \
+    PI_LOG_DIR=/app/logs \
     PI_CWD=/workspace
 
 EXPOSE 8000

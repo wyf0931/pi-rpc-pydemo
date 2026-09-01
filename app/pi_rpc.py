@@ -1,7 +1,7 @@
 import asyncio
 import json
+import logging
 import os
-import sys
 import tempfile
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -9,6 +9,8 @@ from typing import Any
 
 from .resources import discover_resources
 from .store import PLATFORM_TOOLS, pi_terminal_failure
+
+logger = logging.getLogger(__name__)
 
 
 class PiRpcError(RuntimeError):
@@ -90,6 +92,10 @@ class PiRpcClient:
         self.settled_event.set()
 
     async def start(self) -> dict:
+        logger.info(
+            "starting Pi RPC process",
+            extra={"event": "pi.rpc.start", "operation": "start"},
+        )
         try:
             self.process = await asyncio.create_subprocess_exec(
                 *self.command,
@@ -101,6 +107,10 @@ class PiRpcClient:
                 limit=self.STREAM_LIMIT,
             )
         except OSError as exc:
+            logger.exception(
+                "unable to start Pi RPC process",
+                extra={"event": "pi.rpc.start.failed", "operation": "start"},
+            )
             raise PiRpcError(f"Unable to start Pi: {exc}") from exc
         self.reader_task = asyncio.create_task(self._read_stdout())
         self.stderr_task = asyncio.create_task(self._drain_stderr())
@@ -114,10 +124,13 @@ class PiRpcClient:
             raw = await self.process.stderr.readline()
             if not raw:
                 break
-            print(
-                f"[pi rpc] {raw.decode(errors='replace').rstrip()}",
-                file=sys.stderr,
-                flush=True,
+            logger.warning(
+                "Pi RPC stderr",
+                extra={
+                    "event": "pi.rpc.stderr",
+                    "operation": "stderr",
+                    "pi_stderr": raw.decode(errors="replace").rstrip()[:2000],
+                },
             )
 
     async def _read_stdout(self) -> None:

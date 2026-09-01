@@ -1,6 +1,7 @@
 import asyncio
 import copy
 import json
+import logging
 import time
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
@@ -21,6 +22,7 @@ from .files import (
     resolve_chat_file,
 )
 from .market import install_skill, search_skills, validate_skill_source
+from .observability import configure_logging, trace_request
 from .pi_rpc import ActiveTurn, PiRpcError, PiRuntimeManager
 from .resources import discover_resources
 from .store import (
@@ -33,6 +35,7 @@ from .store import (
 settings = get_settings()
 settings.data_dir.mkdir(parents=True, exist_ok=True)
 settings.pi_session_dir.mkdir(parents=True, exist_ok=True)
+configure_logging(settings.log_dir)
 store = Store(settings.data_dir / "platform.json")
 store.ensure_default_agent(list(settings.pi_default_tools))
 runtime = PiRuntimeManager(settings, store)
@@ -41,6 +44,8 @@ runtime = PiRuntimeManager(settings, store)
 # than this (Cloudflare cuts idle streams at ~100s).
 SSE_KEEPALIVE_SECONDS = 20.0
 app = FastAPI(title="Pi Agent Platform")
+app.middleware("http")(trace_request)
+logger = logging.getLogger(__name__)
 
 
 def _has_session_file(chat: dict) -> bool:
@@ -169,6 +174,10 @@ async def market_skill_search(payload: SkillSearch):
     owner = payload.owner.strip() if payload.owner else None
     if not query:
         raise HTTPException(422, "Search query is required")
+    logger.info(
+        "market skill search",
+        extra={"event": "market.skill.search", "operation": "search"},
+    )
     try:
         results = await search_skills(query, owner)
     except TimeoutError as exc:
@@ -182,6 +191,10 @@ async def market_skill_search(payload: SkillSearch):
 async def market_skill_install(payload: SkillInstall):
     source = payload.source.strip()
     skill = payload.skill.strip()
+    logger.info(
+        "market skill install",
+        extra={"event": "market.skill.install", "operation": "install"},
+    )
     try:
         validate_skill_source(source, skill)
         await install_skill(source, skill)

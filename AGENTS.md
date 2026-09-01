@@ -21,6 +21,7 @@ session transcripts**. Status: MVP, single user, localhost.
 | Frontend | Plain static HTML/JS/CSS in `static/` | No bundler. Alpine.js + DaisyUI 5 + Tailwind browser build via CDN; Lucide is the required icon system for all UI icons. |
 | Markdown rendering | marked + DOMPurify + highlight.js + mermaid (CDN) | Sanitized HTML only; never inject raw model output. |
 | Typography CSS | Tailwind CLI (`npm run build:css`) | The only frontend build step; output is committed to `static/typography.css`. |
+| Observability | stdlib JSONL logging + request IDs | Logs go to stdout and rotating `PI_LOG_DIR`; no external collector in the MVP. |
 
 ## Commands
 

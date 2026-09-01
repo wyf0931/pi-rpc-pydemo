@@ -25,6 +25,7 @@ def _csv(value: str | None) -> tuple[str, ...]:
 @dataclass(frozen=True)
 class Settings:
     data_dir: Path
+    log_dir: Path
     pi_cli_path: str
     pi_session_dir: Path
     pi_cwd: Path
@@ -66,6 +67,7 @@ def get_settings() -> Settings:
         thinking_level = "low"
     return Settings(
         data_dir=data_dir,
+        log_dir=Path(value("PI_LOG_DIR", "logs") or "logs").expanduser(),
         pi_cli_path=value("PI_CLI_PATH", "pi") or "pi",
         pi_session_dir=Path(
             value("PI_SESSION_DIR", str(data_dir / "pi-sessions"))

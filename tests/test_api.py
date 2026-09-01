@@ -78,6 +78,15 @@ def test_health_and_agents(client):
     assert any(agent["name"] == "assistant" for agent in agents)
 
 
+def test_request_id_is_propagated_and_generated(client):
+    supplied = client.get("/api/health", headers={"X-Request-ID": "debug-123"})
+    generated = client.get("/api/health")
+
+    assert supplied.headers["X-Request-ID"] == "debug-123"
+    assert generated.headers["X-Request-ID"]
+    assert generated.headers["X-Request-ID"] != "debug-123"
+
+
 def test_resources_expose_platform_web_tools(client):
     tools = {
         item["name"]: item for item in client.get("/api/resources").json()["tools"]
