@@ -24,7 +24,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260901o" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260901r" />
   </head>
   <body
     x-data="platform()"
@@ -128,7 +128,7 @@
             >
               <span class="menu-icon"
                 ><i data-lucide="circle-pile" aria-hidden="true"></i></span
-              ><span class="menu-label">Market</span>
+                ><span class="menu-label">Marketplace</span>
             </button>
             <button
               class="menu-item"
@@ -757,14 +757,14 @@
         >
           <div class="page-heading">
             <div>
-              <h1>Market</h1>
+              <h1>Marketplace</h1>
               <p>Browse the resources available in this workspace.</p>
             </div>
           </div>
           <div
             class="tabs tabs-border market-tabs"
             role="tablist"
-            aria-label="Market resources"
+            aria-label="Marketplace resources"
           >
             <button
               type="button"
@@ -828,7 +828,7 @@
               />
             </label>
             <button
-              class="btn btn-primary btn-sm"
+              class="btn btn-primary"
               x-show="['skills', 'extensions', 'mcp_servers'].includes(marketTab)"
               x-cloak
               @click="openMarketInstall()"
@@ -1194,7 +1194,7 @@
                     </td>
                     <td>
                       <span
-                        class="badge"
+                        class="badge badge-soft"
                         :class="item.enabled ? 'badge-success' : 'badge-ghost'"
                         x-text="item.status"
                       ></span>
@@ -1467,7 +1467,7 @@
                   ></td>
                   <td>
                     <span
-                      class="badge"
+                      class="badge badge-soft"
                       :class="run.status === 'success' ? 'badge-success' : run.status === 'error' ? 'badge-error' : 'badge-ghost'"
                       x-text="run.status"
                     ></span>
@@ -2292,6 +2292,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260901d"></script>
+    <script src="/static/app.js?v=20260901f"></script>
   </body>
 </html>

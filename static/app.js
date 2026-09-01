@@ -1510,12 +1510,32 @@ function platform() {
     },
     highlightCode(source, language) {
       try {
-        if (window.hljs?.getLanguage(language))
+        const normalized = this.normalizeCodeLanguage(language);
+        if (window.hljs?.getLanguage(normalized))
           return DOMPurify.sanitize(
-            window.hljs.highlight(source, { language }).value,
+            window.hljs.highlight(source, { language: normalized }).value,
           );
       } catch {}
       return this.escape(source);
+    },
+    normalizeCodeLanguage(language) {
+      const aliases = {
+        js: "javascript",
+        jsx: "javascript",
+        ts: "typescript",
+        tsx: "typescript",
+        py: "python",
+        yml: "yaml",
+        sh: "bash",
+        shell: "bash",
+        zsh: "bash",
+        html: "xml",
+        svg: "xml",
+        md: "markdown",
+        jsonc: "json",
+      };
+      const value = String(language || "").trim().toLowerCase();
+      return aliases[value] || value;
     },
     renderMarkdown(source) {
       try {
@@ -1541,7 +1561,11 @@ function platform() {
           );
         root.querySelectorAll("pre").forEach((el) => {
           const code = el.querySelector("code");
-          if (code?.classList.contains("language-mermaid")) {
+          const languageClass = [...(code?.classList || [])].find((name) =>
+            name.startsWith("language-"),
+          );
+          const language = languageClass?.slice("language-".length) || "";
+          if (this.normalizeCodeLanguage(language) === "mermaid") {
             const diagram = doc.createElement("div");
             diagram.className = "mermaid";
             diagram.textContent = code.textContent || "";
@@ -1549,7 +1573,24 @@ function platform() {
           } else {
             el.className =
               "bg-base-200 text-base-content rounded-box p-4 w-full overflow-x-auto my-3";
-            if (code) code.classList.add("text-base-content");
+            if (code) {
+              const source = code.textContent || "";
+              let highlighted = this.highlightCode(source, language);
+              if (!language && window.hljs?.highlightAuto) {
+                const detected = window.hljs.highlightAuto(source, [
+                  "bash",
+                  "javascript",
+                  "json",
+                  "python",
+                  "typescript",
+                  "yaml",
+                ]);
+                if (detected.language && detected.relevance >= 2)
+                  highlighted = DOMPurify.sanitize(detected.value);
+              }
+              code.innerHTML = highlighted;
+              code.classList.add("hljs");
+            }
           }
         });
         return root.innerHTML;

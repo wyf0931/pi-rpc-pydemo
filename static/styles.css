@@ -564,7 +564,12 @@ body {
  font-size: 12px;
  color: var(--muted);
  line-height: 1.55;
- min-height: 39px;
+ height: 43px;
+ min-height: 43px;
+}
+.agent-card .card-bottom {
+ min-height: 43px;
+ align-items: center;
 }
 .card-bottom {
  display: flex;
@@ -1412,10 +1417,12 @@ body {
 .markdown-part pre {
  font-size: 15px;
  line-height: 1.7;
+ color: var(--ink);
 }
 .markdown-part pre code {
  font-size: 1em;
  line-height: inherit;
+ color: var(--ink);
 }
 .chat-empty {
  margin-top: 4vh;

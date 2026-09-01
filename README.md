@@ -32,9 +32,9 @@ OMA Studio explores a practical separation of concerns:
       <p>Schedule Agent instructions, run them immediately, inspect run history, and open linked Chat sessions. <a href="https://studio.ohmyagent.ai/autopilots">Open Autopilots</a>.</p>
     </td>
     <td width="50%" valign="top">
-      <h3>Market</h3>
+      <h3>Marketplace</h3>
       <img src="docs/images/market-page.png" alt="OMA Studio Market page" />
-      <p>Browse workspace Skills, Extensions, and MCP Servers; search and install Skills from skills.sh. <a href="https://studio.ohmyagent.ai/market">Open Market</a>.</p>
+      <p>Browse workspace Skills, Extensions, and MCP Servers; search and install Skills from skills.sh. <a href="https://studio.ohmyagent.ai/market">Open Marketplace</a>.</p>
     </td>
   </tr>
   <tr>
@@ -60,7 +60,7 @@ OMA Studio explores a practical separation of concerns:
 - Library page aggregating Agent-created files with Agent filtering, name search, pagination, download, and source-chat links.
 - Autopilots for scheduled Agent instructions, manual runs, run history, and linked Chat sessions.
 - Agent definitions with instruction, Provider, Model, built-in tool allowlist, extensions, skills, and MCP servers.
-- Market discovery of Pi resources, plus skills.sh search and skill installation.
+- Marketplace discovery of Pi resources, plus skills.sh search and skill installation.
 - Light and Dark themes with a DaisyUI `swap swap-rotate` control.
 - JSONL request tracing with `X-Request-ID` correlation and persistent Docker-mounted logs.
 - A small operational CLI: `bin/ops.sh start|stop|restart|status|logs` (Docker Compose mode).
