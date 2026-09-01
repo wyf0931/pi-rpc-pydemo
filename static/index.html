@@ -24,9 +24,13 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260831s" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260831u" />
   </head>
-  <body x-data="platform()" @keydown.escape="dialog = null">
+  <body
+    x-data="platform()"
+    @keydown.escape="dialog = null"
+    @click="closeDrawersOutside($event)"
+  >
     <div
       class="app-shell"
       :class="{
@@ -697,21 +701,28 @@
             <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'agents'}" :aria-selected="marketTab === 'agents'" @click="marketTab = 'agents'">Agents</button>
             <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'agent_teams'}" :aria-selected="marketTab === 'agent_teams'" @click="marketTab = 'agent_teams'">Agent Teams</button>
           </div>
-          <div
-            class="market-catalog-toolbar"
-            x-show="marketTab === 'skills'"
-            x-cloak
-          >
+          <div class="market-catalog-toolbar">
+            <label class="library-search market-catalog-search">
+              <i data-lucide="search" aria-hidden="true"></i>
+              <input
+                class="input"
+                x-model="marketCatalogSearch"
+                placeholder="Search resources"
+                aria-label="Search market resources"
+              />
+            </label>
             <button
               class="btn btn-primary btn-sm"
+              x-show="['skills', 'extensions', 'mcp_servers'].includes(marketTab)"
+              x-cloak
               @click="openMarketInstall()"
             >
               <i data-lucide="plus" aria-hidden="true"></i> Install
             </button>
           </div>
           <div class="market-content" x-show="marketTab === 'skills'">
-            <div class="market-grid" x-show="resources.skills.length">
-              <template x-for="item in resources.skills" :key="item.id">
+            <div class="market-grid" x-show="marketCatalogItems('skills').length">
+              <template x-for="item in marketCatalogItems('skills')" :key="item.id">
                 <article class="card card-border market-card bg-base-100" :title="item.description || item.path">
                   <div class="card-body">
                     <div class="market-card-top">
@@ -735,10 +746,11 @@
               </template>
             </div>
             <div class="market-empty" x-show="!resources.skills.length">No skills discovered.</div>
+            <div class="market-empty" x-show="resources.skills.length && !marketCatalogItems('skills').length">No matching skills.</div>
           </div>
           <div class="market-content" x-show="marketTab === 'extensions'" x-cloak>
-            <div class="market-grid" x-show="resources.extensions.length">
-              <template x-for="item in resources.extensions" :key="item.id">
+            <div class="market-grid" x-show="marketCatalogItems('extensions').length">
+              <template x-for="item in marketCatalogItems('extensions')" :key="item.id">
                 <article class="card card-border market-card bg-base-100" :title="item.description || item.path">
                   <div class="card-body">
                     <div class="market-card-top">
@@ -752,10 +764,11 @@
               </template>
             </div>
             <div class="market-empty" x-show="!resources.extensions.length">No extensions discovered.</div>
+            <div class="market-empty" x-show="resources.extensions.length && !marketCatalogItems('extensions').length">No matching extensions.</div>
           </div>
           <div class="market-content" x-show="marketTab === 'mcp_servers'" x-cloak>
-            <div class="market-grid" x-show="resources.mcp_servers.length">
-              <template x-for="item in resources.mcp_servers" :key="item.id">
+            <div class="market-grid" x-show="marketCatalogItems('mcp_servers').length">
+              <template x-for="item in marketCatalogItems('mcp_servers')" :key="item.id">
                 <article class="card card-border market-card bg-base-100" :title="item.description || item.path">
                   <div class="card-body">
                     <div class="market-card-top">
@@ -769,6 +782,7 @@
               </template>
             </div>
             <div class="market-empty" x-show="!resources.mcp_servers.length">No MCP servers discovered.</div>
+            <div class="market-empty" x-show="resources.mcp_servers.length && !marketCatalogItems('mcp_servers').length">No matching MCP servers.</div>
           </div>
           <div class="market-empty" x-show="marketTab === 'agents' || marketTab === 'agent_teams'" x-cloak>
             <h2>Coming soon</h2>
@@ -2001,6 +2015,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260831t"></script>
+    <script src="/static/app.js?v=20260831u"></script>
   </body>
 </html>

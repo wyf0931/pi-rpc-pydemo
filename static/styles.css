@@ -2031,7 +2031,7 @@ pre,
 .files-drawer {
  position: fixed;
  inset: 0 0 0 auto;
- z-index: 20;
+ z-index: 40;
  width: min(380px, 90vw);
  background: var(--color-base-100);
  border-left: 1px solid var(--line);
@@ -2425,8 +2425,18 @@ pre,
 }
 .market-catalog-toolbar {
  display: flex;
- justify-content: flex-end;
+ align-items: center;
+ justify-content: space-between;
+ gap: 12px;
  margin: -8px 0 16px;
+}
+.market-catalog-search {
+ flex: 1;
+ max-width: 420px;
+ margin: 0;
+}
+.market-install-dialog .market-search {
+ margin-top: 22px;
 }
 .market-search {
  display: flex;
@@ -2440,9 +2450,24 @@ pre,
  gap: 8px;
  flex: 1;
  min-width: 0;
+ padding: 0 12px;
+ border: 1px solid var(--line);
+ border-radius: var(--radius-field);
+ background: var(--color-base-100);
+ color: var(--muted);
 }
 .market-search-field .input {
  width: 100%;
+ min-height: 38px;
+ border: 0;
+ outline: 0;
+ background: transparent;
+ color: var(--ink);
+ box-shadow: none;
+}
+.market-search-field:focus-within {
+ outline: 2px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+ outline-offset: 1px;
 }
 .market-owner {
  width: 190px;
@@ -2681,6 +2706,7 @@ pre,
  display: flex;
  flex-direction: column;
  gap: 4px;
+ min-height: calc(5 * 56px + 4 * 4px);
  max-height: min(52vh, 420px);
  overflow-y: auto;
 }
@@ -2690,6 +2716,7 @@ pre,
  justify-content: space-between;
  gap: 16px;
  width: 100%;
+ min-height: 56px;
  padding: 12px;
  border: 1px solid transparent;
  border-radius: var(--radius-field);
@@ -3383,6 +3410,38 @@ h6,
  text-align: left;
  cursor: pointer;
 }
+.web-activity-label {
+ display: inline-flex;
+ align-items: center;
+ gap: 8px;
+ white-space: nowrap;
+}
+.web-activity-web_fetch {
+ align-items: flex-start;
+ flex-wrap: wrap;
+}
+.web-activity-web_fetch .web-activity-label,
+.web-activity-web_fetch .web-activity-pages {
+ flex-basis: 100%;
+}
+.web-activity-web_fetch .web-activity-pages {
+ display: flex;
+ flex-direction: column;
+ gap: 4px;
+ padding-left: 28px;
+}
+.web-activity-web_fetch .web-activity-pages a {
+ display: inline-flex;
+ align-items: center;
+ gap: 4px;
+ max-width: 100%;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ white-space: nowrap;
+}
+.web-activity-web_fetch .web-activity-arrow {
+ margin-left: 28px;
+}
 .web-activity:hover {
  color: var(--ink);
 }
@@ -3537,6 +3596,9 @@ body > .link-drawer {
  padding-top: 0 !important;
  align-self: start;
 }
+.reasoning-timeline.timeline-compact > li > .timeline-middle .lucide {
+ margin-top: 1px;
+}
 
 .message-actions {
  display: flex;
@@ -3646,7 +3708,7 @@ body > .link-drawer {
  justify-content: flex-end;
  min-height: 56px;
  padding: 8px 20px;
- border-bottom: 1px solid var(--line);
+ border-bottom: 0;
  background: color-mix(in srgb, var(--color-base-100) 94%, transparent);
  backdrop-filter: blur(12px);
 }
