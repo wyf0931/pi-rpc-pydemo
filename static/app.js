@@ -1895,7 +1895,7 @@ function platform() {
               .slice(0, 5)
               .map(
                 (item) =>
-                  `<a href="${this.escape(item.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${this.escape(item.title)} <i data-lucide="external-link"></i></a>`,
+                  `<a href="${this.escape(item.url)}" title="${this.escape(item.title)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${this.escape(this.truncateLabel(item.title))} <i data-lucide="external-link"></i></a>`,
               )
               .join("<span class=\"web-activity-separator\"> · </span>")}</span>`
           : "";
@@ -1936,12 +1936,20 @@ function platform() {
       const titleLine = text.match(/^\s*Title:\s*(.+)$/im)?.[1]?.trim();
       const heading = text.match(/^#{1,3}\s+(.+)$/m)?.[1]?.trim();
       let title = titleLine || heading || "";
+      if (/^(?:url(?:\s+source)?:\s*)?https?:\/\//i.test(title))
+        title = heading || "";
       try {
         title = title || new URL(url).hostname;
       } catch {
         title = title || url;
       }
       return [{ title, url, snippet: "", favicon: this.faviconFor(url) }];
+    },
+    truncateLabel(value, limit = 20) {
+      const characters = [...String(value || "")];
+      return characters.length > limit
+        ? `${characters.slice(0, limit).join("")}…`
+        : characters.join("");
     },
     formatCompactNumber(value) {
       const number = Number(value) || 0;
