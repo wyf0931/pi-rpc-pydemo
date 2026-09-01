@@ -748,19 +748,8 @@ body {
 .tool-result summary::-webkit-details-marker {
  display: none;
 }
-.tool-block summary:before,
-.tool-result summary:before {
- content: "";
- width: 7px;
- height: 7px;
- border-right: 1.5px solid currentColor;
- border-bottom: 1.5px solid currentColor;
- transform: rotate(-45deg);
- color: var(--color-primary);
- transition: transform 0.15s;
-}
-.tool-block[open] summary:before,
-.tool-result[open] summary:before {
+.tool-block[open] .process-chevron,
+.tool-result[open] .process-chevron {
  transform: rotate(90deg);
 }
 .tool-kicker {
@@ -1945,17 +1934,14 @@ pre,
 .process-disclosure summary::-webkit-details-marker {
  display: none;
 }
-.process-disclosure summary:before {
- content: "";
- width: 7px;
- height: 7px;
- border-right: 1.5px solid currentColor;
- border-bottom: 1.5px solid currentColor;
- transform: rotate(-45deg);
+.process-chevron {
+ width: 16px;
+ height: 16px;
+ flex: none;
  color: var(--muted);
  transition: transform 0.15s;
 }
-.process-disclosure[open] summary:before {
+.process-disclosure[open] .process-chevron {
  transform: rotate(90deg);
 }
 .process-preview {
@@ -2082,6 +2068,9 @@ pre,
  color: var(--ink);
  text-align: left;
  cursor: pointer;
+}
+.app-shell.shared .chat-header {
+ left: 0;
 }
 .file-card:hover {
  background: var(--color-base-200);
@@ -3836,6 +3825,9 @@ body > .link-drawer {
 }
 .app-shell.sidebar-collapsed .chat-header {
  left: 78px;
+}
+.app-shell.shared.sidebar-collapsed .chat-header {
+ left: 0;
 }
 @media (max-width: 700px) {
  .assistant-footer {

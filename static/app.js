@@ -239,6 +239,8 @@ function platform() {
     },
     async saveChatTitle() {
       if (!this.editingChatTitle || this.chatTitleSaving) return;
+      const chatId = this.activeChat?.id;
+      if (!chatId) return;
       const title = this.chatTitleDraft.trim();
       if (!title) {
         this.showError(new Error("Chat title cannot be empty"));
@@ -247,15 +249,17 @@ function platform() {
       }
       this.chatTitleSaving = true;
       try {
-        const updated = await this.api(`/api/chats/${this.activeChat.id}`, {
+        const updated = await this.api(`/api/chats/${chatId}`, {
           method: "PATCH",
           body: JSON.stringify({ title }),
         });
-        this.activeChat = updated;
-        const sidebarChat = this.chats.find((chat) => chat.id === updated.id);
-        if (sidebarChat) Object.assign(sidebarChat, updated);
-        document.title = `${updated.title} · OMA studio`;
-        this.cancelEditingChatTitle();
+        if (this.activeChat?.id === chatId) {
+          this.activeChat = updated;
+          const sidebarChat = this.chats.find((chat) => chat.id === updated.id);
+          if (sidebarChat) Object.assign(sidebarChat, updated);
+          document.title = `${updated.title} · OMA studio`;
+          this.cancelEditingChatTitle();
+        }
       } catch (error) {
         this.showError(error);
       } finally {
@@ -1468,15 +1472,15 @@ function platform() {
         const process = this.renderProcessToolCall(name, args);
         if (process !== null) return process;
         const compact = `<span class="tool-kicker">Tool call</span><b>${this.escape(name)}</b>`;
-        return `<details class="tool-block"><summary>${compact}<span class="tool-id">${this.escape(part.id || "")}</span></summary><pre>${this.escape(JSON.stringify(args, null, 2))}</pre></details>`;
+        return `<details class="tool-block"><summary><i class="process-chevron" data-lucide="chevron-right" aria-hidden="true"></i>${compact}<span class="tool-id">${this.escape(part.id || "")}</span></summary><pre>${this.escape(JSON.stringify(args, null, 2))}</pre></details>`;
       }
-      return `<details class="tool-block"><summary>${this.escape(part.type || "content")}</summary><pre>${this.escape(JSON.stringify(part, null, 2))}</pre></details>`;
+      return `<details class="tool-block"><summary><i class="process-chevron" data-lucide="chevron-right" aria-hidden="true"></i>${this.escape(part.type || "content")}</summary><pre>${this.escape(JSON.stringify(part, null, 2))}</pre></details>`;
     },
     processLine(label, value) {
       return `<div class="process-line"><span class="process-label">${this.escape(label)}</span><span class="process-preview">${this.escape(String(value).replace(/\s+/g, " ").trim())}</span></div>`;
     },
     processDisclosure(label, value, detail, kind = "", showPreview = false) {
-      return `<details class="process-disclosure ${kind ? `${kind}-disclosure` : ""}"><summary><span class="process-label">${this.escape(label)}</span>${showPreview ? `<span class="process-preview">${this.escape(String(value).replace(/\s+/g, " ").trim())}</span>` : ""}</summary><pre class="process-detail-code ${kind ? `${kind}-code` : ""}">${detail}</pre></details>`;
+      return `<details class="process-disclosure ${kind ? `${kind}-disclosure` : ""}"><summary><i class="process-chevron" data-lucide="chevron-right" aria-hidden="true"></i><span class="process-label">${this.escape(label)}</span>${showPreview ? `<span class="process-preview">${this.escape(String(value).replace(/\s+/g, " ").trim())}</span>` : ""}</summary><pre class="process-detail-code ${kind ? `${kind}-code` : ""}">${detail}</pre></details>`;
     },
     highlightCode(source, language) {
       try {
@@ -1539,7 +1543,7 @@ function platform() {
     renderToolResult(message) {
       const content = this.partsText(message.content || []);
       const label = message.toolName || "Tool result";
-      return `<details class="tool-result"><summary><span class="tool-kicker">Tool result</span><b>${this.escape(label)}</b><span class="tool-id">${this.escape(message.toolCallId || "")}</span></summary><pre>${this.escape(content)}</pre></details>`;
+      return `<details class="tool-result"><summary><i class="process-chevron" data-lucide="chevron-right" aria-hidden="true"></i><span class="tool-kicker">Tool result</span><b>${this.escape(label)}</b><span class="tool-id">${this.escape(message.toolCallId || "")}</span></summary><pre>${this.escape(content)}</pre></details>`;
     },
     escape(text) {
       const div = document.createElement("div");
@@ -1926,7 +1930,7 @@ function platform() {
           "",
         )}</span>`
           : "";
-      return `<div role="button" tabindex="0" class="web-activity web-activity-${name}" data-web-activity-id="${key}" onclick="event.stopPropagation();window.omaPlatform.openWebActivity(this)" onkeydown="if(event.key === 'Enter' || event.key === ' ') window.omaPlatform.openWebActivity(this)"><span class="web-activity-label">${label}</span>${sites}${pages}${viewAll}<span class="web-activity-arrow"><i data-lucide="chevron-right"></i></span></div>`;
+      return `<div role="button" tabindex="0" class="web-activity web-activity-${name}" data-web-activity-id="${key}" onclick="event.stopPropagation();window.omaPlatform.openWebActivity(this)" onkeydown="if(event.key === 'Enter' || event.key === ' ') window.omaPlatform.openWebActivity(this)"><span class="web-activity-label">${label}</span>${sites}${pages}${viewAll}<span class="web-activity-arrow"><i data-lucide="chevron-right" aria-hidden="true"></i></span></div>`;
     },
     parseSearchResults(text) {
       const items = [];
