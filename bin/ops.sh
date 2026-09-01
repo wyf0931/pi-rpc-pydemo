@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # OMA Studio operations — Docker Compose mode.
-#   bin/ops.sh start|stop|restart|status|logs
+#   bin/ops.sh start [PORT]|stop|restart [PORT]|status [PORT]|logs
 # The container serves the API and UI on ${OMA_PORT:-8000}; storage lives in
 # ~/.oma-studio/ and ~/.pi/agent via the mounts in docker-compose.yml.
 #
@@ -18,8 +18,32 @@ else
   DC=(docker-compose)
 fi
 
-PORT="${OMA_PORT:-8000}"
+PORT=""
 SERVICE="oma-studio"
+
+usage() {
+  echo "Usage: $0 {start|restart|status} [PORT|-p PORT] | {stop|logs}" >&2
+  echo "  PORT defaults to OMA_PORT or 8000 and changes the host port only." >&2
+}
+
+resolve_port() {
+  local candidate="${OMA_PORT:-8000}"
+  if [[ $# -eq 1 ]]; then
+    candidate="$1"
+  elif [[ $# -eq 2 && "$1" == "-p" ]]; then
+    candidate="$2"
+  elif [[ $# -gt 0 ]]; then
+    usage
+    exit 2
+  fi
+
+  if ! [[ "$candidate" =~ ^[0-9]+$ ]] || ((candidate < 1 || candidate > 65535)); then
+    echo "Invalid port: $candidate (expected an integer from 1 to 65535)" >&2
+    exit 2
+  fi
+  PORT="$candidate"
+  export OMA_PORT="$PORT"
+}
 
 start() {
   "${DC[@]}" up -d --build
@@ -68,13 +92,19 @@ logs() {
 }
 
 case "${1:-}" in
-  start) start ;;
-  stop) stop ;;
-  restart) restart ;;
-  status) status ;;
-  logs) logs ;;
+  start|restart|status)
+    resolve_port "${@:2}"
+    "${1}"
+    ;;
+  stop|logs)
+    if [[ $# -ne 1 ]]; then
+      usage
+      exit 2
+    fi
+    "${1}"
+    ;;
   *)
-    echo "Usage: $0 {start|stop|restart|status|logs}" >&2
+    usage
     echo "  Local dev server (hot reload): uv run uvicorn app.main:app --env-file .env --reload" >&2
     exit 2
     ;;

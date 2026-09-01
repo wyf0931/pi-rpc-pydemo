@@ -90,13 +90,17 @@ The session UUID is deliberately shared between platform metadata and Pi. This a
 ```bash
 cp .env.example .env
 bin/ops.sh start
+# Alternate host port for this invocation:
+bin/ops.sh start 8080
 ```
 
 `ops.sh` runs the platform in Docker Compose (app layer + process layer in one
 container, storage on host mounts — see [Docker](#docker)); no `uv sync` required for
 this path.
 
-Open <http://127.0.0.1:8000>.
+Open <http://127.0.0.1:8000>. To avoid a host-port conflict, pass a port to
+`start` or `restart`, for example `bin/ops.sh restart 8080`, then open
+<http://127.0.0.1:8080>. The equivalent explicit form is `-p 8080`.
 
 ### Docker
 
