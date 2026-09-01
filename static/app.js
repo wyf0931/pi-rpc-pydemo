@@ -18,6 +18,7 @@ function platform() {
     autopilots: [],
     autopilotSearch: "",
     autopilotAgentFilter: "",
+    autopilotAgentPickerOpen: false,
     autopilotDialog: null,
     autopilotRuns: [],
     autopilotRunsOpen: false,
@@ -83,6 +84,7 @@ function platform() {
     libraryLoading: false,
     librarySearch: "",
     libraryAgentFilter: "",
+    libraryAgentPickerOpen: false,
     libraryPage: 1,
     libraryPages: 1,
     libraryTotal: 0,
@@ -457,6 +459,16 @@ function platform() {
       } finally {
         this.libraryLoading = false;
       }
+    },
+    selectLibraryAgent(agentId) {
+      this.libraryAgentFilter = agentId;
+      this.libraryAgentPickerOpen = false;
+      this.loadLibrary(1);
+    },
+    selectAutopilotAgent(agentId) {
+      this.autopilotAgentFilter = agentId;
+      this.autopilotAgentPickerOpen = false;
+      this.loadAutopilots();
     },
     openFile(file) {
       if (!this.activeChat) return;
