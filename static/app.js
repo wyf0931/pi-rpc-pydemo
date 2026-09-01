@@ -142,6 +142,7 @@ function platform() {
     theme: ["light", "dark"].includes(localStorage.getItem("pi-theme"))
       ? localStorage.getItem("pi-theme")
       : "light",
+    appReady: false,
     async init() {
       window.omaPlatform = this;
       this.sharedMode =
@@ -157,27 +158,31 @@ function platform() {
         this.feedback = {};
       }
       window.addEventListener("popstate", () => this.routeFromUrl());
-      if (this.sharedMode) {
-        // Public share view: the regular workspace APIs are auth-gated, so
-        // only the token-gated share payload is fetched.
+      try {
+        if (this.sharedMode) {
+          // Public share view: the regular workspace APIs are auth-gated, so
+          // only the token-gated share payload is fetched.
+          await this.routeFromUrl();
+          return;
+        }
+        await Promise.all([
+          this.loadAgents(),
+          this.loadChats(),
+          this.loadHealth(),
+          this.loadResources(),
+        ]);
+        if (this.agents.length) this.selectedAgentId = this.agents[0].id;
+        if (!new URLSearchParams(location.search).has("mode"))
+          this.mode = this.resources.mode || "production";
+        setInterval(() => this.loadHealth(), 5000);
         await this.routeFromUrl();
+      } catch (e) {
+        this.showError(e);
+      } finally {
         this.renderIcons();
         this.observeIcons();
-        return;
+        this.appReady = true;
       }
-      await Promise.all([
-        this.loadAgents(),
-        this.loadChats(),
-        this.loadHealth(),
-        this.loadResources(),
-      ]);
-      if (this.agents.length) this.selectedAgentId = this.agents[0].id;
-      if (!new URLSearchParams(location.search).has("mode"))
-        this.mode = this.resources.mode || "production";
-      setInterval(() => this.loadHealth(), 5000);
-      await this.routeFromUrl();
-      this.renderIcons();
-      this.observeIcons();
     },
     renderIcons() {
       if (window.lucide?.createIcons) window.lucide.createIcons();

@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>pi studio</title>
+    <style>[x-cloak]{display:none!important}</style>
     <link
       href="https://cdn.jsdelivr.net/npm/daisyui@5"
       rel="stylesheet"
@@ -24,15 +25,25 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260901p" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260901q" />
   </head>
   <body
     x-data="platform()"
     @keydown.escape="dialog = null"
     @click="closeDrawersOutside($event)"
   >
+    <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
+      <div class="app-boot-brand">
+        <img src="/static/oma-logo-light.png" alt="" />
+        <span>OMA studio</span>
+      </div>
+      <span class="loading loading-bars loading-md" aria-hidden="true"></span>
+      <span>Loading workspace…</span>
+    </div>
     <div
       class="app-shell"
+      x-show="appReady"
+      x-cloak
       :class="{
         'sidebar-collapsed': sidebarCollapsed,
         'mobile-sidebar-open': mobileSidebarOpen,
@@ -2286,6 +2297,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260901e"></script>
+    <script src="/static/app.js?v=20260901f"></script>
   </body>
 </html>
