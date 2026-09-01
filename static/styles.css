@@ -497,6 +497,9 @@ body {
  gap: 14px;
 }
 .agent-card {
+ display: flex;
+ flex-direction: column;
+ gap: 10px;
  background: var(--card);
  border: 1px solid var(--line);
  border-radius: 9px;
