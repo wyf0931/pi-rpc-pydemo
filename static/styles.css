@@ -2246,7 +2246,7 @@ pre,
 .reasoning-text {
  font: 14px / 1.7 var(--font-sans);
  white-space: normal;
- margin: 5px 0;
+ margin: 0 0 5px;
 }
 .reasoning-text :is(ul, ol) {
  margin-top: 6px;
@@ -2257,7 +2257,7 @@ pre,
 }
 .reasoning-timeline .process-line,
 .reasoning-timeline .process-disclosure {
- margin: 8px 0;
+ margin: 0 0 8px;
 }
 .reasoning-timeline.timeline-compact > li {
  grid-template-columns: 1.25rem minmax(0, 1fr) !important;
@@ -3690,6 +3690,7 @@ body > .link-drawer {
 .reasoning-timeline.timeline-compact > li > .timeline-middle {
  padding-top: 0 !important;
  align-self: start;
+ transform: translateY(4px);
 }
 .reasoning-timeline.timeline-compact > li > .timeline-middle .lucide {
  margin-top: 1px;
