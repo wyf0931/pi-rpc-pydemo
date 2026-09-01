@@ -57,22 +57,37 @@ def configure_logging(log_dir: Path) -> None:
     global _logging_configured
     if _logging_configured:
         return
-    log_dir.mkdir(parents=True, exist_ok=True)
     formatter = JsonFormatter()
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(formatter)
-    file_handler = logging.handlers.RotatingFileHandler(
-        log_dir / "oma-studio.jsonl",
-        maxBytes=10 * 1024 * 1024,
-        backupCount=5,
-        encoding="utf-8",
-    )
-    file_handler.setFormatter(formatter)
+    file_handler = None
+    file_error: OSError | None = None
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.handlers.RotatingFileHandler(
+            log_dir / "oma-studio.jsonl",
+            maxBytes=10 * 1024 * 1024,
+            backupCount=5,
+            encoding="utf-8",
+        )
+        file_handler.setFormatter(formatter)
+    except OSError as exc:
+        file_error = exc
     root = logging.getLogger()
     root.setLevel(logging.INFO)
     root.addHandler(stream_handler)
-    root.addHandler(file_handler)
+    if file_handler:
+        root.addHandler(file_handler)
     _logging_configured = True
+    if file_error:
+        root.error(
+            "persistent log file unavailable",
+            extra={
+                "event": "logging.file.unavailable",
+                "operation": "configure",
+                "pi_stderr": str(file_error),
+            },
+        )
 
 
 async def trace_request(request: Request, call_next) -> Response:

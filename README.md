@@ -170,7 +170,7 @@ persistent state outside the releases:
 │   ├── .env -> ../../.env.ops
 │   └── docker-compose.override.yml -> ../../bin/docker-compose.override.yml
 ├── current -> releases/<latest healthy release>
-└── shared/                           oma/{data,workspace}, pi-home/agent
+└── shared/                           oma/{data,workspace}, pi-home/agent, logs
 ```
 
 Continuous deployment is wired in `.github/workflows/ci.yml`: a push to `main`

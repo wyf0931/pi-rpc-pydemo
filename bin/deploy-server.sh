@@ -52,6 +52,14 @@ ln -s ../../.env.ops "$REL/.env"
 ln -s ../../bin/docker-compose.override.yml "$REL/docker-compose.override.yml"
 
 cd "$REL"
+LOG_DIR="${PI_LOG_DIR:-./logs}"
+if [[ "$LOG_DIR" != /* ]]; then
+  LOG_DIR="$REL/$LOG_DIR"
+fi
+mkdir -p "$LOG_DIR"
+if ! chown 1000:1000 "$LOG_DIR" 2>/dev/null; then
+  chmod 0777 "$LOG_DIR"
+fi
 echo "==> building image and restarting service (project: ${COMPOSE_PROJECT_NAME:-oma-studio})"
 docker compose up -d --build
 
