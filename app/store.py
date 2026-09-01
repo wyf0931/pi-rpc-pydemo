@@ -52,6 +52,8 @@ class Store:
                 }
                 self.agents.update(values, Query().id == agent["id"])
                 agent.update(values)
+            if "avatar_path" not in agent:
+                agent["avatar_path"] = None
             return agent
         item = {
             "id": "default-assistant",
@@ -65,6 +67,7 @@ class Store:
             "tools": default_tools or [],
             "tools_configured": True,
             "mcp_servers": [],
+            "avatar_path": None,
             "protected": True,
             "created_at": now_iso(),
             "updated_at": now_iso(),
@@ -102,6 +105,7 @@ class Store:
             "tools": tools or [],
             "tools_configured": True,
             "mcp_servers": mcp_servers or [],
+            "avatar_path": None,
             "protected": False,
             "created_at": now_iso(),
             "updated_at": now_iso(),

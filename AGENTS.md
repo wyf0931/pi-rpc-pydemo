@@ -52,6 +52,7 @@ npm run build:css         # frontend/input.css -> static/typography.css (keep it
 ```text
 app/
   config.py     Settings dataclass; env vars + a ~20-line built-in .env reader
+  avatars.py    Agent avatar validation, persistent storage, and default-avatar seeding
   store.py      TinyDB wrapper: agents/chats tables, BUILTIN_TOOLS, protected default agent
   pi_rpc.py     PiRpcClient (JSONL bridge) + PiRuntimeManager (process lifecycle, per-chat locks)
   observability.py Request IDs, JSONL logging, and request tracing middleware

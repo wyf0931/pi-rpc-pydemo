@@ -7,12 +7,13 @@ from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .autopilots import AutopilotScheduler, next_run_at
+from .avatars import avatar_file, remove_avatar, save_avatar, seed_default_avatar
 from .config import get_settings
 from .files import (
     delete_chat_files,
@@ -37,7 +38,13 @@ settings.data_dir.mkdir(parents=True, exist_ok=True)
 settings.pi_session_dir.mkdir(parents=True, exist_ok=True)
 configure_logging(settings.log_dir)
 store = Store(settings.data_dir / "platform.json")
-store.ensure_default_agent(list(settings.pi_default_tools))
+default_agent = store.ensure_default_agent(list(settings.pi_default_tools))
+if not default_agent.get("avatar_path"):
+    seeded_agent = seed_default_avatar(settings.data_dir, default_agent)
+    if seeded_agent.get("avatar_path"):
+        store.update_agent(
+            seeded_agent["id"], {"avatar_path": seeded_agent["avatar_path"]}
+        )
 runtime = PiRuntimeManager(settings, store)
 
 # SSE heartbeat cadence. Any proxy/browser idle timeout must be far larger
@@ -252,6 +259,40 @@ async def get_agent(agent_id: str):
     return agent
 
 
+@app.get("/api/agents/{agent_id}/avatar")
+async def get_agent_avatar(agent_id: str):
+    agent = store.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(404, "Agent not found")
+    path = avatar_file(settings.data_dir, agent)
+    if not path:
+        raise HTTPException(404, "Agent avatar not found")
+    return FileResponse(path)
+
+
+@app.put("/api/agents/{agent_id}/avatar")
+async def upload_agent_avatar(agent_id: str, request: Request):
+    agent = store.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(404, "Agent not found")
+    content_length = request.headers.get("content-length")
+    if content_length:
+        try:
+            too_large = int(content_length) > 5 * 1024 * 1024
+        except ValueError:
+            too_large = False
+        if too_large:
+            raise HTTPException(413, "Avatar must be 5 MB or smaller")
+    body = await request.body()
+    avatar_path = save_avatar(
+        settings.data_dir,
+        agent_id,
+        request.headers.get("content-type", ""),
+        body,
+    )
+    return store.update_agent(agent_id, {"avatar_path": avatar_path})
+
+
 @app.patch("/api/agents/{agent_id}")
 async def update_agent(agent_id: str, payload: AgentUpdate):
     if payload.tools is not None and any(
@@ -324,8 +365,11 @@ def _validate_thinking_level(level: str | None) -> None:
 
 @app.delete("/api/agents/{agent_id}")
 async def delete_agent(agent_id: str):
+    agent = store.get_agent(agent_id)
     if not store.delete_agent(agent_id):
         raise HTTPException(400, "Agent does not exist or is protected")
+    if agent:
+        remove_avatar(settings.data_dir, agent)
     return {"ok": True}
 
 

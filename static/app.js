@@ -106,6 +106,8 @@ function platform() {
     creating: false,
     newAgentName: "",
     newAgentInstruction: "",
+    newAgentAvatarFile: null,
+    newAgentAvatarPreview: "",
     newAgentProvider: "",
     newAgentModel: "",
     newAgentThinkingLevel: "",
@@ -1725,6 +1727,8 @@ function platform() {
       this.editingAgent = null;
       this.newAgentName = "";
       this.newAgentInstruction = "";
+      this.newAgentAvatarFile = null;
+      this.newAgentAvatarPreview = "";
       this.newAgentProvider =
         this.resources.default_provider ||
         this.resources.providers[0]?.id ||
@@ -1795,6 +1799,8 @@ function platform() {
         return;
       this.creating = true;
       try {
+        const editing = Boolean(this.editingAgent);
+        const avatarFile = this.newAgentAvatarFile;
         const payload = {
           name: this.newAgentName,
           instruction: this.newAgentInstruction,
@@ -1815,11 +1821,15 @@ function platform() {
               method: "POST",
               body: JSON.stringify(payload),
             });
-        const index = this.agents.findIndex((item) => item.id === agent.id);
-        if (index >= 0) this.agents[index] = agent;
-        else this.agents.push(agent);
+        const savedAgent =
+          !editing && avatarFile
+            ? await this.uploadAvatarFile(agent.id, avatarFile)
+            : agent;
+        const index = this.agents.findIndex((item) => item.id === savedAgent.id);
+        if (index >= 0) this.agents[index] = savedAgent;
+        else this.agents.push(savedAgent);
         this.createDialog = false;
-        this.dialog = agent;
+        this.dialog = savedAgent;
         this.editingAgent = null;
         this.page = "agents";
       } catch (e) {
@@ -1832,6 +1842,66 @@ function platform() {
       this.newAgentTools = this.newAgentTools.includes(name)
         ? this.newAgentTools.filter((tool) => tool !== name)
         : [...this.newAgentTools, name];
+    },
+    avatarUrl(agent) {
+      if (!agent?.avatar_path || !agent.id) return "";
+      return `/api/agents/${encodeURIComponent(agent.id)}/avatar?v=${encodeURIComponent(agent.updated_at || agent.avatar_path)}`;
+    },
+    async uploadAvatarFile(agentId, file) {
+      const requestId = crypto.randomUUID();
+      const response = await fetch(
+        `/api/agents/${encodeURIComponent(agentId)}/avatar`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": file.type,
+            "X-Request-ID": requestId,
+          },
+          body: file,
+        },
+      );
+      const responseId = response.headers.get("X-Request-ID") || requestId;
+      const contentType = response.headers.get("content-type") || "";
+      let data = null;
+      if (contentType.includes("json")) {
+        try {
+          data = await response.json();
+        } catch {}
+      } else {
+        await response.text();
+      }
+      if (!response.ok) throw this.errorFromResponse(response, responseId, data);
+      return data;
+    },
+    async uploadAgentAvatar(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      if (!file.type.startsWith("image/")) {
+        this.showError(new Error("Avatar must be an image file"));
+        event.target.value = "";
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        this.showError(new Error("Avatar must be 5 MB or smaller"));
+        event.target.value = "";
+        return;
+      }
+      if (this.newAgentAvatarPreview) URL.revokeObjectURL(this.newAgentAvatarPreview);
+      this.newAgentAvatarFile = file;
+      this.newAgentAvatarPreview = URL.createObjectURL(file);
+      if (!this.editingAgent) return;
+      this.creating = true;
+      try {
+        const updated = await this.uploadAvatarFile(this.editingAgent.id, file);
+        Object.assign(this.editingAgent, updated);
+        this.dialog = updated;
+        this.newAgentAvatarFile = null;
+        this.newAgentAvatarPreview = "";
+      } catch (error) {
+        this.showError(error);
+      } finally {
+        this.creating = false;
+      }
     },
     toggleResource(kind, path) {
       const key =
@@ -1878,6 +1948,8 @@ function platform() {
       this.editingAgent = agent;
       this.newAgentName = agent.name;
       this.newAgentInstruction = agent.instruction;
+      this.newAgentAvatarFile = null;
+      this.newAgentAvatarPreview = "";
       this.newAgentProvider =
         agent.provider ||
         this.resources.default_provider ||

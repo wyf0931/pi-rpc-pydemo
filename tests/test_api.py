@@ -153,6 +153,31 @@ def test_create_agent_and_missing_chat(client, temporary_agent):
     assert client.get("/api/chats/missing").status_code == 404
 
 
+def test_default_avatar_and_agent_avatar_upload(client, temporary_agent):
+    default = next(
+        agent
+        for agent in client.get("/api/agents").json()["agents"]
+        if agent["name"] == "assistant"
+    )
+    assert default["avatar_path"] == "avatars/default-assistant.jpg"
+    assert client.get(f"/api/agents/{default['id']}/avatar").status_code == 200
+
+    created = temporary_agent(
+        {"name": f"avatar-{uuid4()}", "instruction": "Use an avatar"}
+    )
+    agent_id = created.json()["id"]
+    uploaded = client.put(
+        f"/api/agents/{agent_id}/avatar",
+        content=b"\xff\xd8\xfffake-jpeg",
+        headers={"Content-Type": "image/jpeg"},
+    )
+    assert uploaded.status_code == 200
+    assert uploaded.json()["avatar_path"].startswith("avatars/")
+    served = client.get(f"/api/agents/{agent_id}/avatar")
+    assert served.status_code == 200
+    assert served.content.startswith(b"\xff\xd8\xff")
+
+
 def test_fresh_chat_messages_are_empty(client):
     agents = client.get("/api/agents").json()["agents"]
     agent_id = next(a["id"] for a in agents if a["name"] == "assistant")
