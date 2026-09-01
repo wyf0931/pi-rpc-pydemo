@@ -25,7 +25,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260901r" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260901s" />
   </head>
   <body
     x-data="platform()"
@@ -295,9 +295,13 @@
           </aside>
           <template x-if="!activeChat">
             <div class="chat-empty">
+              <div class="chat-empty-logo">
+                <img src="/static/oma-logo-light.png" alt="OMA studio" />
+              </div>
               <h1>Stay hungry. Stay foolish.</h1>
+              <p class="chat-empty-subtitle">What should we do?</p>
               <div class="start-grid">
-                <div class="start-card">
+                <div class="start-card rounded-box">
                   <textarea
                     id="new-chat-message"
                     name="message"

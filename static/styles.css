@@ -3766,6 +3766,41 @@ body > .link-drawer {
  background: var(--color-base-100);
  border-radius: var(--radius-box);
 }
+.chat-empty-logo {
+ display: grid;
+ place-items: center;
+ width: 52px;
+ height: 52px;
+ margin-bottom: 14px;
+ border-radius: 50%;
+ background: var(--color-base-100);
+}
+.chat-empty-logo img {
+ width: 32px;
+ height: 32px;
+ object-fit: contain;
+}
+[data-theme="dark"] .chat-empty-logo img {
+ filter: invert(1);
+}
+.chat-empty h1 {
+ margin: 0;
+}
+.chat-empty-subtitle {
+ margin: 10px 0 0;
+ color: var(--muted);
+ font-size: 16px;
+ line-height: 1.5;
+}
+.chat-empty .start-grid {
+ margin-top: 34px;
+}
+.chat-empty .start-input {
+ border-radius: var(--radius-box) var(--radius-box) 0 0;
+}
+.chat-empty .start-composer-foot {
+ border-radius: 0 0 var(--radius-box) var(--radius-box);
+}
 
 .message-actions {
  display: flex;
