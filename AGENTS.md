@@ -27,7 +27,7 @@ session transcripts**. Status: MVP, single user, localhost.
 
 ```bash
 # Setup
-cp .env.example .env      # then set the three storage paths (see file comments)
+cp .env.example .env      # then set the storage paths (see file comments)
 uv sync                   # Python deps (also creates .venv)
 pi --version              # Pi CLI must be on PATH, with a provider credential configured
 
@@ -38,9 +38,6 @@ bin/ops.sh start          # up -d --build on OMA_PORT or 8000; use: start 8080 o
 
 # Run (local dev server with hot reload, no Docker)
 uv run uvicorn app.main:app --env-file .env --reload
-
-# Run (Docker — app layer + process layer in one container, state via bind mounts)
-docker compose up --build
 
 # Test (run before declaring any work done)
 uv run pytest -q
@@ -57,6 +54,7 @@ app/
   config.py     Settings dataclass; env vars + a ~20-line built-in .env reader
   store.py      TinyDB wrapper: agents/chats tables, BUILTIN_TOOLS, protected default agent
   pi_rpc.py     PiRpcClient (JSONL bridge) + PiRuntimeManager (process lifecycle, per-chat locks)
+  observability.py Request IDs, JSONL logging, and request tracing middleware
   resources.py  Read-only discovery: extensions, skills, MCP servers, provider/model catalog
   files.py      Chat-generated file discovery + authorization (write/edit toolCall provenance)
   main.py       FastAPI app, routes, Pydantic payloads. NOTE: configures itself at import time
@@ -65,7 +63,7 @@ frontend/       input.css — Tailwind source for static/typography.css
 tests/          Mirrors app modules; conftest provides `client` and `temporary_agent` fixtures
 bin/ops.sh      Container operations (start/stop/restart/status/logs) via Docker Compose
 Dockerfile      Single image: app layer (Python/FastAPI) + process layer (pi, rg, fd, git)
-docker-compose.yml  One-command run; bind mounts for data, workspace, and Pi home
+docker-compose.yml  One-command run; bind mounts for data, logs, workspace, and Pi home
 schemas/        Vendored compose-spec JSON schema for offline YAML validation
 docs/           Design spec (docs/superpowers/specs/) + README screenshots
 data/           Legacy runtime data (pre-normalization archive, gitignored, superseded
@@ -105,7 +103,7 @@ data/           Legacy runtime data (pre-normalization archive, gitignored, supe
   grow it; if env handling becomes more complex, adopt `python-dotenv`/`pydantic-settings`
   instead of extending it.
 - **No speculative design.** Build only what a current requirement needs. Future
-  capabilities (SandboxRunner, auth, durable datastore, marketplace) live in the README
+  capabilities (SandboxRunner, auth, durable datastore, Agent marketplace) live in the README
   Roadmap and the design spec — do not pre-create stubs, interfaces, or config for them.
 - **Pragmatism over purity.** Single process, one-file frontend JS, file-based storage,
   plain dicts out of TinyDB (no ORM) are conscious MVP choices, not oversights. Make the
@@ -122,15 +120,18 @@ data/           Legacy runtime data (pre-normalization archive, gitignored, supe
   endpoints change.
 - **Static assets:** when editing `static/styles.css`, `static/app.js`, or
   `static/typography.css`, bump the `?v=` cache-busting query in `static/index.html`.
+- **Observability:** every HTTP response carries `X-Request-ID`; correlate browser
+  errors with the rotating JSONL file under `PI_LOG_DIR`. Never log prompts, model
+  output, credentials, or other sensitive payloads.
 - **Icons:** use Lucide via the CDN UMD build and `data-lucide` attributes for all
   UI icons, including markup rendered from Alpine templates or `x-html`; do not
   add hand-written SVG icons, text glyph icons, or CSS mask icon assets. Keep the
   single render helper in `static/app.js` and preserve its dynamic re-render
   coverage.
 - **Errors:** raise `HTTPException` with clear messages; map `PiRpcError` to 503.
-- **Style:** modern stdlib typing (`str | None`), dataclasses for settings, no linter is
-  configured yet — keep formatting consistent with surrounding code.
-- **Never commit:** `data/`, `.env`, `.run/`, `research/`, `.superpowers/`,
+- **Style:** modern stdlib typing (`str | None`), dataclasses for settings, and
+  formatting consistent with the surrounding code. Ruff is configured in `pyproject.toml`.
+- **Never commit:** `data/`, `logs/`, `.env`, `.run/`, `research/`, `.superpowers/`,
   `.playwright-cli/`, `node_modules/`, `.venv/` (all gitignored runtime/scratch).
 
 ## Multi-agent Issue loop
@@ -219,44 +220,28 @@ only after the acceptance criteria and production smoke check are satisfied.
 
 ## Development workflow
 
-The repo has one long-lived branch, `main`, and `origin` (GitHub) is the deployment
-remote. Work happens on feature branches; nothing reaches `main` without an explicit
-green light from the user.
-
-1. **Branch first.** Never commit feature work directly on `main`. Branch naming:
-   `<type>/<short-kebab-name>` — `feat/agent-marketplace`, `fix/file-viewer-scroll`,
-   `chore/add-ci`, `docs/agents-md`. The type matches the conventional-commit prefix.
-2. **Use a worktree for isolation** when parallel or agent-driven work is involved
-   (e.g. pi's managed worktrees, or `git worktree add`): keep the main checkout on
-   `main`, do feature work in the worktree's branch. A fresh worktree has no
-   `.venv`/`node_modules` (gitignored) — run `uv sync` (and `npm install` if touching
-   CSS) before testing there.
-3. **Commit small and often** on the feature branch, following the conventional style.
-4. **Self-test before merge.** Run formatting, lint, type checking, tests, and
-   `git diff --check` in the worktree. Record the result on the GitHub Issue.
-   The autonomous Issue loop may merge after these checks; an explicit user
-   confirmation is still required for work outside a claimed Issue.
-5. **Merge and push after validation:** merge the feature branch into `main`
-   (`git merge --no-ff <branch>`), run the full validation suite once more on `main`,
-   then push: `git push origin main`. The push is the deploy step:
-   GitHub Actions (`.github/workflows/ci.yml`) runs lint/type/tests and, on success,
-   auto-deploys the pushed SHA to `tx-oma-app` (see README "Production deployment").
-   Add `[skip deploy]` to the merge commit message to skip the deploy.
-6. **`main` stays deployable.** Never push a state that doesn't pass tests, never
-   force-push `main`, and never push feature branches to `origin` unless asked.
+The repository has one long-lived branch, `main`, and `origin` is the deployment
+remote. Work on feature branches; never commit directly on `main`. Use the
+Multi-agent Issue loop above for claimed Issue work, including its worktree,
+validation, merge-lock, and publication rules. For user-directed work outside an
+Issue, use the same branch-first and full-validation discipline, and only merge or
+push when the user explicitly requests it. Keep `main` deployable and never
+force-push it.
 
 ## Testing
 
 - `uv run pytest -q` must pass before you declare work done.
 - `test_store.py`, `test_files.py`, `test_resources.py` are hermetic (use `tmp_path`) —
   keep them that way.
-- `test_api.py` boots the real app; because `app.main` configures at import time, API
-  tests currently run against the real `data/` directory. Clean up anything you create
+- `test_api.py` boots the real app; because `app.main` configures storage and logging at
+  import time, API tests currently run against the real `data/` and `logs/` directories.
+  Clean up anything you create
   (see the `temporary_agent` fixture pattern).
 - Bug fixes get a regression test in the file mirroring the changed module.
-- The design spec (`docs/superpowers/specs/2026-08-26-pi-agent-platform-mvp-design.md`)
-  documents the RPC event contract and JSONL framing rules — read it before touching
-  `pi_rpc.py`.
+- The design specs (`docs/superpowers/specs/2026-08-26-pi-agent-platform-mvp-design.md`
+  and `docs/superpowers/specs/2026-09-01-request-tracing-logs-design.md`) document the
+  RPC event contract, JSONL framing, and trace/logging rules — read them before touching
+  `pi_rpc.py` or observability code.
 
 ## Gotchas
 
