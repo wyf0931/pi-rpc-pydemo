@@ -24,7 +24,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260901g" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260901h" />
   </head>
   <body
     x-data="platform()"
@@ -710,6 +710,8 @@
               <h1>Agents</h1>
               <p>Define the minds available to your conversations.</p>
             </div>
+          </div>
+          <div class="agent-catalog-toolbar">
             <button class="send-btn" @click="newAgent()">
               <i data-lucide="plus" aria-hidden="true"></i> New
             </button>
@@ -1115,9 +1117,6 @@
               <h1>Autopilots</h1>
               <p>Run an agent instruction on a schedule.</p>
             </div>
-            <button class="send-btn" @click="newAutopilot()">
-              <i data-lucide="plus" aria-hidden="true"></i> New
-            </button>
           </div>
           <div class="autopilot-filters">
             <label class="library-search"
@@ -1146,6 +1145,9 @@
                 ></template>
               </select>
             </div>
+            <button class="send-btn autopilot-new" @click="newAutopilot()">
+              <i data-lucide="plus" aria-hidden="true"></i> New
+            </button>
           </div>
           <div class="autopilot-table-wrap">
             <template x-if="autopilotLoading"

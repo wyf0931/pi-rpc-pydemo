@@ -2501,6 +2501,21 @@ pre,
  gap: 12px;
  margin: -8px 0 16px;
 }
+.agent-catalog-toolbar {
+ display: flex;
+ justify-content: flex-end;
+ margin: -12px 0 16px;
+}
+.agent-catalog-toolbar .send-btn,
+.autopilot-new {
+ display: inline-flex;
+ align-items: center;
+ gap: 6px;
+ white-space: nowrap;
+}
+.autopilot-new {
+ margin-left: auto;
+}
 .market-catalog-search {
  flex: 1;
  max-width: 420px;
@@ -2954,6 +2969,10 @@ pre,
  }
  .autopilot-filters .select {
   width: 100%;
+ }
+ .autopilot-new {
+  margin-left: 0;
+  align-self: flex-end;
  }
 }
 .cron-builder-dialog {
