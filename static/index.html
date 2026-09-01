@@ -24,7 +24,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260831u" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260901a" />
   </head>
   <body
     x-data="platform()"
@@ -57,7 +57,9 @@
             class="btn btn-ghost btn-circle"
             @click="newChat()"
             aria-label="New chat"
-          ><i data-lucide="plus" aria-hidden="true"></i></button>
+          >
+            <i data-lucide="plus" aria-hidden="true"></i>
+          </button>
         </div>
         <aside class="history-panel">
           <div class="sidebar-top">
@@ -75,8 +77,16 @@
                 :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
                 :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
               >
-                <i data-lucide="panel-left-close" x-show="!sidebarCollapsed" aria-hidden="true"></i>
-                <i data-lucide="panel-left-open" x-show="sidebarCollapsed" aria-hidden="true"></i>
+                <i
+                  data-lucide="panel-left-close"
+                  x-show="!sidebarCollapsed"
+                  aria-hidden="true"
+                ></i>
+                <i
+                  data-lucide="panel-left-open"
+                  x-show="sidebarCollapsed"
+                  aria-hidden="true"
+                ></i>
               </button>
             </div>
           </div>
@@ -87,7 +97,10 @@
               @click="newChat()"
             >
               <span class="menu-icon"
-                ><i data-lucide="message-square-plus" aria-hidden="true"></i></span
+                ><i
+                  data-lucide="message-square-plus"
+                  aria-hidden="true"
+                ></i></span
               ><span class="menu-label">New chat</span>
             </button>
             <button
@@ -139,7 +152,12 @@
                   aria-label="Search chats"
                 >
                   <i data-lucide="search" aria-hidden="true"></i></button
-                ><button class="icon-btn" @click="newChat()" title="New chat" aria-label="New chat">
+                ><button
+                  class="icon-btn"
+                  @click="newChat()"
+                  title="New chat"
+                  aria-label="New chat"
+                >
                   <i data-lucide="plus" aria-hidden="true"></i>
                 </button>
               </div>
@@ -200,10 +218,9 @@
               title="Settings"
               aria-label="Settings"
               @click="openSettings()"
-            ><i data-lucide="settings" aria-hidden="true"></i></button>
-            <div class="sandbox-status">
-              <span class="status-dot"></span><span>connected</span>
-            </div>
+            >
+              <i data-lucide="settings" aria-hidden="true"></i>
+            </button>
           </div>
         </aside>
         <button
@@ -257,9 +274,12 @@
                       x-show="item.snippet"
                       x-text="item.snippet"
                     ></span></span
-                  ><span class="file-open"><i data-lucide="external-link" aria-hidden="true"></i></span></a
-                ></template
-              >
+                  ><span class="file-open"
+                    ><i
+                      data-lucide="external-link"
+                      aria-hidden="true"
+                    ></i></span></a
+              ></template>
             </div>
           </aside>
           <template x-if="!activeChat">
@@ -294,7 +314,11 @@
                           x-text="initials(agentName(selectedAgentId))"
                         ></span
                         ><span x-text="agentName(selectedAgentId)"></span
-                        ><span class="picker-chevron">⌄</span>
+                        ><i
+                          class="picker-chevron"
+                          data-lucide="chevron-down"
+                          aria-hidden="true"
+                        ></i>
                       </button>
                       <div
                         class="agent-picker-menu"
@@ -378,8 +402,8 @@
                   ><div class="chat-loading" role="status" aria-live="polite">
                     <span class="loading loading-dots loading-md"></span>
                     <span>Loading messages…</span>
-                  </div
-                ></template>
+                  </div></template
+                >
                 <template x-for="message in messages" :key="message._key"
                   ><article
                     class="message"
@@ -402,8 +426,16 @@
                         :title="copiedKey === message._key ? 'Copied' : 'Copy'"
                         aria-label="Copy"
                       >
-                        <i data-lucide="check" x-show="copiedKey === message._key" aria-hidden="true"></i>
-                        <i data-lucide="copy" x-show="copiedKey !== message._key" aria-hidden="true"></i>
+                        <i
+                          data-lucide="check"
+                          x-show="copiedKey === message._key"
+                          aria-hidden="true"
+                        ></i>
+                        <i
+                          data-lucide="copy"
+                          x-show="copiedKey !== message._key"
+                          aria-hidden="true"
+                        ></i>
                       </button>
                       <button
                         type="button"
@@ -455,7 +487,11 @@
                   :title="loading ? 'Abort' : 'Send'"
                   :aria-label="loading ? 'Abort' : 'Send'"
                 >
-                  <i data-lucide="arrow-up" x-show="!loading" aria-hidden="true"></i>
+                  <i
+                    data-lucide="arrow-up"
+                    x-show="!loading"
+                    aria-hidden="true"
+                  ></i>
                   <i data-lucide="x" x-show="loading" aria-hidden="true"></i>
                 </button>
               </div>
@@ -500,17 +536,24 @@
             </div>
           </div>
           <div class="library-filters">
-            <select
-              class="select filter-select"
-              x-model="libraryAgentFilter"
-              @change="loadLibrary(1)"
-              aria-label="Filter by agent"
-            >
-              <option value="">All agents</option>
-              <template x-for="agent in agents" :key="agent.id"
-                ><option :value="agent.id" x-text="agent.name"></option
-              ></template></select
-            ><label class="library-search"
+            <div class="agent-select-control">
+              <span
+                class="agent-avatar"
+                x-text="initials(agentName(libraryAgentFilter) || 'All')"
+              ></span>
+              <select
+                class="select filter-select"
+                x-model="libraryAgentFilter"
+                @change="loadLibrary(1)"
+                aria-label="Filter by agent"
+              >
+                <option value="">All agents</option>
+                <template x-for="agent in agents" :key="agent.id"
+                  ><option :value="agent.id" x-text="agent.name"></option
+                ></template>
+              </select>
+            </div>
+            <label class="library-search"
               ><i data-lucide="search" aria-hidden="true"></i
               ><input
                 class="input"
@@ -537,6 +580,7 @@
                 <tr>
                   <th>Name</th>
                   <th>Agent</th>
+                  <th>Size</th>
                   <th>Created</th>
                   <th>Actions</th>
                 </tr>
@@ -557,13 +601,18 @@
                         ></span
                         ><span
                           ><b x-text="file.name"></b
-                          ><small
-                            x-text="file.path + ' · ' + formatBytes(file.size)"
-                          ></small
+                          ><small x-text="file.path"></small
                         ></span>
                       </button>
                     </td>
-                    <td x-text="file.agent_name"></td>
+                    <td>
+                      <span
+                        class="agent-avatar"
+                        x-text="initials(file.agent_name || 'Unknown')"
+                      ></span>
+                      <span x-text="file.agent_name || 'Unknown'"></span>
+                    </td>
+                    <td x-text="formatBytes(file.size)"></td>
                     <td x-text="formatDateTime(file.generated_at)"></td>
                     <td>
                       <div class="library-actions">
@@ -573,7 +622,10 @@
                           title="Open file"
                           aria-label="Open file"
                         >
-                          ><i data-lucide="file-text" aria-hidden="true"></i></button
+                          <i
+                            data-lucide="file-text"
+                            aria-hidden="true"
+                          ></i></button
                         ><a
                           class="btn btn-sm btn-ghost"
                           :href="downloadUrl(file)"
@@ -586,12 +638,14 @@
                           title="View chat"
                           aria-label="View chat"
                         >
-                          <i data-lucide="message-square-text" aria-hidden="true"></i>
+                          <i
+                            data-lucide="message-square-text"
+                            aria-hidden="true"
+                          ></i>
                         </button>
                       </div>
-                    </td>
-                  </tr></template
-                >
+                    </td></tr
+                ></template>
               </tbody>
             </table>
           </div>
@@ -645,7 +699,9 @@
               <h1>Agents</h1>
               <p>Define the minds available to your conversations.</p>
             </div>
-            <button class="send-btn" @click="newAgent()"><i data-lucide="plus" aria-hidden="true"></i> New</button>
+            <button class="send-btn" @click="newAgent()">
+              <i data-lucide="plus" aria-hidden="true"></i> New
+            </button>
           </div>
           <div class="agent-grid">
             <template x-for="agent in agents" :key="agent.id"
@@ -656,16 +712,13 @@
                 @click="dialog = agent"
                 @keydown.enter="dialog = agent"
               >
-                <div class="card-top">
+                <div class="card-top agent-card-identity">
                   <span
                     class="agent-mark large"
                     x-text="initials(agent.name)"
-                  ></span
-                  ><span class="card-status"
-                    ><span class="status-dot"></span> ready</span
-                  >
+                  ></span>
+                  <h3 x-text="agent.name"></h3>
                 </div>
-                <h3 x-text="agent.name"></h3>
                 <p class="agent-instruction" x-text="agent.instruction"></p>
                 <div class="card-bottom">
                   <span x-text="chatCount(agent.id) + ' chats' "></span>
@@ -694,12 +747,61 @@
               <p>Browse the resources available in this workspace.</p>
             </div>
           </div>
-          <div class="tabs tabs-border market-tabs" role="tablist" aria-label="Market resources">
-            <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'skills'}" :aria-selected="marketTab === 'skills'" @click="marketTab = 'skills'">Skills</button>
-            <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'extensions'}" :aria-selected="marketTab === 'extensions'" @click="marketTab = 'extensions'">Extensions</button>
-            <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'mcp_servers'}" :aria-selected="marketTab === 'mcp_servers'" @click="marketTab = 'mcp_servers'">MCP Servers</button>
-            <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'agents'}" :aria-selected="marketTab === 'agents'" @click="marketTab = 'agents'">Agents</button>
-            <button type="button" role="tab" class="tab" :class="{'tab-active': marketTab === 'agent_teams'}" :aria-selected="marketTab === 'agent_teams'" @click="marketTab = 'agent_teams'">Agent Teams</button>
+          <div
+            class="tabs tabs-border market-tabs"
+            role="tablist"
+            aria-label="Market resources"
+          >
+            <button
+              type="button"
+              role="tab"
+              class="tab"
+              :class="{'tab-active': marketTab === 'skills'}"
+              :aria-selected="marketTab === 'skills'"
+              @click="marketTab = 'skills'"
+            >
+              Skills
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="tab"
+              :class="{'tab-active': marketTab === 'extensions'}"
+              :aria-selected="marketTab === 'extensions'"
+              @click="marketTab = 'extensions'"
+            >
+              Extensions
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="tab"
+              :class="{'tab-active': marketTab === 'mcp_servers'}"
+              :aria-selected="marketTab === 'mcp_servers'"
+              @click="marketTab = 'mcp_servers'"
+            >
+              MCP Servers
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="tab"
+              :class="{'tab-active': marketTab === 'agents'}"
+              :aria-selected="marketTab === 'agents'"
+              @click="marketTab = 'agents'"
+            >
+              Agents
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="tab"
+              :class="{'tab-active': marketTab === 'agent_teams'}"
+              :aria-selected="marketTab === 'agent_teams'"
+              @click="marketTab = 'agent_teams'"
+            >
+              Agent Teams
+            </button>
           </div>
           <div class="market-catalog-toolbar">
             <label class="library-search market-catalog-search">
@@ -721,70 +823,159 @@
             </button>
           </div>
           <div class="market-content" x-show="marketTab === 'skills'">
-            <div class="market-grid" x-show="marketCatalogItems('skills').length">
-              <template x-for="item in marketCatalogItems('skills')" :key="item.id">
-                <article class="card card-border market-card bg-base-100" :title="item.description || item.path">
+            <div
+              class="market-grid"
+              x-show="marketCatalogItems('skills').length"
+            >
+              <template
+                x-for="item in marketCatalogItems('skills')"
+                :key="item.id"
+              >
+                <article
+                  class="card card-border market-card bg-base-100"
+                  :title="item.description || item.path"
+                >
                   <div class="card-body">
                     <div class="market-card-top">
-                      <span class="agent-mark" x-text="initials(item.name)"></span>
+                      <span
+                        class="agent-mark"
+                        x-text="initials(item.name)"
+                      ></span>
                       <h2 class="card-title" x-text="item.name"></h2>
-                      <span class="badge badge-soft badge-success badge-sm">Installed</span>
-                    </div>
-                    <p class="market-description" x-text="item.description || 'No description available'"></p>
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-error btn-outline market-uninstall"
-                        x-show="item.source"
-                        :disabled="marketActionSkill === item.name"
-                        @click.stop="removeInstalledSkill(item)"
+                      <span class="badge badge-soft badge-success badge-sm"
+                        >Installed</span
                       >
-                        <span x-show="marketActionSkill !== item.name">Uninstall</span>
-                        <span x-show="marketActionSkill === item.name" class="loading loading-spinner loading-xs"></span>
-                      </button>
+                    </div>
+                    <p
+                      class="market-description"
+                      x-text="item.description || 'No description available'"
+                    ></p>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-error btn-outline market-uninstall"
+                      x-show="item.source"
+                      :disabled="marketActionSkill === item.name"
+                      @click.stop="removeInstalledSkill(item)"
+                    >
+                      <span x-show="marketActionSkill !== item.name"
+                        >Uninstall</span
+                      >
+                      <span
+                        x-show="marketActionSkill === item.name"
+                        class="loading loading-spinner loading-xs"
+                      ></span>
+                    </button>
                   </div>
                 </article>
               </template>
             </div>
-            <div class="market-empty" x-show="!resources.skills.length">No skills discovered.</div>
-            <div class="market-empty" x-show="resources.skills.length && !marketCatalogItems('skills').length">No matching skills.</div>
+            <div class="market-empty" x-show="!resources.skills.length">
+              No skills discovered.
+            </div>
+            <div
+              class="market-empty"
+              x-show="resources.skills.length && !marketCatalogItems('skills').length"
+            >
+              No matching skills.
+            </div>
           </div>
-          <div class="market-content" x-show="marketTab === 'extensions'" x-cloak>
-            <div class="market-grid" x-show="marketCatalogItems('extensions').length">
-              <template x-for="item in marketCatalogItems('extensions')" :key="item.id">
-                <article class="card card-border market-card bg-base-100" :title="item.description || item.path">
+          <div
+            class="market-content"
+            x-show="marketTab === 'extensions'"
+            x-cloak
+          >
+            <div
+              class="market-grid"
+              x-show="marketCatalogItems('extensions').length"
+            >
+              <template
+                x-for="item in marketCatalogItems('extensions')"
+                :key="item.id"
+              >
+                <article
+                  class="card card-border market-card bg-base-100"
+                  :title="item.description || item.path"
+                >
                   <div class="card-body">
                     <div class="market-card-top">
-                      <span class="agent-mark" x-text="initials(item.name)"></span>
+                      <span
+                        class="agent-mark"
+                        x-text="initials(item.name)"
+                      ></span>
                       <h2 class="card-title" x-text="item.name"></h2>
-                      <span class="badge badge-soft badge-success badge-sm">Installed</span>
+                      <span class="badge badge-soft badge-success badge-sm"
+                        >Installed</span
+                      >
                     </div>
-                    <p class="market-description" x-text="item.description || 'No description available'"></p>
+                    <p
+                      class="market-description"
+                      x-text="item.description || 'No description available'"
+                    ></p>
                   </div>
                 </article>
               </template>
             </div>
-            <div class="market-empty" x-show="!resources.extensions.length">No extensions discovered.</div>
-            <div class="market-empty" x-show="resources.extensions.length && !marketCatalogItems('extensions').length">No matching extensions.</div>
+            <div class="market-empty" x-show="!resources.extensions.length">
+              No extensions discovered.
+            </div>
+            <div
+              class="market-empty"
+              x-show="resources.extensions.length && !marketCatalogItems('extensions').length"
+            >
+              No matching extensions.
+            </div>
           </div>
-          <div class="market-content" x-show="marketTab === 'mcp_servers'" x-cloak>
-            <div class="market-grid" x-show="marketCatalogItems('mcp_servers').length">
-              <template x-for="item in marketCatalogItems('mcp_servers')" :key="item.id">
-                <article class="card card-border market-card bg-base-100" :title="item.description || item.path">
+          <div
+            class="market-content"
+            x-show="marketTab === 'mcp_servers'"
+            x-cloak
+          >
+            <div
+              class="market-grid"
+              x-show="marketCatalogItems('mcp_servers').length"
+            >
+              <template
+                x-for="item in marketCatalogItems('mcp_servers')"
+                :key="item.id"
+              >
+                <article
+                  class="card card-border market-card bg-base-100"
+                  :title="item.description || item.path"
+                >
                   <div class="card-body">
                     <div class="market-card-top">
-                      <span class="agent-mark" x-text="initials(item.name)"></span>
+                      <span
+                        class="agent-mark"
+                        x-text="initials(item.name)"
+                      ></span>
                       <h2 class="card-title" x-text="item.name"></h2>
-                      <span class="badge badge-soft badge-info badge-sm">Available</span>
+                      <span class="badge badge-soft badge-info badge-sm"
+                        >Available</span
+                      >
                     </div>
-                    <p class="market-description" x-text="item.description || 'MCP server'"></p>
+                    <p
+                      class="market-description"
+                      x-text="item.description || 'MCP server'"
+                    ></p>
                   </div>
                 </article>
               </template>
             </div>
-            <div class="market-empty" x-show="!resources.mcp_servers.length">No MCP servers discovered.</div>
-            <div class="market-empty" x-show="resources.mcp_servers.length && !marketCatalogItems('mcp_servers').length">No matching MCP servers.</div>
+            <div class="market-empty" x-show="!resources.mcp_servers.length">
+              No MCP servers discovered.
+            </div>
+            <div
+              class="market-empty"
+              x-show="resources.mcp_servers.length && !marketCatalogItems('mcp_servers').length"
+            >
+              No matching MCP servers.
+            </div>
           </div>
-          <div class="market-empty" x-show="marketTab === 'agents' || marketTab === 'agent_teams'" x-cloak>
+          <div
+            class="market-empty"
+            x-show="marketTab === 'agents' || marketTab === 'agent_teams'"
+            x-cloak
+          >
             <h2>Coming soon</h2>
             <p>This catalog is reserved for a future release.</p>
           </div>
@@ -807,31 +998,67 @@
                 class="icon-btn"
                 @click="closeMarketInstall()"
                 aria-label="Close install dialog"
-              ><i data-lucide="x" aria-hidden="true"></i></button>
+              >
+                <i data-lucide="x" aria-hidden="true"></i>
+              </button>
             </div>
             <form class="market-search" @submit.prevent="searchMarketSkills()">
               <label class="market-search-field">
                 <i data-lucide="search" aria-hidden="true"></i>
-                <input class="input input-bordered" x-model="marketSearch" placeholder="Search skills.sh" aria-label="Search skills.sh" />
+                <input
+                  class="input input-bordered"
+                  x-model="marketSearch"
+                  placeholder="Search skills.sh"
+                  aria-label="Search skills.sh"
+                />
               </label>
-              <input class="input input-bordered market-owner" x-model="marketOwner" placeholder="Owner (optional)" aria-label="Filter by owner" />
-              <button class="btn btn-primary" type="submit" :disabled="marketSearchLoading">
+              <input
+                class="input input-bordered market-owner"
+                x-model="marketOwner"
+                placeholder="Owner (optional)"
+                aria-label="Filter by owner"
+              />
+              <button
+                class="btn btn-primary"
+                type="submit"
+                :disabled="marketSearchLoading"
+              >
                 <span x-show="!marketSearchLoading">Search</span>
-                <span x-show="marketSearchLoading" class="loading loading-spinner loading-sm"></span>
+                <span
+                  x-show="marketSearchLoading"
+                  class="loading loading-spinner loading-sm"
+                ></span>
               </button>
             </form>
-            <div class="market-search-state" x-show="marketSearchError || marketSearchResults.length || marketSearchLoading" x-cloak>
-              <div class="alert alert-error" x-show="marketSearchError" x-text="marketSearchError"></div>
-              <div class="market-search-results" x-show="!marketSearchLoading && !marketSearchError && marketSearchResults.length">
-                <template x-for="result in marketSearchResults" :key="result.url">
-                  <article class="card card-border market-result-card bg-base-100">
+            <div
+              class="market-search-state"
+              x-show="marketSearchError || marketSearchResults.length || marketSearchLoading"
+              x-cloak
+            >
+              <div
+                class="alert alert-error"
+                x-show="marketSearchError"
+                x-text="marketSearchError"
+              ></div>
+              <div
+                class="market-search-results"
+                x-show="!marketSearchLoading && !marketSearchError && marketSearchResults.length"
+              >
+                <template
+                  x-for="result in marketSearchResults"
+                  :key="result.url"
+                >
+                  <article
+                    class="card card-border market-result-card bg-base-100"
+                  >
                     <div class="card-body">
                       <div class="market-result-heading">
                         <h2 class="card-title" x-text="result.skill"></h2>
                         <span
                           class="badge badge-success badge-soft"
                           x-show="marketSkillInstalled(result)"
-                        >Installed</span>
+                          >Installed</span
+                        >
                         <button
                           type="button"
                           class="btn btn-sm btn-primary btn-square market-install-action"
@@ -840,7 +1067,11 @@
                           :aria-label="'Install ' + result.skill"
                           @click="installMarketSkill(result)"
                         >
-                          <i data-lucide="plus" x-show="marketActionSkill !== result.skill" aria-hidden="true"></i>
+                          <i
+                            data-lucide="plus"
+                            x-show="marketActionSkill !== result.skill"
+                            aria-hidden="true"
+                          ></i>
                           <span
                             x-show="marketActionSkill === result.skill"
                             class="loading loading-spinner loading-xs"
@@ -848,20 +1079,33 @@
                         </button>
                       </div>
                       <p class="market-result-repo" x-text="result.repo"></p>
-                      <a class="link link-primary market-result-link" :href="result.url" target="_blank" rel="noopener noreferrer" x-text="result.url"></a>
+                      <a
+                        class="link link-primary market-result-link"
+                        :href="result.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        x-text="result.url"
+                      ></a>
                       <div class="market-result-meta">
-                        <span class="badge badge-ghost" x-text="result.installs + ' installs'"></span>
+                        <span
+                          class="badge badge-ghost"
+                          x-text="result.installs + ' installs'"
+                        ></span>
                       </div>
                     </div>
                   </article>
                 </template>
               </div>
-              <div class="market-empty market-search-empty" x-show="!marketSearchLoading && !marketSearchError && !marketSearchResults.length">
+              <div
+                class="market-empty market-search-empty"
+                x-show="!marketSearchLoading && !marketSearchError && !marketSearchResults.length"
+              >
                 No skills found.
               </div>
             </div>
             <div class="market-install-note">
-              Review a skill before installing it. Installed skills run with the agent's permissions.
+              Review a skill before installing it. Installed skills run with the
+              agent's permissions.
             </div>
           </div>
         </dialog>
@@ -875,7 +1119,9 @@
               <h1>Autopilots</h1>
               <p>Run an agent instruction on a schedule.</p>
             </div>
-            <button class="send-btn" @click="newAutopilot()"><i data-lucide="plus" aria-hidden="true"></i> New</button>
+            <button class="send-btn" @click="newAutopilot()">
+              <i data-lucide="plus" aria-hidden="true"></i> New
+            </button>
           </div>
           <div class="autopilot-filters">
             <label class="library-search"
@@ -885,18 +1131,25 @@
                 x-model="autopilotSearch"
                 @input.debounce.300ms="loadAutopilots()"
                 placeholder="Search autopilots"
-                aria-label="Search autopilots" /></label
-            ><select
-              class="select filter-select"
-              x-model="autopilotAgentFilter"
-              @change="loadAutopilots()"
-              aria-label="Filter by agent"
-            >
-              <option value="">All agents</option>
-              <template x-for="agent in agents" :key="agent.id"
-                ><option :value="agent.id" x-text="agent.name"></option
-              ></template>
-            </select>
+                aria-label="Search autopilots"
+            /></label>
+            <div class="agent-select-control">
+              <span
+                class="agent-avatar"
+                x-text="initials(agentName(autopilotAgentFilter) || 'All')"
+              ></span>
+              <select
+                class="select filter-select"
+                x-model="autopilotAgentFilter"
+                @change="loadAutopilots()"
+                aria-label="Filter by agent"
+              >
+                <option value="">All agents</option>
+                <template x-for="agent in agents" :key="agent.id"
+                  ><option :value="agent.id" x-text="agent.name"></option
+                ></template>
+              </select>
+            </div>
           </div>
           <div class="autopilot-table-wrap">
             <template x-if="autopilotLoading"
@@ -961,33 +1214,41 @@
                           title="Run now"
                           aria-label="Run now"
                         >
-                          ><i data-lucide="play" aria-hidden="true"></i></button
+                          <i data-lucide="play" aria-hidden="true"></i></button
                         ><button
                           class="btn btn-sm btn-ghost"
                           @click="editAutopilot(item)"
                           title="Edit"
                           aria-label="Edit"
                         >
-                          ><i data-lucide="square-pen" aria-hidden="true"></i></button
+                          <i
+                            data-lucide="square-pen"
+                            aria-hidden="true"
+                          ></i></button
                         ><button
                           class="btn btn-sm btn-ghost text-error"
                           @click="deleteAutopilot(item)"
                           title="Delete"
                           aria-label="Delete"
                         >
-                          ><i data-lucide="trash-2" aria-hidden="true"></i></button
+                          <i
+                            data-lucide="trash-2"
+                            aria-hidden="true"
+                          ></i></button
                         ><button
                           class="btn btn-sm btn-ghost"
                           @click="loadAutopilotRuns(item)"
                           title="Run history"
                           aria-label="Run history"
                         >
-                          <i data-lucide="rotate-ccw-clock" aria-hidden="true"></i>
+                          <i
+                            data-lucide="rotate-ccw-clock"
+                            aria-hidden="true"
+                          ></i>
                         </button>
                       </div>
-                    </td>
-                  </tr></template
-                >
+                    </td></tr
+                ></template>
               </tbody>
             </table>
           </div>
@@ -1032,9 +1293,10 @@
                 ><small
                   x-text="formatDate(file.generated_at) + ' · ' + formatBytes(file.size)"
                 ></small></span
-              ><span class="file-open"><i data-lucide="external-link" aria-hidden="true"></i></span>
-            </button></template
-          >
+              ><span class="file-open"
+                ><i data-lucide="external-link" aria-hidden="true"></i
+              ></span></button
+          ></template>
         </div>
       </aside>
     </div>
@@ -1168,11 +1430,6 @@
           </div>
           <div class="dialog-head-actions">
             <button
-              class="btn btn-sm btn-primary"
-              @click="runAutopilot(autopilotRunsItem)"
-            >
-              <i data-lucide="play" aria-hidden="true"></i> Run now</button
-            ><button
               class="icon-btn"
               @click="autopilotRunsOpen = false"
               aria-label="Close"
@@ -1180,6 +1437,14 @@
               <i data-lucide="x" aria-hidden="true"></i>
             </button>
           </div>
+        </div>
+        <div class="autopilot-runs-toolbar">
+          <button
+            class="btn btn-sm btn-primary"
+            @click="runAutopilot(autopilotRunsItem)"
+          >
+            <i data-lucide="play" aria-hidden="true"></i> Run now
+          </button>
         </div>
         <div class="autopilot-runs-table">
           <template x-if="!autopilotRuns.length"
@@ -1214,11 +1479,13 @@
                       :href="'/chat/' + run.chat_id"
                       title="Open session"
                       aria-label="Open session"
-                      ><i data-lucide="square-arrow-out-up-right" aria-hidden="true"></i></a
-                    >
-                  </td>
-                </tr></template
-              >
+                      ><i
+                        data-lucide="square-arrow-out-up-right"
+                        aria-hidden="true"
+                      ></i
+                    ></a>
+                  </td></tr
+              ></template>
             </tbody>
           </table>
         </div>
@@ -1311,9 +1578,11 @@
                   ><span
                     x-text="relativeTime(chat.last_activity_at)"
                   ></span></small></span
-              ><i data-lucide="square-arrow-out-up-right" aria-hidden="true"></i>
-            </button></template
-          >
+              ><i
+                data-lucide="square-arrow-out-up-right"
+                aria-hidden="true"
+              ></i></button
+          ></template>
         </div>
       </div>
     </dialog>
@@ -1398,7 +1667,9 @@
                     value="light"
                     :checked="themePreference === 'light'"
                     @change="applyThemePreference('light')"
-                  /><span class="theme-option-icon"><i data-lucide="sun-medium" aria-hidden="true"></i></span><b>Light</b></label
+                  /><span class="theme-option-icon"
+                    ><i data-lucide="sun-medium" aria-hidden="true"></i></span
+                  ><b>Light</b></label
                 ><label
                   class="theme-option"
                   :class="{'selected': themePreference === 'dark'}"
@@ -1408,7 +1679,9 @@
                     value="dark"
                     :checked="themePreference === 'dark'"
                     @change="applyThemePreference('dark')"
-                  /><span class="theme-option-icon"><i data-lucide="moon" aria-hidden="true"></i></span><b>Dark</b></label
+                  /><span class="theme-option-icon"
+                    ><i data-lucide="moon" aria-hidden="true"></i></span
+                  ><b>Dark</b></label
                 ><label
                   class="theme-option"
                   :class="{'selected': themePreference === 'system'}"
@@ -1419,8 +1692,10 @@
                     :checked="themePreference === 'system'"
                     @change="applyThemePreference('system')"
                   /><span class="theme-option-icon"
-                    ><i data-lucide="laptop-minimal" aria-hidden="true"></i
-                    ></span
+                    ><i
+                      data-lucide="laptop-minimal"
+                      aria-hidden="true"
+                    ></i></span
                   ><b>Follow system</b></label
                 >
               </div>
@@ -1443,7 +1718,9 @@
               <div class="eyebrow">Agent details</div>
               <h2 x-text="dialog.name"></h2>
             </div>
-            <button class="icon-btn" @click="dialog = null"><i data-lucide="x" aria-hidden="true"></i></button>
+            <button class="icon-btn" @click="dialog = null">
+              <i data-lucide="x" aria-hidden="true"></i>
+            </button>
           </div>
           <div class="detail-group">
             <div class="detail-heading">Basics</div>
@@ -1466,7 +1743,6 @@
               <span>Model</span
               ><b
                 x-text="modelName(dialog.provider, dialog.model) || 'Pi default'"
-                class="mono"
               ></b>
             </div>
             <div class="detail-row">
@@ -1595,7 +1871,9 @@
           <div>
             <h2 x-text="editingAgent ? 'Edit Agent' : 'New Agent'"></h2>
           </div>
-          <button class="icon-btn" @click="createDialog = false"><i data-lucide="x" aria-hidden="true"></i></button>
+          <button class="icon-btn" @click="createDialog = false">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
         </div>
         <form @submit.prevent="submitAgent">
           <div class="form-field">
@@ -1955,9 +2233,9 @@
               ><b x-text="item.title"></b><small x-text="item.url"></small
               ><small x-show="item.date" x-text="item.date"></small
               ><span x-show="item.snippet" x-text="item.snippet"></span></span
-            ><span class="file-open"><i data-lucide="external-link" aria-hidden="true"></i></span></a
-          ></template
-        >
+            ><span class="file-open"
+              ><i data-lucide="external-link" aria-hidden="true"></i></span></a
+        ></template>
       </div>
     </aside>
     <dialog
@@ -2015,6 +2293,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260831u"></script>
+    <script src="/static/app.js?v=20260901a"></script>
   </body>
 </html>

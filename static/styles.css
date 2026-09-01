@@ -513,6 +513,18 @@ body {
  transform: translateY(-3px);
  border-color: var(--color-primary);
 }
+.agent-card-identity {
+ justify-content: flex-start;
+ gap: 12px;
+}
+.agent-card-identity h3 {
+ margin: 0;
+ font-weight: 600;
+ min-width: 0;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ white-space: nowrap;
+}
 .card-top {
  display: flex;
  justify-content: space-between;
@@ -523,7 +535,7 @@ body {
  height: 40px;
  background: var(--color-primary-content);
  color: var(--color-primary);
- border-radius: 5px;
+ border-radius: 50%;
  display: grid;
  place-items: center;
  font: 11px "DM Mono";
@@ -1299,13 +1311,6 @@ body {
 .sidebar-footer {
  gap: 16px;
 }
-.sandbox-status {
- display: flex;
- gap: 8px;
- align-items: center;
- color: var(--muted);
- font: 12px "DM Mono";
-}
 .theme-picker .select {
  font-size: 13px;
 }
@@ -1445,7 +1450,7 @@ body {
 .agent-avatar {
  width: 26px;
  height: 26px;
- border-radius: 7px;
+ border-radius: 50%;
  background: var(--color-primary-content);
  color: var(--color-primary);
  display: grid;
@@ -1456,6 +1461,8 @@ body {
 .picker-chevron {
  margin-left: 10px;
  color: var(--muted);
+ width: 16px;
+ height: 16px;
 }
 .agent-picker-menu {
  position: absolute;
@@ -2274,6 +2281,28 @@ pre,
  gap: 10px;
  margin-bottom: 18px;
 }
+.agent-select-control {
+ display: flex;
+ align-items: center;
+ gap: 8px;
+ min-width: 180px;
+ padding: 0 8px;
+ border: 1px solid var(--line);
+ border-radius: var(--radius-field);
+ background: var(--color-base-100);
+}
+.agent-select-control .select {
+ min-width: 0;
+ flex: 1;
+ border: 0;
+ background: transparent;
+}
+.agent-select-control .agent-avatar {
+ flex: none;
+ width: 24px;
+ height: 24px;
+ font-size: 10px;
+}
 .library-filters .select {
  min-width: 170px;
 }
@@ -2327,6 +2356,12 @@ pre,
 }
 .library-table td {
  vertical-align: middle;
+}
+.library-agent-cell {
+ display: inline-flex;
+ align-items: center;
+ gap: 8px;
+ white-space: nowrap;
 }
 .library-file-name {
  display: flex;
@@ -2779,6 +2814,9 @@ pre,
 .autopilot-filters .select {
  min-width: 180px;
 }
+.autopilot-filters .agent-select-control {
+ min-width: 180px;
+}
 .autopilot-table-wrap {
  background: var(--card);
  border: 1px solid var(--line);
@@ -2835,6 +2873,11 @@ pre,
  align-items: center;
  gap: 3px;
  white-space: nowrap;
+}
+.autopilot-runs-toolbar {
+ display: flex;
+ justify-content: flex-end;
+ margin: 0 0 12px;
 }
 .autopilot-dialog,
 .autopilot-runs-dialog {
@@ -3598,6 +3641,14 @@ body > .link-drawer {
 }
 .reasoning-timeline.timeline-compact > li > .timeline-middle .lucide {
  margin-top: 1px;
+}
+.chat-empty .start-composer-foot {
+ position: relative;
+ z-index: 20;
+}
+.chat-empty .start-card {
+ background: var(--color-base-100);
+ border-radius: var(--radius-box);
 }
 
 .message-actions {
