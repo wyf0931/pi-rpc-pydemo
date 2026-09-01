@@ -24,7 +24,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260901b" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260901c" />
   </head>
   <body
     x-data="platform()"
@@ -400,7 +400,7 @@
                     <span x-text="runError"></span></div></template
                 ><template x-if="messagesLoading"
                   ><div class="chat-loading" role="status" aria-live="polite">
-                    <span class="loading loading-dots loading-md"></span>
+                    <span class="loading loading-bars loading-md"></span>
                     <span>Loading messages…</span>
                   </div></template
                 >
@@ -415,9 +415,15 @@
                       x-html="renderMessage(message)"
                     ></div>
                     <div
-                      class="message-actions"
+                      class="assistant-footer"
                       x-show="isActionableAssistant(message)"
                     >
+                      <div
+                        class="session-usage"
+                        x-html="sessionUsageMarkup()"
+                        aria-label="Session usage"
+                      ></div>
+                      <div class="message-actions">
                       <button
                         type="button"
                         class="action-btn"
@@ -466,6 +472,7 @@
                       >
                         <i data-lucide="share-2" aria-hidden="true"></i>
                       </button>
+                      </div>
                     </div></article
                 ></template>
               </div>
@@ -573,7 +580,7 @@
               ><div class="files-empty">No generated files found</div></template
             >
             <table
-              class="table library-table"
+              class="table table-zebra library-table"
               x-show="!libraryLoading && libraryFiles.length"
             >
               <thead>
@@ -590,7 +597,7 @@
                   x-for="file in libraryFiles"
                   :key="file.chat_id + ':' + file.path"
                   ><tr>
-                    <td class="library-agent-cell">
+                    <td class="library-file-cell">
                       <button
                         class="library-file-name"
                         @click="openLibraryFile(file)"
@@ -605,7 +612,7 @@
                         ></span>
                       </button>
                     </td>
-                    <td>
+                    <td class="library-agent-cell">
                       <span
                         class="agent-avatar"
                         x-text="initials(file.agent_name || 'Unknown')"
@@ -673,12 +680,16 @@
           x-cloak
         >
           <template x-if="fileViewer"
+            ><button
+              type="button"
+              class="file-view-back btn btn-ghost btn-circle"
+              @click="leaveFileViewer()"
+              aria-label="Back"
+              title="Back"
+            ><i data-lucide="arrow-left" aria-hidden="true"></i></button
             ><div class="file-view-header">
               <span class="file-view-path" x-text="fileViewer.path"></span
-              ><span
-                class="file-view-chat"
-                x-text="fileViewer.chatId"
-              ></span></div
+              ></div
           ></template>
           <template x-if="fileViewer"
             ><article
