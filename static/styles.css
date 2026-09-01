@@ -2246,7 +2246,7 @@ pre,
 .reasoning-text {
  font: 14px / 1.7 var(--font-sans);
  white-space: normal;
- margin: 5px 0;
+ margin: 0 0 5px;
 }
 .reasoning-text :is(ul, ol) {
  margin-top: 6px;
@@ -2257,7 +2257,7 @@ pre,
 }
 .reasoning-timeline .process-line,
 .reasoning-timeline .process-disclosure {
- margin: 8px 0;
+ margin: 0 0 8px;
 }
 .reasoning-timeline.timeline-compact > li {
  grid-template-columns: 1.25rem minmax(0, 1fr) !important;
@@ -3512,30 +3512,32 @@ h6,
  white-space: nowrap;
 }
 .web-activity-web_fetch {
- align-items: flex-start;
- flex-wrap: wrap;
+ flex-wrap: nowrap;
 }
 .web-activity-web_fetch .web-activity-label,
 .web-activity-web_fetch .web-activity-pages {
- flex-basis: 100%;
+ flex-basis: auto;
 }
 .web-activity-web_fetch .web-activity-pages {
- display: flex;
- flex-direction: column;
+ flex: 1;
+ flex-direction: row;
  gap: 4px;
- padding-left: 28px;
+ padding-left: 0;
 }
 .web-activity-web_fetch .web-activity-pages a {
  display: inline-flex;
+ flex: 0 1 20ch;
+ min-width: 0;
+ max-width: 20ch;
  align-items: center;
  gap: 4px;
- max-width: 100%;
  overflow: hidden;
  text-overflow: ellipsis;
  white-space: nowrap;
 }
 .web-activity-web_fetch .web-activity-arrow {
- margin-left: 28px;
+ flex: none;
+ margin-left: 0;
 }
 .web-activity:hover {
  color: var(--ink);
@@ -3690,6 +3692,7 @@ body > .link-drawer {
 .reasoning-timeline.timeline-compact > li > .timeline-middle {
  padding-top: 0 !important;
  align-self: start;
+ transform: translateY(4px);
 }
 .reasoning-timeline.timeline-compact > li > .timeline-middle .lucide {
  margin-top: 1px;
