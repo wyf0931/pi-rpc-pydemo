@@ -79,6 +79,7 @@ function platform() {
     libraryPages: 1,
     libraryTotal: 0,
     marketTab: "skills",
+    marketCatalogSearch: "",
     marketInstallOpen: false,
     marketSearch: "",
     marketOwner: "",
@@ -286,6 +287,16 @@ function platform() {
         this.showError(e);
       }
     },
+    marketCatalogItems(kind) {
+      const items = this.resources[kind] || [];
+      const query = this.marketCatalogSearch.trim().toLowerCase();
+      if (!query) return items;
+      return items.filter((item) =>
+        `${item.name || ""} ${item.description || ""}`
+          .toLowerCase()
+          .includes(query),
+      );
+    },
     async searchMarketSkills() {
       const query = this.marketSearch.trim();
       if (!query) {
@@ -365,6 +376,7 @@ function platform() {
     },
     async toggleFiles() {
       this.filesOpen = !this.filesOpen;
+      if (this.filesOpen) this.linkDrawerOpen = false;
       if (this.filesOpen && this.activeChat && !this.files.length) {
         if (this.sharedMode) await this.loadSharedFiles();
         else await this.loadChatFiles();
@@ -1862,7 +1874,9 @@ function platform() {
               )
               .join("<span class=\"web-activity-separator\"> · </span>")}</span>`
           : "";
-      return `<div role="button" tabindex="0" class="web-activity" data-web-activity-id="${key}" onclick="window.omaPlatform.openWebActivity(this)" onkeydown="if(event.key === 'Enter' || event.key === ' ') window.omaPlatform.openWebActivity(this)"><span class="web-activity-icon"><i data-lucide="${name === "web_search" ? "globe" : "bolt"}"></i></span><span class="web-activity-label">${label}</span><span class="web-activity-sites">${items
+      const sites =
+        name === "web_search"
+          ? `<span class="web-activity-sites">${items
         .slice(0, 5)
         .map((item) =>
           item.favicon
@@ -1871,7 +1885,9 @@ function platform() {
         )
         .join(
           "",
-        )}</span>${pages}${viewAll}<span class="web-activity-arrow"><i data-lucide="chevron-right"></i></span></div>`;
+        )}</span>`
+          : "";
+      return `<div role="button" tabindex="0" class="web-activity web-activity-${name}" data-web-activity-id="${key}" onclick="event.stopPropagation();window.omaPlatform.openWebActivity(this)" onkeydown="if(event.key === 'Enter' || event.key === ' ') window.omaPlatform.openWebActivity(this)"><span class="web-activity-label">${label}</span>${sites}${pages}${viewAll}<span class="web-activity-arrow"><i data-lucide="chevron-right"></i></span></div>`;
     },
     parseSearchResults(text) {
       const items = [];
@@ -1915,7 +1931,19 @@ function platform() {
       this.linkDrawerTitle =
         activity.kind === "web_search" ? "Search results" : "Read pages";
       this.linkDrawerItems = activity.items || [];
+      this.filesOpen = false;
       this.linkDrawerOpen = true;
+    },
+    closeDrawersOutside(event) {
+      if (!this.filesOpen && !this.linkDrawerOpen) return;
+      if (
+        event.target.closest?.(".files-drawer") ||
+        event.target.closest?.(".files-toggle") ||
+        event.target.closest?.(".web-activity")
+      )
+        return;
+      this.filesOpen = false;
+      this.linkDrawerOpen = false;
     },
     renderReasoning(parts, messageKey) {
       const entries = [];
@@ -1950,9 +1978,11 @@ function platform() {
             ? {
                 html,
                 marker:
-                  toolName === "web_search" || toolName === "web_fetch"
+                  toolName === "web_search"
                     ? "globe"
-                    : "dot",
+                    : toolName === "web_fetch"
+                      ? "file-spreadsheet"
+                      : "dot",
               }
             : null;
         })
@@ -1960,7 +1990,7 @@ function platform() {
       const content = items
         .map(
           (item, index) =>
-            `<li><hr class="${index === 0 ? "invisible" : ""}" /><div class="timeline-start pb-2">${item.html}</div><div class="timeline-middle">${item.marker === "globe" ? '<i data-lucide="globe" aria-hidden="true"></i>' : '<span class="reasoning-dot">•</span>'}</div>${index < items.length - 1 ? "<hr />" : ""}</li>`,
+            `<li><hr class="${index === 0 ? "invisible" : ""}" /><div class="timeline-start">${item.html}</div><div class="timeline-middle">${item.marker === "globe" || item.marker === "file-spreadsheet" ? `<i data-lucide="${item.marker}" aria-hidden="true"></i>` : '<span class="reasoning-dot">•</span>'}</div>${index < items.length - 1 ? "<hr />" : ""}</li>`,
         )
         .join("");
       if (!content) return "";
