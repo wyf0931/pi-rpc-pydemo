@@ -25,7 +25,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260901q" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260901r" />
   </head>
   <body
     x-data="platform()"
@@ -554,22 +554,45 @@
             </div>
           </div>
           <div class="library-filters">
-            <div class="agent-select-control">
-              <span
-                class="agent-avatar"
-                x-text="initials(agentName(libraryAgentFilter) || 'All')"
-              ></span>
-              <select
-                class="select filter-select"
-                x-model="libraryAgentFilter"
-                @change="loadLibrary(1)"
-                aria-label="Filter by agent"
+            <div
+              class="agent-picker filter-agent-picker"
+              @click.outside="libraryAgentPickerOpen = false"
+            >
+              <button
+                type="button"
+                class="agent-picker-button filter-agent-picker-button"
+                @click="libraryAgentPickerOpen = !libraryAgentPickerOpen"
+                :aria-expanded="libraryAgentPickerOpen"
+                aria-haspopup="listbox"
+                aria-label="Filter Library by agent"
               >
-                <option value="">All agents</option>
-                <template x-for="agent in agents" :key="agent.id"
-                  ><option :value="agent.id" x-text="agent.name"></option
-                ></template>
-              </select>
+                <span
+                  class="agent-avatar"
+                  x-text="initials(libraryAgentFilter ? agentName(libraryAgentFilter) : 'All')"
+                ></span>
+                <span
+                  class="filter-agent-picker-label"
+                  x-text="libraryAgentFilter ? agentName(libraryAgentFilter) : 'All agents'"
+                ></span>
+                <i class="picker-chevron" data-lucide="chevron-down" aria-hidden="true"></i>
+              </button>
+              <div
+                class="agent-picker-menu filter-agent-picker-menu"
+                x-show="libraryAgentPickerOpen"
+                x-cloak
+                role="listbox"
+              >
+                <button type="button" class="agent-picker-option" @click="selectLibraryAgent('')">
+                  <span class="agent-avatar" x-text="initials('All')"></span>
+                  <span><b>All agents</b></span>
+                </button>
+                <template x-for="agent in agents" :key="agent.id">
+                  <button type="button" class="agent-picker-option" @click="selectLibraryAgent(agent.id)">
+                    <span class="agent-avatar" x-text="initials(agent.name)"></span>
+                    <span><b x-text="agent.name"></b></span>
+                  </button>
+                </template>
+              </div>
             </div>
             <label class="library-search"
               ><i data-lucide="search" aria-hidden="true"></i
@@ -1134,22 +1157,45 @@
                 placeholder="Search autopilots"
                 aria-label="Search autopilots"
             /></label>
-            <div class="agent-select-control">
-              <span
-                class="agent-avatar"
-                x-text="initials(agentName(autopilotAgentFilter) || 'All')"
-              ></span>
-              <select
-                class="select filter-select"
-                x-model="autopilotAgentFilter"
-                @change="loadAutopilots()"
-                aria-label="Filter by agent"
+            <div
+              class="agent-picker filter-agent-picker"
+              @click.outside="autopilotAgentPickerOpen = false"
+            >
+              <button
+                type="button"
+                class="agent-picker-button filter-agent-picker-button"
+                @click="autopilotAgentPickerOpen = !autopilotAgentPickerOpen"
+                :aria-expanded="autopilotAgentPickerOpen"
+                aria-haspopup="listbox"
+                aria-label="Filter Autopilots by agent"
               >
-                <option value="">All agents</option>
-                <template x-for="agent in agents" :key="agent.id"
-                  ><option :value="agent.id" x-text="agent.name"></option
-                ></template>
-              </select>
+                <span
+                  class="agent-avatar"
+                  x-text="initials(autopilotAgentFilter ? agentName(autopilotAgentFilter) : 'All')"
+                ></span>
+                <span
+                  class="filter-agent-picker-label"
+                  x-text="autopilotAgentFilter ? agentName(autopilotAgentFilter) : 'All agents'"
+                ></span>
+                <i class="picker-chevron" data-lucide="chevron-down" aria-hidden="true"></i>
+              </button>
+              <div
+                class="agent-picker-menu filter-agent-picker-menu"
+                x-show="autopilotAgentPickerOpen"
+                x-cloak
+                role="listbox"
+              >
+                <button type="button" class="agent-picker-option" @click="selectAutopilotAgent('')">
+                  <span class="agent-avatar" x-text="initials('All')"></span>
+                  <span><b>All agents</b></span>
+                </button>
+                <template x-for="agent in agents" :key="agent.id">
+                  <button type="button" class="agent-picker-option" @click="selectAutopilotAgent(agent.id)">
+                    <span class="agent-avatar" x-text="initials(agent.name)"></span>
+                    <span><b x-text="agent.name"></b></span>
+                  </button>
+                </template>
+              </div>
             </div>
             <button class="send-btn autopilot-new" @click="newAutopilot()">
               <i data-lucide="plus" aria-hidden="true"></i> New
@@ -2297,6 +2343,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260901f"></script>
+    <script src="/static/app.js?v=20260901g"></script>
   </body>
 </html>

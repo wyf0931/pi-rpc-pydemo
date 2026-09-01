@@ -2352,6 +2352,30 @@ pre,
  height: 24px;
  font-size: 10px;
 }
+.filter-agent-picker {
+ min-width: 180px;
+}
+.filter-agent-picker-button {
+ width: 100%;
+ min-width: 180px;
+}
+.filter-agent-picker-label {
+ min-width: 0;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ white-space: nowrap;
+}
+.filter-agent-picker-button .picker-chevron {
+ margin-left: auto;
+}
+.filter-agent-picker-menu {
+ top: calc(100% + 8px);
+ bottom: auto;
+ min-width: 100%;
+ max-height: 280px;
+ overflow-y: auto;
+ z-index: 30;
+}
 .library-filters .select {
  min-width: 170px;
 }
@@ -2894,6 +2918,9 @@ pre,
  min-width: 180px;
 }
 .autopilot-filters .agent-select-control {
+ min-width: 180px;
+}
+.autopilot-filters .filter-agent-picker {
  min-width: 180px;
 }
 .autopilot-table-wrap {
