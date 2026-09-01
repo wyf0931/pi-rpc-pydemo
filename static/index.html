@@ -24,7 +24,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260901a" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260901b" />
   </head>
   <body
     x-data="platform()"
@@ -590,7 +590,7 @@
                   x-for="file in libraryFiles"
                   :key="file.chat_id + ':' + file.path"
                   ><tr>
-                    <td>
+                    <td class="library-agent-cell">
                       <button
                         class="library-file-name"
                         @click="openLibraryFile(file)"
