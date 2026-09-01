@@ -1895,7 +1895,7 @@ function platform() {
               .slice(0, 5)
               .map(
                 (item) =>
-                  `<a href="${this.escape(item.url)}" title="${this.escape(item.title)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${this.escape(this.truncateLabel(item.title))} <i data-lucide="external-link"></i></a>`,
+                  `<a href="${this.escape(item.url)}" title="${this.escape(item.title)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><span class="web-activity-page-title">${this.escape(this.truncateLabel(item.title))}</span><i data-lucide="external-link"></i></a>`,
               )
               .join("")}</span>`
           : "";

@@ -3531,6 +3531,10 @@ h6,
  max-width: 20ch;
  align-items: center;
  gap: 4px;
+ overflow: visible;
+}
+.web-activity-page-title {
+ min-width: 0;
  overflow: hidden;
  text-overflow: ellipsis;
  white-space: nowrap;
