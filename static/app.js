@@ -1897,7 +1897,7 @@ function platform() {
                 (item) =>
                   `<a href="${this.escape(item.url)}" title="${this.escape(item.title)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${this.escape(this.truncateLabel(item.title))} <i data-lucide="external-link"></i></a>`,
               )
-              .join("<span class=\"web-activity-separator\"> · </span>")}</span>`
+              .join("")}</span>`
           : "";
       const sites =
         name === "web_search"
