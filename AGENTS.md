@@ -31,7 +31,8 @@ uv sync                   # Python deps (also creates .venv)
 pi --version              # Pi CLI must be on PATH, with a provider credential configured
 
 # Run (Docker Compose — app layer + process layer in one container, state via bind mounts)
-bin/ops.sh start          # up -d --build; also: status|stop|restart|logs
+bin/ops.sh start          # up -d --build on OMA_PORT or 8000; use: start 8080 or start -p 8080
+# one-off alternate host port: bin/ops.sh start 8080 / restart 8080 / status 8080
 # or foreground: docker compose up --build
 
 # Run (local dev server with hot reload, no Docker)
