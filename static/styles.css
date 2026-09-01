@@ -3844,7 +3844,7 @@ body > .link-drawer {
  min-height: 56px;
  padding: 8px 20px;
  border-bottom: 0;
- background: transparent;
+ background: var(--bg);
  backdrop-filter: none;
 }
 .app-shell.sidebar-collapsed .chat-header {
