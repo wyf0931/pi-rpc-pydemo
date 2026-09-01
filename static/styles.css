@@ -513,7 +513,7 @@ body {
  transform: translateY(-3px);
  border-color: var(--color-primary);
 }
-.agent-card-identity {
+.agent-card .agent-card-identity {
  justify-content: flex-start;
  gap: 12px;
 }
@@ -521,9 +521,14 @@ body {
  margin: 0;
  font-weight: 600;
  min-width: 0;
+ flex: 1;
  overflow: hidden;
  text-overflow: ellipsis;
  white-space: nowrap;
+}
+.agent-card-identity {
+ justify-content: flex-start;
+ gap: 12px;
 }
 .card-top {
  display: flex;
@@ -560,6 +565,7 @@ body {
 }
 .card-bottom {
  display: flex;
+ align-items: center;
  justify-content: space-between;
  color: var(--muted);
  font: 10px "DM Mono";
@@ -863,9 +869,9 @@ body {
  overflow: hidden;
 }
 .trash-btn {
- position: absolute;
- right: 14px;
- bottom: 12px;
+ position: static;
+ flex: none;
+ margin-left: auto;
  width: 30px;
  height: 30px;
  padding: 7px;
@@ -2496,6 +2502,21 @@ pre,
  gap: 12px;
  margin: -8px 0 16px;
 }
+.agent-catalog-toolbar {
+ display: flex;
+ justify-content: flex-end;
+ margin: -12px 0 16px;
+}
+.agent-catalog-toolbar .send-btn,
+.autopilot-new {
+ display: inline-flex;
+ align-items: center;
+ gap: 6px;
+ white-space: nowrap;
+}
+.autopilot-new {
+ margin-left: auto;
+}
 .market-catalog-search {
  flex: 1;
  max-width: 420px;
@@ -2900,6 +2921,7 @@ pre,
 .autopilot-runs-toolbar {
  display: flex;
  justify-content: flex-end;
+ padding-top: 12px;
  margin: 0 0 12px;
 }
 .autopilot-dialog,
@@ -2949,6 +2971,10 @@ pre,
  }
  .autopilot-filters .select {
   width: 100%;
+ }
+ .autopilot-new {
+  margin-left: 0;
+  align-self: flex-end;
  }
 }
 .cron-builder-dialog {
