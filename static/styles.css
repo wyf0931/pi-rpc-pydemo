@@ -894,6 +894,9 @@ body {
 .trash-btn:focus-visible {
  opacity: 1;
 }
+.agent-card .agent-card-identity h3 {
+ margin: 0;
+}
 .trash-btn:hover {
  background: var(--color-error);
  color: var(--color-error-content);
@@ -2297,6 +2300,10 @@ pre,
  border: 0;
  background: transparent;
 }
+.agent-select-control .select:focus {
+ outline: 0;
+ box-shadow: none;
+}
 .agent-select-control .agent-avatar {
  flex: none;
  width: 24px;
@@ -2358,10 +2365,22 @@ pre,
  vertical-align: middle;
 }
 .library-agent-cell {
- display: inline-flex;
- align-items: center;
- gap: 8px;
  white-space: nowrap;
+}
+.library-agent-cell .agent-avatar {
+ display: inline-grid;
+ vertical-align: middle;
+ margin-right: 8px;
+ width: 24px;
+ height: 24px;
+ font-size: 10px;
+}
+.library-agent-cell > span:last-child {
+ display: inline-block;
+ max-width: 160px;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ vertical-align: middle;
 }
 .library-file-name {
  display: flex;
@@ -2438,17 +2457,20 @@ pre,
  vector-effect: non-scaling-stroke;
 }
 .agents-page,
+.autopilots-page,
 .library-page,
 .market-page {
  padding-top: 28px;
 }
 .agents-page .page-heading,
+.autopilots-page .page-heading,
 .library-page .page-heading,
 .market-page .page-heading {
  min-height: 72px;
  align-items: flex-start;
 }
 .agents-page .page-heading h1,
+.autopilots-page .page-heading h1,
 .library-page .page-heading h1,
 .market-page .page-heading h1 {
  margin-top: 0;
@@ -2633,6 +2655,9 @@ pre,
  display: -webkit-box;
  -webkit-box-orient: vertical;
  -webkit-line-clamp: 2;
+ max-height: 3em;
+ min-height: 3em;
+ line-height: 1.5;
  color: var(--muted);
  font-size: 13px;
 }
@@ -3760,8 +3785,8 @@ body > .link-drawer {
  min-height: 56px;
  padding: 8px 20px;
  border-bottom: 0;
- background: color-mix(in srgb, var(--color-base-100) 94%, transparent);
- backdrop-filter: blur(12px);
+ background: transparent;
+ backdrop-filter: none;
 }
 .app-shell.sidebar-collapsed .chat-header {
  left: 78px;
