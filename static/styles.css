@@ -3663,7 +3663,7 @@ body > .link-drawer {
  align-items: center;
  justify-content: flex-end;
  min-height: 56px;
- padding: 8px clamp(28px, 7vw, 110px);
+ padding: 8px 20px;
  border-bottom: 1px solid var(--line);
  background: color-mix(in srgb, var(--color-base-100) 94%, transparent);
  backdrop-filter: blur(12px);
