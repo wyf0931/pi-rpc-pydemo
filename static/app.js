@@ -369,24 +369,6 @@ function platform() {
         this.marketActionSkill = "";
       }
     },
-    async removeMarketSkill(result) {
-      this.marketActionSkill = result.skill;
-      this.marketSearchError = "";
-      try {
-        const data = await this.api("/api/market/skills/remove", {
-          method: "POST",
-          body: JSON.stringify({ skill: result.skill }),
-        });
-        if (data.resources) this.resources = data.resources;
-      } catch (error) {
-        this.marketSearchError = error.message;
-      } finally {
-        this.marketActionSkill = "";
-      }
-    },
-    removeInstalledSkill(item) {
-      return this.removeMarketSkill({ skill: item.name });
-    },
     async toggleFiles() {
       this.filesOpen = !this.filesOpen;
       if (this.filesOpen) this.linkDrawerOpen = false;

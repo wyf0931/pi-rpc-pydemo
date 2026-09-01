@@ -24,7 +24,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260901d" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260901f" />
   </head>
   <body
     x-data="platform()"
@@ -861,21 +861,6 @@
                       class="market-description"
                       x-text="item.description || 'No description available'"
                     ></p>
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-error btn-outline market-uninstall"
-                      x-show="item.source"
-                      :disabled="marketActionSkill === item.name"
-                      @click.stop="removeInstalledSkill(item)"
-                    >
-                      <span x-show="marketActionSkill !== item.name"
-                        >Uninstall</span
-                      >
-                      <span
-                        x-show="marketActionSkill === item.name"
-                        class="loading loading-spinner loading-xs"
-                      ></span>
-                    </button>
                   </div>
                 </article>
               </template>
@@ -2304,6 +2289,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260901b"></script>
+    <script src="/static/app.js?v=20260901c"></script>
   </body>
 </html>

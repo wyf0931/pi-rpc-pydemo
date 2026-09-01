@@ -10,8 +10,9 @@ unchanged.
 ## Design
 
 - Market continues to consume `/api/resources` and keeps the existing skills.sh
-  install flow. Its five tabs, catalog filtering, resource empty states,
-  responsive cards, and navigation are validated together.
+  search/install flow. Uninstall is deliberately deferred. Its five tabs,
+  catalog filtering, resource empty states, responsive cards, and navigation are
+  validated together.
 - Chat detail uses one viewport-fixed header whose left edge follows the desktop
   sidebar width and whose mobile position follows the mobile topbar. The
   conversation content reserves header space, while drawers remain above the

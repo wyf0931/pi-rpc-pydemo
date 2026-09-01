@@ -112,9 +112,3 @@ async def install_skill(source: str, skill: str) -> None:
         ["add", source, "--skill", skill, "-g", "-a", "pi", "-y", "--copy"],
         timeout=120,
     )
-
-
-async def remove_skill(skill: str) -> None:
-    if not SKILL_NAME_RE.fullmatch(skill):
-        raise ValueError("Skill name contains unsupported characters")
-    await _run_skills_cli(["remove", skill, "-g", "-y"], timeout=120)

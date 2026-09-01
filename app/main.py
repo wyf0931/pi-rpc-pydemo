@@ -20,7 +20,7 @@ from .files import (
     read_session_messages,
     resolve_chat_file,
 )
-from .market import install_skill, remove_skill, search_skills, validate_skill_source
+from .market import install_skill, search_skills, validate_skill_source
 from .pi_rpc import ActiveTurn, PiRpcError, PiRuntimeManager
 from .resources import discover_resources
 from .store import (
@@ -91,10 +91,6 @@ class SkillSearch(BaseModel):
 
 class SkillInstall(BaseModel):
     source: str = Field(min_length=3, max_length=200)
-    skill: str = Field(min_length=1, max_length=100)
-
-
-class SkillRemove(BaseModel):
     skill: str = Field(min_length=1, max_length=100)
 
 
@@ -195,20 +191,6 @@ async def market_skill_install(payload: SkillInstall):
         raise HTTPException(504, str(exc)) from exc
     except RuntimeError as exc:
         raise HTTPException(502, f"skill install failed: {exc}") from exc
-    return {"skill": skill, "resources": await list_resources()}
-
-
-@app.post("/api/market/skills/remove")
-async def market_skill_remove(payload: SkillRemove):
-    skill = payload.skill.strip()
-    try:
-        await remove_skill(skill)
-    except ValueError as exc:
-        raise HTTPException(422, str(exc)) from exc
-    except TimeoutError as exc:
-        raise HTTPException(504, str(exc)) from exc
-    except RuntimeError as exc:
-        raise HTTPException(502, f"skill uninstall failed: {exc}") from exc
     return {"skill": skill, "resources": await list_resources()}
 
 
