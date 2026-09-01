@@ -1447,7 +1447,16 @@ function platform() {
             reasoning ||
             '<span class="loading loading-dots loading-xs" aria-label="Waiting for response"></span>'
           );
-        return reasoning + parts.map((part) => this.renderPart(part)).join("");
+        return (
+          reasoning +
+          parts
+            .map((part) =>
+              part.type === "text"
+                ? this.renderFinalMarkdown(part)
+                : this.renderPart(part),
+            )
+            .join("")
+        );
       }
       const fallback = this.partsText(parts);
       return `<div class="system-message"><span>${this.escape(role)}</span>${fallback ? `<p>${this.escape(fallback).replace(/\n/g, "<br>")}</p>` : ""}</div>`;
@@ -1501,6 +1510,10 @@ function platform() {
         return `<details class="tool-block"><summary><i class="process-chevron" data-lucide="chevron-right" aria-hidden="true"></i>${compact}<span class="tool-id">${this.escape(part.id || "")}</span></summary><pre>${this.escape(JSON.stringify(args, null, 2))}</pre></details>`;
       }
       return `<details class="tool-block"><summary><i class="process-chevron" data-lucide="chevron-right" aria-hidden="true"></i>${this.escape(part.type || "content")}</summary><pre>${this.escape(JSON.stringify(part, null, 2))}</pre></details>`;
+    },
+    renderFinalMarkdown(part) {
+      const invert = this.theme === "dark" ? " prose-invert" : "";
+      return `<div class="markdown-part prose${invert} max-w-none">${this.renderMarkdown(part.text || "")}</div>`;
     },
     processLine(label, value) {
       return `<div class="process-line"><span class="process-label">${this.escape(label)}</span><span class="process-preview">${this.escape(String(value).replace(/\s+/g, " ").trim())}</span></div>`;
