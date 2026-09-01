@@ -618,7 +618,7 @@
               ><div class="files-empty">No generated files found</div></template
             >
             <table
-              class="table table-zebra library-table"
+              class="table library-table"
               x-show="!libraryLoading && libraryFiles.length"
             >
               <thead>
@@ -634,7 +634,7 @@
                 <template
                   x-for="file in libraryFiles"
                   :key="file.chat_id + ':' + file.path"
-                  ><tr>
+                  ><tr class="bg-base-200">
                     <td class="library-file-cell">
                       <button
                         class="library-file-name"
@@ -1215,7 +1215,7 @@
               ><div class="files-empty">No autopilots yet</div></template
             >
             <table
-              class="table table-zebra autopilot-table"
+              class="table autopilot-table"
               x-show="!autopilotLoading && autopilots.length"
             >
               <thead>
@@ -1229,7 +1229,7 @@
               </thead>
               <tbody>
                 <template x-for="item in autopilots" :key="item.id"
-                  ><tr>
+                  ><tr class="bg-base-200">
                     <td>
                       <button
                         class="autopilot-name"
@@ -1504,7 +1504,7 @@
           <template x-if="!autopilotRuns.length"
             ><div class="files-empty">No runs yet</div></template
           >
-          <table class="table table-zebra" x-show="autopilotRuns.length">
+          <table class="table" x-show="autopilotRuns.length">
             <thead>
               <tr>
                 <th>Started</th>
@@ -1515,7 +1515,7 @@
             </thead>
             <tbody>
               <template x-for="run in autopilotRuns" :key="run.id"
-                ><tr>
+                ><tr class="bg-base-200">
                   <td x-text="formatDateTime(run.started_at)"></td>
                   <td
                     x-text="run.duration_ms ? (run.duration_ms / 1000).toFixed(1) + 's' : '—'"
