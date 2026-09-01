@@ -2208,6 +2208,11 @@ pre,
 .reasoning-timeline .timeline-middle {
  color: var(--muted);
 }
+.reasoning-timeline .timeline-middle .lucide {
+ width: 16px;
+ height: 16px;
+ stroke-width: 1.8;
+}
 .reasoning-dot {
  font-size: 20px;
  line-height: 1;

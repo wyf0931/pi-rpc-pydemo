@@ -1941,16 +1941,26 @@ function platform() {
         entries.push({ part });
       }
       const items = entries
-        .map((entry) =>
-          entry.kind
+        .map((entry) => {
+          const html = entry.kind
             ? this.renderWebActivityItems(entry.kind, entry.items)
-            : this.renderReasoningPart(entry.part),
-        )
+            : this.renderReasoningPart(entry.part);
+          const toolName = entry.kind || entry.part?.name;
+          return html
+            ? {
+                html,
+                marker:
+                  toolName === "web_search" || toolName === "web_fetch"
+                    ? "globe"
+                    : "dot",
+              }
+            : null;
+        })
         .filter(Boolean);
       const content = items
         .map(
           (item, index) =>
-            `<li><hr class="${index === 0 ? "invisible" : ""}" /><div class="timeline-start pb-2">${item}</div><div class="timeline-middle"><span class="reasoning-dot">•</span></div>${index < items.length - 1 ? "<hr />" : ""}</li>`,
+            `<li><hr class="${index === 0 ? "invisible" : ""}" /><div class="timeline-start pb-2">${item.html}</div><div class="timeline-middle">${item.marker === "globe" ? '<i data-lucide="globe" aria-hidden="true"></i>' : '<span class="reasoning-dot">•</span>'}</div>${index < items.length - 1 ? "<hr />" : ""}</li>`,
         )
         .join("");
       if (!content) return "";
