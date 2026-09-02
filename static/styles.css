@@ -2229,10 +2229,21 @@ pre,
  color: var(--muted);
  font-size: 11px;
 }
-.file-open {
+.file-actions {
  margin-left: auto;
+ display: flex;
+ flex-direction: column;
+ gap: 4px;
+ flex: none;
+}
+.file-open,
+.file-download {
  color: var(--muted);
- font-size: 16px;
+}
+.file-open svg,
+.file-download svg {
+ width: 16px;
+ height: 16px;
 }
 .file-view-page {
  width: 100%;

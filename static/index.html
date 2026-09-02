@@ -25,7 +25,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260903github-owner" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260903files-drawer" />
   </head>
   <body
     x-data="platform()"
@@ -1492,16 +1492,41 @@
           ><template x-if="!filesLoading && files.length === 0"
             ><div class="files-empty">No generated files</div></template
           ><template x-for="file in files" :key="file.id"
-            ><button type="button" class="file-card" @click="openFile(file)">
+            ><div
+              class="file-card"
+              role="button"
+              tabindex="0"
+              @click="openFile(file)"
+              @keydown.enter.prevent="openFile(file)"
+              @keydown.space.prevent="openFile(file)"
+            >
               <span class="file-type" x-text="file.extension || 'file'"></span
               ><span class="file-card-copy"
                 ><b x-text="file.name"></b><small x-text="file.path"></small
                 ><small
                   x-text="formatDate(file.generated_at) + ' · ' + formatBytes(file.size)"
                 ></small></span
-              ><span class="file-open"
-                ><i data-lucide="external-link" aria-hidden="true"></i
-              ></span></button
+              ><span class="file-actions">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-ghost btn-square file-open"
+                  @click.stop="openFile(file)"
+                  title="Open file"
+                  aria-label="Open file"
+                >
+                  <i data-lucide="external-link" aria-hidden="true"></i>
+                </button>
+                <a
+                  class="btn btn-sm btn-ghost btn-square file-download"
+                  :href="downloadUrl(file)"
+                  download
+                  @click.stop
+                  title="Download file"
+                  aria-label="Download file"
+                >
+                  <i data-lucide="download" aria-hidden="true"></i>
+                </a>
+              </span></div
           ></template>
         </div>
       </aside>
