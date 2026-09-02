@@ -2839,10 +2839,6 @@ pre,
  padding-top: 8px;
  border-top: 1px solid var(--line);
 }
-.market-card-meta {
- color: var(--muted);
- font-size: 12px;
-}
 .market-uninstall-action {
  opacity: 0;
  pointer-events: none;
