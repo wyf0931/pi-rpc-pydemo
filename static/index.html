@@ -25,7 +25,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260901x" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260902market" />
   </head>
   <body
     x-data="platform()"
@@ -890,7 +890,7 @@
             </label>
             <button
               class="btn btn-primary"
-              x-show="['skills', 'extensions', 'mcp_servers'].includes(marketTab)"
+              x-show="['skills', 'extensions'].includes(marketTab)"
               x-cloak
               @click="openMarketInstall()"
             >
@@ -922,6 +922,19 @@
                       class="market-description"
                       x-text="item.description || 'No description available'"
                     ></p>
+                    <div class="card-actions market-card-footer">
+                      <span class="market-card-meta">Installed</span>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm btn-square market-uninstall-action"
+                        x-show="marketResourceSource(item)"
+                        @click.stop="openMarketUninstall('skills', item)"
+                        :aria-label="'Uninstall ' + item.name"
+                        title="Uninstall skill"
+                      >
+                        <i data-lucide="trash-2" aria-hidden="true"></i>
+                      </button>
+                    </div>
                   </div>
                 </article>
               </template>
@@ -965,6 +978,19 @@
                       class="market-description"
                       x-text="item.description || 'No description available'"
                     ></p>
+                    <div class="card-actions market-card-footer">
+                      <span class="market-card-meta">Installed</span>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm btn-square market-uninstall-action"
+                        x-show="marketResourceSource(item)"
+                        @click.stop="openMarketUninstall('extensions', item)"
+                        :aria-label="'Uninstall ' + item.name"
+                        title="Uninstall extension"
+                      >
+                        <i data-lucide="trash-2" aria-hidden="true"></i>
+                      </button>
+                    </div>
                   </div>
                 </article>
               </template>
@@ -1042,7 +1068,7 @@
           @click.self="closeMarketInstall()"
         >
           <div class="modal-box market-install-dialog">
-            <div class="dialog-head">
+            <div class="dialog-head" x-show="marketTab === 'skills'">
               <div>
                 <h2>Install skill</h2>
                 <p>Search skills.sh and add a skill to this workspace.</p>
@@ -1056,7 +1082,53 @@
                 <i data-lucide="x" aria-hidden="true"></i>
               </button>
             </div>
-            <form class="market-search" @submit.prevent="searchMarketSkills()">
+            <div class="dialog-head" x-show="marketTab === 'extensions'">
+              <div>
+                <h2>Install extension</h2>
+                <p>
+                  Find an extension package at
+                  <a class="link link-primary" href="https://pi.dev/packages" target="_blank" rel="noopener noreferrer">pi.dev/packages</a>.
+                </p>
+              </div>
+              <button
+                type="button"
+                class="icon-btn"
+                @click="closeMarketInstall()"
+                aria-label="Close install dialog"
+              >
+                <i data-lucide="x" aria-hidden="true"></i>
+              </button>
+            </div>
+            <form
+              class="market-extension-install"
+              x-show="marketTab === 'extensions'"
+              @submit.prevent="installMarketExtension()"
+            >
+              <label class="form-field">
+                <span>Package or install command</span>
+                <input
+                  class="input input-bordered"
+                  x-model="marketExtensionPackage"
+                  placeholder="pi install npm:pi-mcp-adapter"
+                  aria-label="Extension npm package"
+                  :disabled="marketExtensionAction"
+                />
+              </label>
+              <p class="market-command-preview">
+                <code>pi install npm:<span x-text="marketExtensionPackage.replace(/^pi install\\s+/, '').replace(/^npm:/, '') || 'package-name'"></span></code>
+              </p>
+              <div class="dialog-actions">
+                <button type="submit" class="btn btn-primary" :disabled="marketExtensionAction">
+                  <span x-show="!marketExtensionAction">Install</span>
+                  <span x-show="marketExtensionAction" class="loading loading-spinner loading-sm"></span>
+                </button>
+              </div>
+            </form>
+            <form
+              class="market-search"
+              x-show="marketTab === 'skills'"
+              @submit.prevent="searchMarketSkills()"
+            >
               <label class="market-search-field">
                 <i data-lucide="search" aria-hidden="true"></i>
                 <input
@@ -1130,7 +1202,6 @@
                             x-show="marketActionSkill === result.skill"
                             class="loading loading-spinner loading-xs"
                           ></span>
-                        </button>
                       </div>
                       <p class="market-result-repo" x-text="result.repo"></p>
                       <a
@@ -1158,8 +1229,44 @@
               </div>
             </div>
             <div class="market-install-note">
-              Review a skill before installing it. Installed skills run with the
-              agent's permissions.
+              <span
+                x-show="marketTab === 'skills'"
+                >Review a skill before installing it. Installed skills run with the
+                agent's permissions.</span
+              >
+              <span
+                x-show="marketTab === 'extensions'"
+                >Review the package before installing it. Extensions run with the
+                agent's permissions.</span
+              >
+            </div>
+          </div>
+        </dialog>
+        <dialog
+          class="modal modal-middle"
+          :open="!!marketUninstallTarget"
+          x-show="marketUninstallTarget"
+          x-cloak
+          @click.self="marketUninstallTarget = null"
+        >
+          <div class="modal-box confirm-box">
+            <div class="dialog-head">
+              <div>
+                <div class="eyebrow">Uninstall resource</div>
+                <h2>Remove <span x-text="marketUninstallTarget?.item.name"></span>?</h2>
+              </div>
+              <button type="button" class="icon-btn" @click="marketUninstallTarget = null" aria-label="Close">
+                <i data-lucide="x" aria-hidden="true"></i>
+              </button>
+            </div>
+            <p class="confirm-copy">
+              This will remove the installed
+              <span x-text="marketUninstallTarget?.kind === 'extensions' ? 'extension' : 'skill'"></span>
+              from Pi.
+            </p>
+            <div class="dialog-actions">
+              <button type="button" class="btn btn-ghost" @click="marketUninstallTarget = null">Cancel</button>
+              <button type="button" class="btn btn-error" @click="confirmMarketUninstall()">Uninstall</button>
             </div>
           </div>
         </dialog>
@@ -2154,7 +2261,13 @@
         </form>
       </div>
     </dialog>
-    <div class="toast" x-show="error" x-text="error" x-cloak></div>
+    <div
+      class="toast"
+      x-show="toastMessage || error"
+      x-text="toastMessage || error"
+      :class="{'toast-success': toastMessage && toastKind === 'success'}"
+      x-cloak
+    ></div>
 
     <dialog
       class="modal modal-middle"
@@ -2402,6 +2515,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260901i"></script>
+    <script src="/static/app.js?v=20260902market"></script>
   </body>
 </html>
