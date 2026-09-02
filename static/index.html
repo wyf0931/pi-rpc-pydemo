@@ -1146,22 +1146,26 @@
                 <input
                   class="input input-bordered"
                   x-model="marketSearch"
-                  placeholder="Search skills.sh"
-                  aria-label="Search skills.sh"
+                  placeholder="Search skills.sh or paste a GitHub URL"
+                  aria-label="Search skills.sh or paste a GitHub URL"
                 />
               </label>
               <input
                 class="input input-bordered market-owner"
                 x-model="marketOwner"
+                x-show="!marketSkillGitHubSource(marketSearch)"
                 placeholder="Owner (optional)"
                 aria-label="Filter by owner"
               />
-              <button
-                class="btn btn-primary"
+                  <button
+                    class="btn btn-primary"
                 type="submit"
                 :disabled="marketSearchLoading"
               >
-                <span x-show="!marketSearchLoading">Search</span>
+                    <span
+                      x-show="!marketSearchLoading"
+                      x-text="marketSkillGitHubSource(marketSearch) ? 'Preview' : 'Search'"
+                    ></span>
                 <span
                   x-show="marketSearchLoading"
                   class="loading loading-spinner loading-sm"
@@ -1219,6 +1223,7 @@
                       <a
                         class="link link-primary market-result-link"
                         :href="result.url"
+                        x-show="result.url"
                         target="_blank"
                         rel="noopener noreferrer"
                         x-text="result.url"

@@ -323,6 +323,7 @@ This MVP is a single FastAPI application with a static frontend. The main endpoi
 | `PUT /api/agents/{id}/avatar` | Upload or replace an Agent avatar |
 | `GET /api/resources` | Discover extensions, skills, MCP servers, Providers, and Models |
 | `POST /api/market/skills/search` | Search skills.sh for installable skills |
+| `POST /api/market/skills/preview` | Preview skills available from a GitHub source |
 | `POST /api/market/skills/install` | Install a selected skill globally for Pi |
 | `POST /api/market/skills/uninstall` | Uninstall a selected skill globally from Pi |
 | `POST /api/market/extensions/install` | Install an npm package extension globally for Pi |

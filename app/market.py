@@ -2,6 +2,7 @@ import asyncio
 import os
 import re
 import shutil
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -13,7 +14,21 @@ RESULT_RE = re.compile(
 )
 URL_RE = re.compile(r"^\s*[└├╰`\-]*\s*(?P<url>https?://\S+)\s*$")
 SOURCE_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+GITHUB_SOURCE_RE = re.compile(
+    r"^(?:"
+    r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+"
+    r"|https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\.git)?"
+    r"(?:/tree/[^/]+(?:/.*)?)?"
+    r"|git@github\.com:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\.git)?"
+    r"|ssh://git@github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\.git)?"
+    r")/?$",
+    re.IGNORECASE,
+)
 SKILL_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+PREVIEW_SKILL_RE = re.compile(
+    r"^\s*(?:[│|]\s*)?(?:[-*]\s*)?"
+    r"(?P<skill>[A-Za-z0-9][A-Za-z0-9._-]*)\s*$"
+)
 NPM_PACKAGE_RE = re.compile(
     r"^(?:@[a-z0-9][a-z0-9._~-]*/[a-z0-9][a-z0-9._~-]*|[a-z0-9][a-z0-9._~-]*)"
     r"(?:@(?:[a-z0-9*^~<>=|.+-]+))?$",
@@ -69,9 +84,33 @@ def parse_skill_search(output: str) -> list[dict[str, str]]:
     return [result.as_dict() for result in results]
 
 
+def parse_skill_preview(output: str) -> list[dict[str, str]]:
+    """Parse skill names from the skills CLI's human-readable --list output."""
+    lines = ANSI_RE.sub("", output).splitlines()
+    results: list[dict[str, str]] = []
+    in_available_section = False
+    for line in lines:
+        if "Available Skills" in line:
+            in_available_section = True
+            continue
+        if not in_available_section:
+            continue
+        if "Use --skill" in line:
+            break
+        match = PREVIEW_SKILL_RE.match(line)
+        if match and (
+            "│" in line or "|" in line or line.lstrip().startswith(("-", "*"))
+        ):
+            results.append({"skill": match["skill"]})
+    return results
+
+
 async def _run_skills_cli(command: list[str], timeout: float) -> str:
     environment = os.environ.copy()
     environment["DISABLE_TELEMETRY"] = "1"
+    environment.setdefault(
+        "NPM_CONFIG_CACHE", str(Path(tempfile.gettempdir()) / "oma-npm-cache")
+    )
     process = await asyncio.create_subprocess_exec(
         "npx",
         "-y",
@@ -99,8 +138,8 @@ async def _run_skills_cli(command: list[str], timeout: float) -> str:
 
 
 def validate_skill_source(source: str, skill: str) -> None:
-    if not SOURCE_RE.fullmatch(source):
-        raise ValueError("Skill source must use the owner/repository format")
+    if not GITHUB_SOURCE_RE.fullmatch(source):
+        raise ValueError("Skill source must be a GitHub repository or skill URL")
     if not SKILL_NAME_RE.fullmatch(skill):
         raise ValueError("Skill name contains unsupported characters")
 
@@ -111,6 +150,13 @@ async def search_skills(query: str, owner: str | None = None) -> list[dict[str, 
         command.extend(["--owner", owner])
     output = await _run_skills_cli(command, timeout=60)
     return parse_skill_search(output)
+
+
+async def preview_skills(source: str) -> list[dict[str, str]]:
+    if not GITHUB_SOURCE_RE.fullmatch(source):
+        raise ValueError("Skill source must be a GitHub repository or skill URL")
+    output = await _run_skills_cli(["add", source, "--list"], timeout=180)
+    return parse_skill_preview(output)
 
 
 async def install_skill(source: str, skill: str) -> None:

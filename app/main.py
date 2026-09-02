@@ -27,6 +27,7 @@ from .market import (
     install_skill,
     normalize_npm_package,
     npm_package_name,
+    preview_skills,
     search_skills,
     uninstall_extension,
     uninstall_local_extension,
@@ -114,6 +115,10 @@ class SkillSearch(BaseModel):
 class SkillInstall(BaseModel):
     source: str = Field(min_length=3, max_length=200)
     skill: str = Field(min_length=1, max_length=100)
+
+
+class SkillPreview(BaseModel):
+    source: str = Field(min_length=3, max_length=1000)
 
 
 class SkillUninstall(BaseModel):
@@ -239,6 +244,30 @@ async def market_skill_install(payload: SkillInstall):
     except RuntimeError as exc:
         raise HTTPException(502, f"skill install failed: {exc}") from exc
     return {"skill": skill, "resources": await list_resources()}
+
+
+@app.post("/api/market/skills/preview")
+async def market_skill_preview(payload: SkillPreview):
+    source = payload.source.strip()
+    try:
+        results = await preview_skills(source)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except TimeoutError as exc:
+        raise HTTPException(504, str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(502, f"skills preview failed: {exc}") from exc
+    return {
+        "results": [
+            {
+                "repo": source,
+                "skill": item["skill"],
+                "url": "",
+                "installs": "",
+            }
+            for item in results
+        ]
+    }
 
 
 @app.post("/api/market/skills/uninstall")
