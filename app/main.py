@@ -263,8 +263,7 @@ async def market_extension_install(payload: ExtensionPackage):
         package_name = npm_package_name(package)
         catalog = discover_resources(settings.pi_home, settings.pi_cwd)
         if any(
-            item["name"] == package_name
-            or item.get("source") == package
+            item["name"] == package_name or item.get("source") == package
             for item in catalog["extensions"]
         ):
             raise HTTPException(409, f"Extension {package_name} is already installed")

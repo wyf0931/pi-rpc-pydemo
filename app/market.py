@@ -146,7 +146,9 @@ def normalize_npm_package(value: str) -> str:
 
 def npm_package_name(source: str) -> str:
     package = source.removeprefix("npm:")
-    version_separator = package.find("@", 1) if package.startswith("@") else package.find("@")
+    version_separator = (
+        package.find("@", 1) if package.startswith("@") else package.find("@")
+    )
     return package if version_separator < 0 else package[:version_separator]
 
 

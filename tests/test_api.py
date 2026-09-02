@@ -184,9 +184,7 @@ def test_market_extension_install_rejects_already_installed(client, monkeypatch)
     monkeypatch.setattr(
         "app.main.discover_resources",
         lambda *args: {
-            "extensions": [
-                {"name": "pi-mcp-adapter", "source": "npm:pi-mcp-adapter"}
-            ]
+            "extensions": [{"name": "pi-mcp-adapter", "source": "npm:pi-mcp-adapter"}]
         },
     )
     response = client.post(
