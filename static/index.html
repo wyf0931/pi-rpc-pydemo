@@ -25,7 +25,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260903files-drawer" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260903soft-buttons" />
   </head>
   <body
     x-data="platform()"
@@ -765,7 +765,7 @@
             </div>
           </div>
           <div class="agent-catalog-toolbar">
-            <button class="send-btn" @click="newAgent()">
+            <button class="btn btn-soft btn-primary" @click="newAgent()">
               <i data-lucide="plus" aria-hidden="true"></i> New
             </button>
           </div>
@@ -889,7 +889,7 @@
               />
             </label>
             <button
-              class="btn btn-primary"
+              class="btn btn-soft btn-primary"
               x-show="['skills', 'extensions'].includes(marketTab)"
               x-cloak
               @click="openMarketInstall()"
@@ -1130,7 +1130,7 @@
                 <code>pi install npm:<span x-text="marketExtensionPackage.replace(/^pi install\\s+/, '').replace(/^npm:/, '') || 'package-name'"></span></code>
               </p>
               <div class="dialog-actions">
-                <button type="submit" class="btn btn-primary" :disabled="marketExtensionAction">
+                <button type="submit" class="btn btn-soft btn-primary" :disabled="marketExtensionAction">
                   <span x-show="!marketExtensionAction">Install</span>
                   <span x-show="marketExtensionAction" class="loading loading-spinner loading-sm"></span>
                 </button>
@@ -1158,7 +1158,7 @@
                 aria-label="Filter by owner"
               />
                   <button
-                    class="btn btn-primary"
+                    class="btn btn-soft btn-primary"
                 type="submit"
                 :disabled="marketSearchLoading"
               >
@@ -1203,7 +1203,7 @@
                         >
                         <button
                           type="button"
-                          class="btn btn-ghost btn-sm btn-square market-install-action"
+                          class="btn btn-soft btn-primary btn-sm btn-square market-install-action"
                           x-show="!marketSkillInstalled(result)"
                           :disabled="marketActionSkill === result.skill"
                           :aria-label="'Install ' + result.skill"
@@ -1353,7 +1353,7 @@
                 </template>
               </div>
             </div>
-            <button class="send-btn autopilot-new" @click="newAutopilot()">
+            <button class="btn btn-soft btn-primary autopilot-new" @click="newAutopilot()">
               <i data-lucide="plus" aria-hidden="true"></i> New
             </button>
           </div>
@@ -2562,6 +2562,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260903refresh"></script>
+    <script src="/static/app.js?v=20260903soft-buttons"></script>
   </body>
 </html>
