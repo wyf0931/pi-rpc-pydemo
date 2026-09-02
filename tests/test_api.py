@@ -186,6 +186,32 @@ def test_market_extension_uninstall(client, monkeypatch):
     assert called == {"package": "npm:pi-mcp-adapter"}
 
 
+def test_market_local_extension_uninstall(client, monkeypatch):
+    called = {}
+
+    async def fake_resources():
+        return {
+            "extensions": [{"path": "/tmp/local-extension", "name": "local-extension"}]
+        }
+
+    def fake_remove(path, roots):
+        called.update(path=path, roots=roots)
+
+    monkeypatch.setattr(
+        "app.main.discover_resources",
+        lambda *args: {
+            "extensions": [{"path": "/tmp/local-extension", "name": "local-extension"}]
+        },
+    )
+    monkeypatch.setattr("app.main.uninstall_local_extension", fake_remove)
+    response = client.post(
+        "/api/market/extensions/uninstall",
+        json={"path": "/tmp/local-extension"},
+    )
+    assert response.status_code == 200
+    assert called["path"] == "/tmp/local-extension"
+
+
 def test_market_skill_uninstall(client, monkeypatch):
     called = {}
 

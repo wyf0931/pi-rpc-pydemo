@@ -1,7 +1,9 @@
 import asyncio
 import os
 import re
+import shutil
 from dataclasses import dataclass
+from pathlib import Path
 
 ANSI_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 RESULT_RE = re.compile(
@@ -150,6 +152,21 @@ async def install_extension(package: str) -> None:
 async def uninstall_extension(package: str) -> None:
     source = normalize_npm_package(package)
     await _run_pi_cli(["remove", source], timeout=120)
+
+
+def uninstall_local_extension(path: str, roots: list[Path]) -> None:
+    resolved = Path(path).resolve()
+    resolved_roots = [root.resolve() for root in roots]
+    if not any(resolved.parent == root for root in resolved_roots):
+        raise ValueError(
+            "Local extension must be directly inside a Pi extensions directory"
+        )
+    if not resolved.exists():
+        raise ValueError("Local extension was not found")
+    if resolved.is_dir():
+        shutil.rmtree(resolved)
+    else:
+        resolved.unlink()
 
 
 async def _run_pi_cli(command: list[str], timeout: float) -> str:

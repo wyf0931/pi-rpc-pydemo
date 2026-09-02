@@ -1,4 +1,5 @@
 import asyncio
+from pathlib import Path
 
 import pytest
 
@@ -8,6 +9,7 @@ from app.market import (
     normalize_npm_package,
     parse_skill_search,
     uninstall_extension,
+    uninstall_local_extension,
     uninstall_skill,
 )
 
@@ -128,3 +130,20 @@ def test_uninstall_skill_without_source_uses_skill_name(monkeypatch):
     monkeypatch.setattr("app.market._run_skills_cli", fake_run)
     asyncio.run(uninstall_skill(None, "local-skill"))
     assert calls == [(["remove", "local-skill", "-g", "-a", "pi", "-y"], 120)]
+
+
+def test_uninstall_local_extension_only_removes_direct_child(tmp_path):
+    root = tmp_path / "extensions"
+    extension = root / "local-extension"
+    extension.mkdir(parents=True)
+    (extension / "index.ts").write_text("export default {}", encoding="utf-8")
+    uninstall_local_extension(str(extension), [Path(root)])
+    assert not extension.exists()
+
+
+def test_uninstall_local_extension_rejects_nested_path(tmp_path):
+    root = tmp_path / "extensions"
+    nested = root / "package" / "local-extension"
+    nested.mkdir(parents=True)
+    with pytest.raises(ValueError):
+        uninstall_local_extension(str(nested), [root])

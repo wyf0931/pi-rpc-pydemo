@@ -442,6 +442,7 @@ function platform() {
       if (item?.source) return item.source;
       if (kind === "extensions" && item?.path?.includes("/npm/node_modules/"))
         return `npm:${item.name}`;
+      if (kind === "extensions" && item?.path) return item.path;
       if (kind === "skills" && item?.name) return item.name;
       return "";
     },
@@ -457,9 +458,12 @@ function platform() {
         kind === "extensions"
           ? "/api/market/extensions/uninstall"
           : "/api/market/skills/uninstall";
+      const packageSource = this.marketResourceSource(kind, item);
       const payload =
         kind === "extensions"
-          ? { package: this.marketResourceSource(kind, item) }
+          ? packageSource.startsWith("npm:")
+            ? { package: packageSource }
+            : { path: packageSource }
           : {
               source: item.source || null,
               skill: item.name,

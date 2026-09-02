@@ -28,6 +28,7 @@ from .market import (
     normalize_npm_package,
     search_skills,
     uninstall_extension,
+    uninstall_local_extension,
     uninstall_skill,
     validate_skill_source,
 )
@@ -121,6 +122,11 @@ class SkillUninstall(BaseModel):
 
 class ExtensionPackage(BaseModel):
     package: str = Field(min_length=1, max_length=240)
+
+
+class ExtensionUninstall(BaseModel):
+    package: str | None = Field(default=None, min_length=1, max_length=240)
+    path: str | None = Field(default=None, min_length=1, max_length=1000)
 
 
 class AutopilotCreate(BaseModel):
@@ -261,10 +267,33 @@ async def market_extension_install(payload: ExtensionPackage):
 
 
 @app.post("/api/market/extensions/uninstall")
-async def market_extension_uninstall(payload: ExtensionPackage):
+async def market_extension_uninstall(payload: ExtensionUninstall):
     try:
-        package = normalize_npm_package(payload.package)
-        await uninstall_extension(package)
+        if payload.package:
+            package = normalize_npm_package(payload.package)
+            await uninstall_extension(package)
+        elif payload.path:
+            catalog = discover_resources(settings.pi_home, settings.pi_cwd)
+            discovered = next(
+                (
+                    item
+                    for item in catalog["extensions"]
+                    if item["path"] == payload.path
+                ),
+                None,
+            )
+            if not discovered:
+                raise ValueError("Local extension is not a discovered resource")
+            uninstall_local_extension(
+                payload.path,
+                [
+                    settings.pi_home / "extensions",
+                    settings.pi_cwd / ".pi" / "extensions",
+                ],
+            )
+            package = discovered["name"]
+        else:
+            raise ValueError("Extension package or path is required")
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     except TimeoutError as exc:
