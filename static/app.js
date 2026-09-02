@@ -257,10 +257,15 @@ function platform() {
     },
     async loadAgents() {
       try {
-        this.agents = (await this.api("/api/agents")).agents;
+        await this.refreshAgents();
       } catch (e) {
         this.showError(e);
       }
+    },
+    async refreshAgents() {
+      const data = await this.api("/api/agents");
+      this.agents = data.agents || [];
+      return this.agents;
     },
     async loadChats() {
       try {
@@ -337,12 +342,15 @@ function platform() {
     },
     async loadResources() {
       try {
-        this.resources = await this.api("/api/resources");
-        if (this.resources.tools?.length)
-          this.toolCatalog = this.resources.tools;
+        await this.refreshResources();
       } catch (e) {
         this.showError(e);
       }
+    },
+    async refreshResources() {
+      this.resources = await this.api("/api/resources");
+      if (this.resources.tools?.length) this.toolCatalog = this.resources.tools;
+      return this.resources;
     },
     marketCatalogItems(kind) {
       const items = this.resources[kind] || [];
@@ -414,11 +422,11 @@ function platform() {
       this.marketActionSkill = result.skill;
       this.marketSearchError = "";
       try {
-        const data = await this.api("/api/market/skills/install", {
+        await this.api("/api/market/skills/install", {
           method: "POST",
           body: JSON.stringify({ source: result.repo, skill: result.skill }),
         });
-        if (data.resources) this.resources = data.resources;
+        await this.refreshResources();
         this.marketInstallOpen = false;
         this.marketSearchResults = [];
         this.showToast(`Skill ${result.skill} installed`);
@@ -440,7 +448,7 @@ function platform() {
           method: "POST",
           body: JSON.stringify({ package: packageInput }),
         });
-        if (data.resources) this.resources = data.resources;
+        await this.refreshResources();
         const installed = data.package?.replace(/^npm:/, "") || packageInput;
         this.marketInstallOpen = false;
         this.marketExtensionPackage = "";
@@ -490,11 +498,11 @@ function platform() {
               skill: item.name,
             };
       try {
-        const data = await this.api(path, {
+        await this.api(path, {
           method: "POST",
           body: JSON.stringify(payload),
         });
-        if (data.resources) this.resources = data.resources;
+        await this.refreshResources();
         this.marketUninstallTarget = null;
         this.showToast(
           `${kind === "extensions" ? "Extension" : "Skill"} ${item.name} uninstalled`,
@@ -1958,13 +1966,14 @@ function platform() {
           !editing && avatarFile
             ? await this.uploadAvatarFile(agent.id, avatarFile)
             : agent;
-        const index = this.agents.findIndex((item) => item.id === savedAgent.id);
-        if (index >= 0) this.agents[index] = savedAgent;
-        else this.agents.push(savedAgent);
+        await this.refreshAgents();
+        const refreshedAgent =
+          this.agents.find((item) => item.id === savedAgent.id) || savedAgent;
         this.createDialog = false;
-        this.dialog = savedAgent;
+        this.dialog = refreshedAgent;
         this.editingAgent = null;
         this.page = "agents";
+        this.showToast(editing ? "Agent updated" : "Agent created");
       } catch (e) {
         this.showError(e);
       } finally {
@@ -2070,9 +2079,10 @@ function platform() {
       if (!agent) return;
       try {
         await this.api(`/api/agents/${agent.id}`, { method: "DELETE" });
-        this.agents = this.agents.filter((item) => item.id !== agent.id);
+        await this.refreshAgents();
         if (this.dialog?.id === agent.id) this.dialog = null;
         this.confirmTarget = null;
+        this.showToast(`Agent ${agent.name} deleted`);
       } catch (e) {
         this.showError(e);
       }
