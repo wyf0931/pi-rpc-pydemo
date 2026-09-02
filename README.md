@@ -122,11 +122,16 @@ cp .env.example .env
 bin/ops.sh start
 # Alternate host port for this invocation:
 bin/ops.sh start 8080
+# Local development server with uvicorn hot reload:
+bin/ops.sh start-dev 8000
 ```
 
 `ops.sh` runs the platform in Docker Compose (app layer + process layer in one
 container, storage on host mounts — see [Docker](#docker)); no `uv sync` required for
 this path.
+
+`start-dev` runs `uv run uvicorn` directly from the repository root with
+`--reload`; it does not start Docker.
 
 Open <http://127.0.0.1:8000>. To avoid a host-port conflict, pass a port to
 `start` or `restart`, for example `bin/ops.sh restart 8080`, then open
