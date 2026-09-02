@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # OMA Studio operations — Docker Compose mode.
-#   bin/ops.sh start [PORT]|stop|restart [PORT]|status [PORT]|logs
+#   bin/ops.sh start [PORT]|start-dev [PORT]|stop|restart [PORT]|status [PORT]|logs
 # The container serves the API and UI on ${OMA_PORT:-8000}; storage lives in
 # ~/.oma-studio/ and ~/.pi/agent via the mounts in docker-compose.yml.
 #
@@ -22,7 +22,7 @@ PORT=""
 SERVICE="oma-studio"
 
 usage() {
-  echo "Usage: $0 {start|restart|status} [PORT|-p PORT] | {stop|logs}" >&2
+  echo "Usage: $0 {start|start-dev|restart|status} [PORT|-p PORT] | {stop|logs}" >&2
   echo "  PORT defaults to OMA_PORT or 8000 and changes the host port only." >&2
 }
 
@@ -49,6 +49,10 @@ start() {
   "${DC[@]}" up -d --build
   wait_healthy || true
   status
+}
+
+start_dev() {
+  exec uv run uvicorn app.main:app --env-file .env --port "$PORT" --reload
 }
 
 # Wait for the app to answer /api/health (image build + uvicorn boot take a moment).
@@ -92,9 +96,13 @@ logs() {
 }
 
 case "${1:-}" in
-  start|restart|status)
+  start|start-dev|restart|status)
     resolve_port "${@:2}"
-    "${1}"
+    if [[ "$1" == "start-dev" ]]; then
+      start_dev
+    else
+      "${1}"
+    fi
     ;;
   stop|logs)
     if [[ $# -ne 1 ]]; then
