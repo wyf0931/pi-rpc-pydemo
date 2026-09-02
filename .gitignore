@@ -10,3 +10,4 @@ logs/
 workspace/
 research/
 .superpowers/
+.DS_Store
