@@ -25,7 +25,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260902market" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260902author" />
   </head>
   <body
     x-data="platform()"
@@ -926,7 +926,8 @@
                       <span
                         class="market-card-author"
                         x-text="marketResourceAuthor('skills', item)"
-                      ></span>
+                      ><i data-lucide="user" aria-hidden="true"></i></span
+                      >
                       <button
                         type="button"
                         class="btn btn-ghost btn-sm btn-square market-uninstall-action"
@@ -985,7 +986,8 @@
                       <span
                         class="market-card-author"
                         x-text="marketResourceAuthor('extensions', item)"
-                      ></span>
+                      ><i data-lucide="user" aria-hidden="true"></i></span
+                      >
                       <button
                         type="button"
                         class="btn btn-ghost btn-sm btn-square market-uninstall-action"
@@ -2521,6 +2523,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260902market"></script>
+    <script src="/static/app.js?v=20260902author"></script>
   </body>
 </html>
