@@ -452,7 +452,7 @@ function platform() {
         kind === "skills" && item?.source
           ? item.source.split("/", 1)[0].trim()
           : "";
-      return (author || sourceAuthor || "local").slice(0, 10);
+      return (author || sourceAuthor || "admin").slice(0, 10);
     },
     openMarketUninstall(kind, item) {
       if (!this.marketResourceSource(kind, item)) return;

@@ -2846,11 +2846,19 @@ pre,
  transition: opacity 120ms ease;
 }
 .market-card-author {
+ display: inline-flex;
+ align-items: center;
+ gap: 5px;
  color: var(--muted);
  font-size: 12px;
  overflow: hidden;
  text-overflow: ellipsis;
  white-space: nowrap;
+}
+.market-card-author svg {
+ width: 14px;
+ height: 14px;
+ flex: 0 0 auto;
 }
 .market-card:hover .market-uninstall-action,
 .market-uninstall-action:focus-visible {
