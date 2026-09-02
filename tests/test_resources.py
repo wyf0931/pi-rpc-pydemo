@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 from app.config import get_settings
-from app.resources import discover_models
+from app.resources import discover_models, discover_resources
 
 
 def test_discovers_pi_model_catalog(tmp_path: Path):
@@ -121,7 +121,26 @@ def test_skill_discovery_includes_skills_cli_source(tmp_path: Path):
         encoding="utf-8",
     )
 
-    from app.resources import discover_resources
-
     skills = discover_resources(pi_home, tmp_path / "workspace")["skills"]
     assert skills[0]["source"] == "owner/writing-skills"
+    assert skills[0]["author"] == "owner"
+
+
+def test_resource_metadata_includes_package_author(tmp_path: Path):
+    pi_home = tmp_path / ".pi" / "agent"
+    package_dir = pi_home / "npm" / "node_modules" / "example-extension"
+    package_dir.mkdir(parents=True)
+    (package_dir / "package.json").write_text(
+        json.dumps(
+            {
+                "name": "example-extension",
+                "author": {"name": "Example Author"},
+                "pi": {"extensions": ["./index.ts"]},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (package_dir / "index.ts").write_text("export default {}", encoding="utf-8")
+
+    extensions = discover_resources(pi_home, tmp_path / "workspace")["extensions"]
+    assert extensions[0]["author"] == "Example Author"

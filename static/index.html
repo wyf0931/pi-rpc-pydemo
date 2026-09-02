@@ -923,6 +923,10 @@
                       x-text="item.description || 'No description available'"
                     ></p>
                     <div class="card-actions market-card-footer">
+                      <span
+                        class="market-card-author"
+                        x-text="marketResourceAuthor('skills', item)"
+                      ></span>
                       <button
                         type="button"
                         class="btn btn-ghost btn-sm btn-square market-uninstall-action"
@@ -978,6 +982,10 @@
                       x-text="item.description || 'No description available'"
                     ></p>
                     <div class="card-actions market-card-footer">
+                      <span
+                        class="market-card-author"
+                        x-text="marketResourceAuthor('extensions', item)"
+                      ></span>
                       <button
                         type="button"
                         class="btn btn-ghost btn-sm btn-square market-uninstall-action"

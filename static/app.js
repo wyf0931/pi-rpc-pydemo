@@ -446,6 +446,14 @@ function platform() {
       if (kind === "skills" && item?.name) return item.name;
       return "";
     },
+    marketResourceAuthor(kind, item) {
+      const author = typeof item?.author === "string" ? item.author.trim() : "";
+      const sourceAuthor =
+        kind === "skills" && item?.source
+          ? item.source.split("/", 1)[0].trim()
+          : "";
+      return (author || sourceAuthor || "local").slice(0, 10);
+    },
     openMarketUninstall(kind, item) {
       if (!this.marketResourceSource(kind, item)) return;
       this.marketUninstallTarget = { kind, item };

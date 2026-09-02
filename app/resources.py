@@ -45,6 +45,8 @@ def _skill_metadata(path: Path, source: str | None = None) -> dict:
         "path": str(directory),
         "type": "skill",
         "source": source,
+        "author": frontmatter.get("author")
+        or (source.split("/", 1)[0] if source else None),
     }
 
 
@@ -72,6 +74,14 @@ def _extension_metadata(
 ) -> dict:
     package = package or {}
     resolved = str(resource_path.resolve())
+    package_author = package.get("author")
+    if isinstance(package_author, dict):
+        package_author = package_author.get("name")
+    if not isinstance(package_author, str) or not package_author.strip():
+        maintainers = package.get("maintainers")
+        if isinstance(maintainers, list) and maintainers:
+            first = maintainers[0]
+            package_author = first.get("name") if isinstance(first, dict) else None
     return {
         "id": resolved,
         "name": package.get("name") or resource_path.stem,
@@ -79,6 +89,7 @@ def _extension_metadata(
         "path": resolved,
         "type": "extension",
         "source": source,
+        "author": package_author if isinstance(package_author, str) else None,
     }
 
 
