@@ -438,11 +438,15 @@ function platform() {
         this.marketExtensionAction = false;
       }
     },
-    marketResourceSource(item) {
-      return item?.source || "";
+    marketResourceSource(kind, item) {
+      if (item?.source) return item.source;
+      if (kind === "extensions" && item?.path?.includes("/npm/node_modules/"))
+        return `npm:${item.name}`;
+      if (kind === "skills" && item?.name) return item.name;
+      return "";
     },
     openMarketUninstall(kind, item) {
-      if (!this.marketResourceSource(item)) return;
+      if (!this.marketResourceSource(kind, item)) return;
       this.marketUninstallTarget = { kind, item };
     },
     async confirmMarketUninstall() {
@@ -455,8 +459,11 @@ function platform() {
           : "/api/market/skills/uninstall";
       const payload =
         kind === "extensions"
-          ? { package: item.source }
-          : { source: item.source, skill: item.name };
+          ? { package: this.marketResourceSource(kind, item) }
+          : {
+              source: item.source || null,
+              skill: item.name,
+            };
       try {
         const data = await this.api(path, {
           method: "POST",

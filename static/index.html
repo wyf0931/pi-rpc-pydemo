@@ -926,7 +926,7 @@
                       <button
                         type="button"
                         class="btn btn-ghost btn-sm btn-square market-uninstall-action"
-                        x-show="marketResourceSource(item)"
+                        x-show="marketResourceSource('skills', item)"
                         @click.stop="openMarketUninstall('skills', item)"
                         :aria-label="'Uninstall ' + item.name"
                         title="Uninstall skill"
@@ -981,7 +981,7 @@
                       <button
                         type="button"
                         class="btn btn-ghost btn-sm btn-square market-uninstall-action"
-                        x-show="marketResourceSource(item)"
+                        x-show="marketResourceSource('extensions', item)"
                         @click.stop="openMarketUninstall('extensions', item)"
                         :aria-label="'Uninstall ' + item.name"
                         title="Uninstall extension"
