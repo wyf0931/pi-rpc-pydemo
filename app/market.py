@@ -12,6 +12,11 @@ RESULT_RE = re.compile(
 URL_RE = re.compile(r"^\s*[└├╰`\-]*\s*(?P<url>https?://\S+)\s*$")
 SOURCE_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 SKILL_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+NPM_PACKAGE_RE = re.compile(
+    r"^(?:@[a-z0-9][a-z0-9._~-]*/[a-z0-9][a-z0-9._~-]*|[a-z0-9][a-z0-9._~-]*)"
+    r"(?:@(?:[a-z0-9*^~<>=|.+-]+))?$",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -112,3 +117,55 @@ async def install_skill(source: str, skill: str) -> None:
         ["add", source, "--skill", skill, "-g", "-a", "pi", "-y", "--copy"],
         timeout=120,
     )
+
+
+async def uninstall_skill(source: str, skill: str) -> None:
+    validate_skill_source(source, skill)
+    await _run_skills_cli(
+        ["remove", skill, "-g", "-a", "pi", "-y"],
+        timeout=120,
+    )
+
+
+def normalize_npm_package(value: str) -> str:
+    """Normalize a user-entered Pi npm install command to its package source."""
+    source = value.strip()
+    if source.lower().startswith("pi install "):
+        source = source[11:].strip()
+    if source.startswith("npm:"):
+        source = source[4:].strip()
+    if not NPM_PACKAGE_RE.fullmatch(source):
+        raise ValueError("Enter a valid npm package id, such as pi-mcp-adapter")
+    return f"npm:{source}"
+
+
+async def install_extension(package: str) -> None:
+    source = normalize_npm_package(package)
+    await _run_pi_cli(["install", source], timeout=180)
+
+
+async def uninstall_extension(package: str) -> None:
+    source = normalize_npm_package(package)
+    await _run_pi_cli(["remove", source], timeout=120)
+
+
+async def _run_pi_cli(command: list[str], timeout: float) -> str:
+    process = await asyncio.create_subprocess_exec(
+        "pi",
+        *command,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+    except TimeoutError:
+        process.kill()
+        await process.wait()
+        raise TimeoutError(
+            f"pi command timed out after {int(timeout)} seconds"
+        ) from None
+
+    if process.returncode:
+        detail = stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(detail or f"pi exited with code {process.returncode}")
+    return stdout.decode("utf-8", errors="replace")

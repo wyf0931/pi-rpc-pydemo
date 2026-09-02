@@ -22,7 +22,15 @@ from .files import (
     read_session_messages,
     resolve_chat_file,
 )
-from .market import install_skill, search_skills, validate_skill_source
+from .market import (
+    install_extension,
+    install_skill,
+    normalize_npm_package,
+    search_skills,
+    uninstall_extension,
+    uninstall_skill,
+    validate_skill_source,
+)
 from .observability import configure_logging, trace_request
 from .pi_rpc import ActiveTurn, PiRpcError, PiRuntimeManager
 from .resources import discover_resources
@@ -104,6 +112,15 @@ class SkillSearch(BaseModel):
 class SkillInstall(BaseModel):
     source: str = Field(min_length=3, max_length=200)
     skill: str = Field(min_length=1, max_length=100)
+
+
+class SkillUninstall(BaseModel):
+    source: str = Field(min_length=3, max_length=200)
+    skill: str = Field(min_length=1, max_length=100)
+
+
+class ExtensionPackage(BaseModel):
+    package: str = Field(min_length=1, max_length=240)
 
 
 class AutopilotCreate(BaseModel):
@@ -212,6 +229,49 @@ async def market_skill_install(payload: SkillInstall):
     except RuntimeError as exc:
         raise HTTPException(502, f"skill install failed: {exc}") from exc
     return {"skill": skill, "resources": await list_resources()}
+
+
+@app.post("/api/market/skills/uninstall")
+async def market_skill_uninstall(payload: SkillUninstall):
+    source = payload.source.strip()
+    skill = payload.skill.strip()
+    try:
+        await uninstall_skill(source, skill)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except TimeoutError as exc:
+        raise HTTPException(504, str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(502, f"skill uninstall failed: {exc}") from exc
+    return {"skill": skill, "resources": await list_resources()}
+
+
+@app.post("/api/market/extensions/install")
+async def market_extension_install(payload: ExtensionPackage):
+    try:
+        package = normalize_npm_package(payload.package)
+        await install_extension(package)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except TimeoutError as exc:
+        raise HTTPException(504, str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(502, f"extension install failed: {exc}") from exc
+    return {"package": package, "resources": await list_resources()}
+
+
+@app.post("/api/market/extensions/uninstall")
+async def market_extension_uninstall(payload: ExtensionPackage):
+    try:
+        package = normalize_npm_package(payload.package)
+        await uninstall_extension(package)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except TimeoutError as exc:
+        raise HTTPException(504, str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(502, f"extension uninstall failed: {exc}") from exc
+    return {"package": package, "resources": await list_resources()}
 
 
 @app.post("/api/agents", status_code=201)

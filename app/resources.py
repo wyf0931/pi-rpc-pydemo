@@ -67,7 +67,9 @@ def _skill_sources(pi_home: Path) -> dict[str, str]:
     return sources
 
 
-def _extension_metadata(resource_path: Path, package: dict | None = None) -> dict:
+def _extension_metadata(
+    resource_path: Path, package: dict | None = None, source: str | None = None
+) -> dict:
     package = package or {}
     resolved = str(resource_path.resolve())
     return {
@@ -76,6 +78,7 @@ def _extension_metadata(resource_path: Path, package: dict | None = None) -> dic
         "description": package.get("description", ""),
         "path": resolved,
         "type": "extension",
+        "source": source,
     }
 
 
@@ -184,7 +187,13 @@ def discover_resources(pi_home: Path, cwd: Path) -> dict:
                     continue
                 if str(extension_path) not in seen_extensions:
                     seen_extensions.add(str(extension_path))
-                    extensions.append(_extension_metadata(extension_path, package))
+                    extensions.append(
+                        _extension_metadata(
+                            extension_path,
+                            package,
+                            f"npm:{package['name']}" if package.get("name") else None,
+                        )
+                    )
         except (OSError, json.JSONDecodeError, TypeError):
             continue
 

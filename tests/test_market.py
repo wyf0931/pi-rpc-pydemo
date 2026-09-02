@@ -1,6 +1,15 @@
 import asyncio
 
-from app.market import install_skill, parse_skill_search
+import pytest
+
+from app.market import (
+    install_extension,
+    install_skill,
+    normalize_npm_package,
+    parse_skill_search,
+    uninstall_extension,
+    uninstall_skill,
+)
 
 
 def test_parse_skill_search_pairs_results_with_urls():
@@ -56,3 +65,54 @@ def test_install_skill_uses_copy_and_pi_target(monkeypatch):
             120,
         )
     ]
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("pi install npm:pi-mcp-adapter", "npm:pi-mcp-adapter"),
+        (
+            "npm:@juicesharp/rpiv-ask-user-question",
+            "npm:@juicesharp/rpiv-ask-user-question",
+        ),
+        ("@scope/package@1.2.3", "npm:@scope/package@1.2.3"),
+    ],
+)
+def test_normalize_npm_package(value, expected):
+    assert normalize_npm_package(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value", ["", "npm:", "pi install npm:x;rm", "git+https://example.com/x"]
+)
+def test_normalize_npm_package_rejects_commands(value):
+    with pytest.raises(ValueError):
+        normalize_npm_package(value)
+
+
+def test_pi_install_and_remove_use_argument_lists(monkeypatch):
+    calls = []
+
+    async def fake_run(command, timeout):
+        calls.append((command, timeout))
+        return ""
+
+    monkeypatch.setattr("app.market._run_pi_cli", fake_run)
+    asyncio.run(install_extension("pi-mcp-adapter"))
+    asyncio.run(uninstall_extension("npm:pi-mcp-adapter"))
+    assert calls == [
+        (["install", "npm:pi-mcp-adapter"], 180),
+        (["remove", "npm:pi-mcp-adapter"], 120),
+    ]
+
+
+def test_uninstall_skill_uses_global_pi_target(monkeypatch):
+    calls = []
+
+    async def fake_run(command, timeout):
+        calls.append((command, timeout))
+        return ""
+
+    monkeypatch.setattr("app.market._run_skills_cli", fake_run)
+    asyncio.run(uninstall_skill("owner/repo", "skill-name"))
+    assert calls == [(["remove", "skill-name", "-g", "-a", "pi", "-y"], 120)]

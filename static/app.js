@@ -97,6 +97,11 @@ function platform() {
     marketSearchLoading: false,
     marketSearchError: "",
     marketActionSkill: "",
+    marketExtensionPackage: "",
+    marketExtensionAction: false,
+    marketUninstallTarget: null,
+    toastMessage: "",
+    toastKind: "success",
     searchOpen: false,
     chatSearchQuery: "",
     error: "",
@@ -379,10 +384,11 @@ function platform() {
       this.marketOwner = "";
       this.marketSearchResults = [];
       this.marketSearchError = "";
+      this.marketExtensionPackage = "";
       this.marketInstallOpen = true;
     },
     closeMarketInstall() {
-      if (this.marketActionSkill) return;
+      if (this.marketActionSkill || this.marketExtensionAction) return;
       this.marketInstallOpen = false;
       this.marketSearchError = "";
     },
@@ -402,11 +408,76 @@ function platform() {
         if (data.resources) this.resources = data.resources;
         this.marketInstallOpen = false;
         this.marketSearchResults = [];
+        this.showToast(`Skill ${result.skill} installed`);
       } catch (error) {
-        this.marketSearchError = error.message;
+        this.showError(error);
       } finally {
         this.marketActionSkill = "";
       }
+    },
+    async installMarketExtension() {
+      const packageInput = this.marketExtensionPackage.trim();
+      if (!packageInput) {
+        this.showError(new Error("Enter an npm package id"));
+        return;
+      }
+      this.marketExtensionAction = true;
+      try {
+        const data = await this.api("/api/market/extensions/install", {
+          method: "POST",
+          body: JSON.stringify({ package: packageInput }),
+        });
+        if (data.resources) this.resources = data.resources;
+        const installed = data.package?.replace(/^npm:/, "") || packageInput;
+        this.marketInstallOpen = false;
+        this.marketExtensionPackage = "";
+        this.showToast(`Extension ${installed} installed`);
+      } catch (error) {
+        this.showError(error);
+      } finally {
+        this.marketExtensionAction = false;
+      }
+    },
+    marketResourceSource(item) {
+      return item?.source || "";
+    },
+    openMarketUninstall(kind, item) {
+      if (!this.marketResourceSource(item)) return;
+      this.marketUninstallTarget = { kind, item };
+    },
+    async confirmMarketUninstall() {
+      const target = this.marketUninstallTarget;
+      if (!target) return;
+      const { kind, item } = target;
+      const path =
+        kind === "extensions"
+          ? "/api/market/extensions/uninstall"
+          : "/api/market/skills/uninstall";
+      const payload =
+        kind === "extensions"
+          ? { package: item.source }
+          : { source: item.source, skill: item.name };
+      try {
+        const data = await this.api(path, {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        if (data.resources) this.resources = data.resources;
+        this.marketUninstallTarget = null;
+        this.showToast(
+          `${kind === "extensions" ? "Extension" : "Skill"} ${item.name} uninstalled`,
+        );
+      } catch (error) {
+        this.showError(error);
+      }
+    },
+    showToast(message, kind = "success") {
+      this.error = "";
+      this.toastMessage = message;
+      this.toastKind = kind;
+      setTimeout(() => {
+        this.toastMessage = "";
+      }, 5000);
     },
     async toggleFiles() {
       this.filesOpen = !this.filesOpen;
@@ -2302,6 +2373,7 @@ function platform() {
       "web_fetch",
     ],
     showError(error) {
+      this.toastMessage = "";
       this.error = error.message || String(error);
       this.runError = this.error;
       const current = this.messages[this.messages.length - 1];

@@ -317,6 +317,11 @@ This MVP is a single FastAPI application with a static frontend. The main endpoi
 | `GET /api/agents/{id}/avatar` | Read an Agent avatar |
 | `PUT /api/agents/{id}/avatar` | Upload or replace an Agent avatar |
 | `GET /api/resources` | Discover extensions, skills, MCP servers, Providers, and Models |
+| `POST /api/market/skills/search` | Search skills.sh for installable skills |
+| `POST /api/market/skills/install` | Install a selected skill globally for Pi |
+| `POST /api/market/skills/uninstall` | Uninstall a selected skill globally from Pi |
+| `POST /api/market/extensions/install` | Install an npm package extension globally for Pi |
+| `POST /api/market/extensions/uninstall` | Uninstall an npm package extension from Pi |
 | `GET /api/chats` | List chat metadata |
 | `POST /api/chats` | Create a chat record and external Pi session ID |
 | `PATCH /api/chats/{id}` | Update chat metadata such as the session title |

@@ -144,6 +144,63 @@ def test_market_skill_install_rejects_unsafe_source(client, monkeypatch):
     assert response.status_code == 422
 
 
+def test_market_extension_install(client, monkeypatch):
+    called = {}
+
+    async def fake_install(package):
+        called["package"] = package
+
+    monkeypatch.setattr("app.main.install_extension", fake_install)
+    response = client.post(
+        "/api/market/extensions/install",
+        json={"package": "@scope/extension"},
+    )
+    assert response.status_code == 200
+    assert called == {"package": "npm:@scope/extension"}
+
+
+def test_market_extension_install_rejects_command(client, monkeypatch):
+    async def fail_install(*args):
+        raise AssertionError("invalid package must not reach Pi")
+
+    monkeypatch.setattr("app.main.install_extension", fail_install)
+    response = client.post(
+        "/api/market/extensions/install",
+        json={"package": "pi-mcp-adapter; rm -rf /"},
+    )
+    assert response.status_code == 422
+
+
+def test_market_extension_uninstall(client, monkeypatch):
+    called = {}
+
+    async def fake_uninstall(package):
+        called["package"] = package
+
+    monkeypatch.setattr("app.main.uninstall_extension", fake_uninstall)
+    response = client.post(
+        "/api/market/extensions/uninstall",
+        json={"package": "npm:pi-mcp-adapter"},
+    )
+    assert response.status_code == 200
+    assert called == {"package": "npm:pi-mcp-adapter"}
+
+
+def test_market_skill_uninstall(client, monkeypatch):
+    called = {}
+
+    async def fake_uninstall(source, skill):
+        called.update(source=source, skill=skill)
+
+    monkeypatch.setattr("app.main.uninstall_skill", fake_uninstall)
+    response = client.post(
+        "/api/market/skills/uninstall",
+        json={"source": "acme/skills", "skill": "python"},
+    )
+    assert response.status_code == 200
+    assert called == {"source": "acme/skills", "skill": "python"}
+
+
 def test_create_agent_and_missing_chat(client, temporary_agent):
     response = temporary_agent(
         {"name": f"writer-{uuid4()}", "instruction": "Write clearly"}
