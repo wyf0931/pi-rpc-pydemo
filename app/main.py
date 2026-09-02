@@ -23,6 +23,7 @@ from .files import (
     resolve_chat_file,
 )
 from .market import (
+    github_source_owner,
     install_extension,
     install_skill,
     normalize_npm_package,
@@ -264,6 +265,7 @@ async def market_skill_preview(payload: SkillPreview):
                 "skill": item["skill"],
                 "url": "",
                 "installs": "",
+                "owner": github_source_owner(source),
             }
             for item in results
         ]

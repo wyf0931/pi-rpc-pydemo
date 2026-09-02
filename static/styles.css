@@ -2732,9 +2732,22 @@ pre,
 }
 .market-result-meta {
  display: flex;
+ align-items: center;
+ gap: 10px;
  justify-content: flex-start;
  margin-top: auto;
  padding-top: 8px;
+}
+.market-result-owner {
+ display: inline-flex;
+ align-items: center;
+ gap: 5px;
+ color: var(--muted);
+ font-size: 12px;
+}
+.market-result-owner svg {
+ width: 14px;
+ height: 14px;
 }
 .market-result-repo,
 .market-result-link {
