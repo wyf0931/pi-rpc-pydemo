@@ -87,6 +87,25 @@ def test_request_id_is_propagated_and_generated(client):
     assert generated.headers["X-Request-ID"] != "debug-123"
 
 
+def test_auth_session_and_admin_users(client):
+    session = client.get("/api/auth/session")
+    assert session.status_code == 200
+    assert session.json()["user"]["role"] == "admin"
+
+    created = client.post(
+        "/api/users",
+        json={"username": f"managed-{uuid4().hex[:8]}", "email": "user@example.com"},
+    )
+    assert created.status_code == 201
+    assert created.json()["role"] == "normal"
+    assert "password_hash" not in created.json()
+
+
+def test_auth_rejects_unauthenticated_requests(client):
+    client.post("/api/auth/logout")
+    assert client.get("/api/agents").status_code == 401
+
+
 def test_resources_expose_platform_web_tools(client):
     tools = {
         item["name"]: item for item in client.get("/api/resources").json()["tools"]

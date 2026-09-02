@@ -42,6 +42,8 @@ class Settings:
     jina_api_key: str | None
     baidu_search_api_key: str | None
     baidu_search_base_url: str
+    admin_password: str | None
+    default_user_password: str | None
 
 
 def get_settings() -> Settings:
@@ -93,4 +95,6 @@ def get_settings() -> Settings:
             "BAIDU_SEARCH_BASE_URL", "https://qianfan.baidubce.com"
         )
         or "https://qianfan.baidubce.com",
+        admin_password=value("OMA_ADMIN_PASSWORD"),
+        default_user_password=value("OMA_DEFAULT_USER_PASSWORD"),
     )

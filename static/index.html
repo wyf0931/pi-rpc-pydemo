@@ -25,7 +25,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260903soft-buttons" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260903users" />
   </head>
   <body
     x-data="platform()"
@@ -40,9 +40,47 @@
       <span class="loading loading-bars loading-md" aria-hidden="true"></span>
       <span>Loading workspace…</span>
     </div>
+    <main
+      class="login-screen"
+      x-show="authChecked && !authUser && !sharedMode"
+      x-cloak
+    >
+      <form class="card login-card" @submit.prevent="login()">
+        <div class="login-brand">
+          <img src="/static/oma-logo-light.png" alt="OMA studio" />
+          <span>OMA studio</span>
+        </div>
+        <h1>Welcome back</h1>
+        <p>Sign in to continue to your workspace.</p>
+        <label class="form-field">
+          <span>Username</span>
+          <input
+            class="input input-bordered"
+            x-model="loginUsername"
+            autocomplete="username"
+            required
+          />
+        </label>
+        <label class="form-field">
+          <span>Password</span>
+          <input
+            class="input input-bordered"
+            type="password"
+            x-model="loginPassword"
+            autocomplete="current-password"
+            required
+          />
+        </label>
+        <div class="alert alert-error" x-show="loginError" x-text="loginError" x-cloak></div>
+        <button class="btn btn-primary login-submit" type="submit" :disabled="loginLoading">
+          <span x-show="!loginLoading">Sign in</span>
+          <span x-show="loginLoading" class="loading loading-spinner loading-sm"></span>
+        </button>
+      </form>
+    </main>
     <div
       class="app-shell"
-      x-show="appReady"
+      x-show="appReady && (sharedMode || authUser)"
       x-cloak
       :class="{
         'sidebar-collapsed': sidebarCollapsed,
@@ -207,6 +245,17 @@
             </div>
           </div>
           <div class="sidebar-footer">
+            <button
+              type="button"
+              class="theme-toggle"
+              x-show="authUser?.role === 'admin'"
+              x-cloak
+              title="Users"
+              aria-label="Users"
+              @click="openUsers()"
+            >
+              <i data-lucide="users" aria-hidden="true"></i>
+            </button>
             <label class="swap swap-rotate theme-toggle" title="Toggle theme"
               ><input
                 type="checkbox"
@@ -1818,6 +1867,141 @@
       </div>
     </dialog>
     <dialog
+      class="modal modal-middle users-dialog"
+      :open="usersOpen"
+      x-show="usersOpen"
+      x-cloak
+      @click.self="usersOpen = false"
+    >
+      <div class="modal-box">
+        <div class="dialog-head">
+          <div>
+            <div class="eyebrow">Administration</div>
+            <h2>Users</h2>
+          </div>
+          <button type="button" class="icon-btn" @click="usersOpen = false" aria-label="Close users">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="users-toolbar">
+          <p x-text="users.length + ' user' + (users.length === 1 ? '' : 's')"></p>
+          <button type="button" class="btn btn-ghost" @click="openAddUser()">
+            <i data-lucide="plus" aria-hidden="true"></i> Add
+          </button>
+        </div>
+        <div class="users-table-wrap">
+          <div class="files-empty" x-show="usersLoading">
+            <span class="loading loading-dots loading-sm"></span>
+          </div>
+          <table class="table" x-show="!usersLoading">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Last login</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="user in users" :key="user.id">
+                <tr>
+                  <td x-text="user.username"></td>
+                  <td><code x-text="user.username"></code></td>
+                  <td x-text="user.email || '—'"></td>
+                  <td>
+                    <span class="badge badge-soft" :class="user.status === 'active' ? 'badge-success' : 'badge-ghost'" x-text="user.status"></span>
+                  </td>
+                  <td x-text="formatDateTime(user.created_at)"></td>
+                  <td x-text="user.last_login_at ? formatDateTime(user.last_login_at) : 'Never'"></td>
+                  <td>
+                    <div class="users-actions">
+                      <input
+                        type="checkbox"
+                        class="toggle toggle-sm toggle-success"
+                        :checked="user.status === 'active'"
+                        :disabled="user.role === 'admin'"
+                        @change="toggleManagedUser(user)"
+                        :aria-label="'Enable ' + user.username"
+                      />
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-error btn-sm btn-square"
+                        x-show="user.role !== 'admin'"
+                        @click="requestDeleteUser(user)"
+                        :aria-label="'Delete ' + user.username"
+                        title="Delete user"
+                      >
+                        <i data-lucide="trash-2" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </dialog>
+    <dialog
+      class="modal modal-middle user-add-dialog"
+      :open="userAddOpen"
+      x-show="userAddOpen"
+      x-cloak
+      @click.self="userAddOpen = false"
+    >
+      <div class="modal-box">
+        <div class="dialog-head">
+          <div>
+            <div class="eyebrow">Administration</div>
+            <h2>Add user</h2>
+          </div>
+          <button type="button" class="icon-btn" @click="userAddOpen = false" aria-label="Close add user">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <form @submit.prevent="createManagedUser()">
+          <label class="form-field">
+            <span>Username</span>
+            <input class="input input-bordered" x-model="newUserUsername" pattern="[A-Za-z0-9_.-]+" required autocomplete="off" />
+          </label>
+          <label class="form-field">
+            <span>Email <small>(optional)</small></span>
+            <input class="input input-bordered" type="email" x-model="newUserEmail" autocomplete="off" />
+          </label>
+          <p class="user-default-password">Default password: <code>OMA888</code></p>
+          <div class="dialog-actions">
+            <button type="button" class="btn btn-ghost" @click="userAddOpen = false">Cancel</button>
+            <button type="submit" class="btn btn-primary" :disabled="userCreating">
+              <span x-show="!userCreating">Add user</span>
+              <span x-show="userCreating" class="loading loading-spinner loading-sm"></span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+    <dialog
+      class="modal modal-middle"
+      :open="!!userDeleteTarget"
+      x-show="userDeleteTarget"
+      x-cloak
+      @click.self="userDeleteTarget = null"
+    >
+      <div class="modal-box confirm-box">
+        <div class="dialog-head">
+          <div><div class="eyebrow">Administration</div><h2>Delete <span x-text="userDeleteTarget?.username"></span>?</h2></div>
+          <button type="button" class="icon-btn" @click="userDeleteTarget = null" aria-label="Close"><i data-lucide="x" aria-hidden="true"></i></button>
+        </div>
+        <p class="confirm-copy">This user will no longer be able to sign in.</p>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-ghost" @click="userDeleteTarget = null">Cancel</button>
+          <button type="button" class="btn btn-error" @click="confirmDeleteUser()">Delete user</button>
+        </div>
+      </div>
+    </dialog>
+    <dialog
       class="modal modal-middle settings-dialog"
       :open="settingsOpen"
       x-show="settingsOpen"
@@ -2562,6 +2746,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260903soft-buttons"></script>
+    <script src="/static/app.js?v=20260903users"></script>
   </body>
 </html>

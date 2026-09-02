@@ -214,15 +214,12 @@ to the server and deploys the exact pushed SHA (NGINX terminates HTTPS for
 `studio.ohmyagent.ai` and proxies to a loopback-bound container). Add
 `[skip deploy]` to a commit message to ship without deploying. Required repo
 secrets: `OMA_DEPLOY_KEY` (deploy-only SSH private key), `OMA_DEPLOY_HOST`,
-`OMA_DEPLOY_USER`, `OMA_DEPLOY_KNOWN_HOSTS`, and `OMA_SMOKE_BASIC_AUTH`
-(credentials for the post-deploy smoke check). Until the platform ships its
-own user auth, NGINX fronts the site with HTTP Basic Auth
-(`/etc/nginx/.htpasswd-oma-studio` on the server); the smoke check and browser
-access both go through it. Share pages (`/share/*`) and their public API
-(`/api/share/*`) are the one exception: the unguessable token in the link is
-the only gate, so NGINX turns basic auth off for those locations on the
-server (plus `/static/` and `/file-view`, which the read-only share view
-needs to load page assets and open shared files).
+and `OMA_DEPLOY_USER`. The platform now uses its own username/password
+session auth. Configure `OMA_ADMIN_PASSWORD` for the built-in admin bootstrap
+and `OMA_DEFAULT_USER_PASSWORD` for passwords assigned to admin-created users.
+Passwords are stored as salted scrypt hashes. Share pages (`/share/*`) and
+their public API (`/api/share/*`) remain token-gated and do not require a
+login.
 
 Manual deploy / rollback:
 
@@ -250,6 +247,8 @@ PI_MODE=production
 JINA_API_KEY=
 BAIDU_SEARCH_API_KEY=
 BAIDU_SEARCH_BASE_URL=https://qianfan.baidubce.com
+OMA_ADMIN_PASSWORD=replace-with-a-local-admin-password
+OMA_DEFAULT_USER_PASSWORD=replace-with-a-temporary-user-password
 ```
 
 `PI_CWD` is Pi's working directory. It is **not** a filesystem security boundary: Pi can access anything available to the operating-system user when tools such as `bash` are enabled.
@@ -315,6 +314,13 @@ This MVP is a single FastAPI application with a static frontend. The main endpoi
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /api/health` | Runtime health and active Pi process count |
+| `POST /api/auth/login` | Sign in with a username and password |
+| `GET /api/auth/session` | Read the current signed-in user |
+| `POST /api/auth/logout` | End the current session |
+| `GET /api/users` | List users (admin only) |
+| `POST /api/users` | Add a normal user (admin only) |
+| `PATCH /api/users/{id}/status` | Enable or disable a user (admin only) |
+| `DELETE /api/users/{id}` | Delete a normal user (admin only) |
 | `GET /api/agents` | List Agent definitions |
 | `POST /api/agents` | Create an Agent definition |
 | `PATCH /api/agents/{id}` | Update an Agent definition |
@@ -413,7 +419,7 @@ The test suite covers TinyDB persistence, Agent Provider/Model overrides, model 
 
 - [ ] OpenShell-backed `SandboxRunner` for policy-controlled Pi execution.
 - [ ] Project workspaces and per-project sandbox policies.
-- [ ] Durable production datastore and user authentication.
+- [ ] Durable production datastore beyond the current TinyDB-backed user auth.
 - [ ] Agent marketplace, autopilots, and library modules.
 
 ## Contributing

@@ -5,6 +5,8 @@ from uuid import uuid4
 
 from tinydb import Query, TinyDB  # pyright: ignore[reportMissingImports]
 
+from .auth import hash_password, new_session_token, session_digest
+
 DEFAULT_TOOLS = ["read", "write", "edit", "bash"]
 BUILTIN_TOOLS = DEFAULT_TOOLS + ["grep", "find", "ls"]
 PLATFORM_TOOLS = ["web_fetch", "web_search"]
@@ -40,6 +42,91 @@ class Store:
         self.autopilots = self.db.table("autopilots")
         self.autopilot_runs = self.db.table("autopilot_runs")
         self.shares = self.db.table("shares")
+        self.users = self.db.table("users")
+        self.sessions = self.db.table("sessions")
+
+    @staticmethod
+    def public_user(user: dict) -> dict:
+        return {key: value for key, value in user.items() if key != "password_hash"}
+
+    def ensure_default_user(self, password: str) -> dict:
+        user = self.get_user_by_username("admin")
+        if user:
+            return user
+        timestamp = now_iso()
+        user = {
+            "id": str(uuid4()),
+            "username": "admin",
+            "email": None,
+            "password_hash": hash_password(password),
+            "role": "admin",
+            "status": "active",
+            "created_at": timestamp,
+            "last_login_at": None,
+        }
+        self.users.insert(user)
+        return user
+
+    def list_users(self) -> list[dict]:
+        return [self.public_user(user) for user in self.users.all()]
+
+    def get_user(self, user_id: str) -> dict | None:
+        return self.users.get(Query().id == user_id)
+
+    def get_user_by_username(self, username: str) -> dict | None:
+        return self.users.get(Query().username == username)
+
+    def create_user(self, username: str, email: str | None, password: str) -> dict:
+        timestamp = now_iso()
+        user = {
+            "id": str(uuid4()),
+            "username": username.strip(),
+            "email": email.strip() if email else None,
+            "password_hash": hash_password(password),
+            "role": "normal",
+            "status": "active",
+            "created_at": timestamp,
+            "last_login_at": None,
+        }
+        self.users.insert(user)
+        return user
+
+    def update_user_status(self, user_id: str, status: str) -> dict | None:
+        self.users.update({"status": status}, Query().id == user_id)
+        return self.get_user(user_id)
+
+    def delete_user(self, user_id: str) -> bool:
+        self.sessions.remove(Query().user_id == user_id)
+        return bool(self.users.remove(Query().id == user_id))
+
+    def create_session(self, user_id: str, expires_at: str) -> str:
+        token = new_session_token()
+        self.sessions.insert(
+            {
+                "id": str(uuid4()),
+                "token_hash": session_digest(token),
+                "user_id": user_id,
+                "created_at": now_iso(),
+                "expires_at": expires_at,
+            }
+        )
+        return token
+
+    def get_session_user(self, token: str) -> dict | None:
+        session = self.sessions.get(Query().token_hash == session_digest(token))
+        if not session:
+            return None
+        if session.get("expires_at", "") <= now_iso():
+            self.sessions.remove(doc_ids=[session.doc_id])
+            return None
+        return self.get_user(session["user_id"])
+
+    def delete_session(self, token: str) -> None:
+        self.sessions.remove(Query().token_hash == session_digest(token))
+
+    def mark_user_login(self, user_id: str) -> dict | None:
+        self.users.update({"last_login_at": now_iso()}, Query().id == user_id)
+        return self.get_user(user_id)
 
     def ensure_default_agent(self, default_tools: list[str] | None = None) -> dict:
         agent = self.agents.get(Query().id == "default-assistant")
