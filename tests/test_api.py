@@ -201,6 +201,21 @@ def test_market_skill_uninstall(client, monkeypatch):
     assert called == {"source": "acme/skills", "skill": "python"}
 
 
+def test_market_skill_uninstall_without_source(client, monkeypatch):
+    called = {}
+
+    async def fake_uninstall(source, skill):
+        called.update(source=source, skill=skill)
+
+    monkeypatch.setattr("app.main.uninstall_skill", fake_uninstall)
+    response = client.post(
+        "/api/market/skills/uninstall",
+        json={"skill": "local-skill"},
+    )
+    assert response.status_code == 200
+    assert called == {"source": None, "skill": "local-skill"}
+
+
 def test_create_agent_and_missing_chat(client, temporary_agent):
     response = temporary_agent(
         {"name": f"writer-{uuid4()}", "instruction": "Write clearly"}

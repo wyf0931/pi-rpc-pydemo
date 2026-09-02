@@ -115,7 +115,7 @@ class SkillInstall(BaseModel):
 
 
 class SkillUninstall(BaseModel):
-    source: str = Field(min_length=3, max_length=200)
+    source: str | None = Field(default=None, min_length=3, max_length=200)
     skill: str = Field(min_length=1, max_length=100)
 
 
@@ -233,7 +233,7 @@ async def market_skill_install(payload: SkillInstall):
 
 @app.post("/api/market/skills/uninstall")
 async def market_skill_uninstall(payload: SkillUninstall):
-    source = payload.source.strip()
+    source = payload.source.strip() if payload.source else None
     skill = payload.skill.strip()
     try:
         await uninstall_skill(source, skill)

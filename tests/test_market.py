@@ -116,3 +116,15 @@ def test_uninstall_skill_uses_global_pi_target(monkeypatch):
     monkeypatch.setattr("app.market._run_skills_cli", fake_run)
     asyncio.run(uninstall_skill("owner/repo", "skill-name"))
     assert calls == [(["remove", "skill-name", "-g", "-a", "pi", "-y"], 120)]
+
+
+def test_uninstall_skill_without_source_uses_skill_name(monkeypatch):
+    calls = []
+
+    async def fake_run(command, timeout):
+        calls.append((command, timeout))
+        return ""
+
+    monkeypatch.setattr("app.market._run_skills_cli", fake_run)
+    asyncio.run(uninstall_skill(None, "local-skill"))
+    assert calls == [(["remove", "local-skill", "-g", "-a", "pi", "-y"], 120)]
