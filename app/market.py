@@ -198,6 +198,20 @@ def npm_package_name(source: str) -> str:
     return package if version_separator < 0 else package[:version_separator]
 
 
+def github_source_owner(source: str) -> str | None:
+    normalized = source.strip().removesuffix("/")
+    if normalized.startswith("https://github.com/"):
+        path = normalized.removeprefix("https://github.com/")
+    elif normalized.startswith("git@github.com:"):
+        path = normalized.removeprefix("git@github.com:")
+    elif normalized.startswith("ssh://git@github.com/"):
+        path = normalized.removeprefix("ssh://git@github.com/")
+    else:
+        path = normalized
+    owner = path.split("/", 1)[0]
+    return owner or None
+
+
 async def install_extension(package: str) -> None:
     source = normalize_npm_package(package)
     await _run_pi_cli(["install", source], timeout=180)

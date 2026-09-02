@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from app.market import (
+    github_source_owner,
     install_extension,
     install_skill,
     normalize_npm_package,
@@ -65,6 +66,14 @@ def test_validate_skill_source_accepts_github_references():
         "ssh://git@github.com/owner/repo.git",
     ):
         validate_skill_source(source, "example")
+
+
+def test_github_source_owner_extracts_user_or_org():
+    assert github_source_owner("https://github.com/tt-a1i/archify") == "tt-a1i"
+    assert (
+        github_source_owner("https://github.com/tt-a1i/archify/tree/main") == "tt-a1i"
+    )
+    assert github_source_owner("git@github.com:tt-a1i/archify.git") == "tt-a1i"
 
 
 def test_install_skill_uses_copy_and_pi_target(monkeypatch):

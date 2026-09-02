@@ -134,6 +134,7 @@ def test_market_skill_preview(client, monkeypatch):
             "skill": "mono-color",
             "url": "",
             "installs": "",
+            "owner": "yanliudesign",
         }
     ]
 
