@@ -26,6 +26,7 @@ from .market import (
     install_extension,
     install_skill,
     normalize_npm_package,
+    npm_package_name,
     search_skills,
     uninstall_extension,
     uninstall_local_extension,
@@ -227,6 +228,9 @@ async def market_skill_install(payload: SkillInstall):
     )
     try:
         validate_skill_source(source, skill)
+        catalog = discover_resources(settings.pi_home, settings.pi_cwd)
+        if any(item["name"] == skill for item in catalog["skills"]):
+            raise HTTPException(409, f"Skill {skill} is already installed")
         await install_skill(source, skill)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
@@ -256,6 +260,14 @@ async def market_skill_uninstall(payload: SkillUninstall):
 async def market_extension_install(payload: ExtensionPackage):
     try:
         package = normalize_npm_package(payload.package)
+        package_name = npm_package_name(package)
+        catalog = discover_resources(settings.pi_home, settings.pi_cwd)
+        if any(
+            item["name"] == package_name
+            or item.get("source") == package
+            for item in catalog["extensions"]
+        ):
+            raise HTTPException(409, f"Extension {package_name} is already installed")
         await install_extension(package)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc

@@ -132,6 +132,23 @@ def test_market_skill_install(client, monkeypatch):
     assert called == {"source": "acme/skills", "skill": "python"}
 
 
+def test_market_skill_install_rejects_already_installed(client, monkeypatch):
+    async def fail_install(*args):
+        raise AssertionError("duplicate skill must not reach the CLI")
+
+    monkeypatch.setattr("app.main.install_skill", fail_install)
+    monkeypatch.setattr(
+        "app.main.discover_resources",
+        lambda *args: {"skills": [{"name": "python", "source": "acme/skills"}]},
+    )
+    response = client.post(
+        "/api/market/skills/install",
+        json={"source": "acme/skills", "skill": "python"},
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Skill python is already installed"
+
+
 def test_market_skill_install_rejects_unsafe_source(client, monkeypatch):
     async def fail_install(*args):
         raise AssertionError("unsafe source must not reach the CLI")
@@ -157,6 +174,27 @@ def test_market_extension_install(client, monkeypatch):
     )
     assert response.status_code == 200
     assert called == {"package": "npm:@scope/extension"}
+
+
+def test_market_extension_install_rejects_already_installed(client, monkeypatch):
+    async def fail_install(*args):
+        raise AssertionError("duplicate extension must not reach Pi")
+
+    monkeypatch.setattr("app.main.install_extension", fail_install)
+    monkeypatch.setattr(
+        "app.main.discover_resources",
+        lambda *args: {
+            "extensions": [
+                {"name": "pi-mcp-adapter", "source": "npm:pi-mcp-adapter"}
+            ]
+        },
+    )
+    response = client.post(
+        "/api/market/extensions/install",
+        json={"package": "pi install npm:pi-mcp-adapter"},
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Extension pi-mcp-adapter is already installed"
 
 
 def test_market_extension_install_rejects_command(client, monkeypatch):
