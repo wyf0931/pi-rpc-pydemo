@@ -25,7 +25,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260903cards" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260903trash" />
   </head>
   <body
     x-data="platform()"
@@ -932,7 +932,7 @@
                       >
                       <button
                         type="button"
-                        class="btn btn-ghost btn-error btn-sm btn-square market-uninstall-action"
+                        class="trash-btn market-uninstall-action"
                         x-show="marketResourceSource('skills', item)"
                         @click.stop="openMarketUninstall('skills', item)"
                         :aria-label="'Uninstall ' + item.name"
@@ -994,7 +994,7 @@
                       >
                       <button
                         type="button"
-                        class="btn btn-ghost btn-error btn-sm btn-square market-uninstall-action"
+                        class="trash-btn market-uninstall-action"
                         x-show="marketResourceSource('extensions', item)"
                         @click.stop="openMarketUninstall('extensions', item)"
                         :aria-label="'Uninstall ' + item.name"

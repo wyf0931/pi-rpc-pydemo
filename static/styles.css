@@ -922,6 +922,7 @@ body {
   background 0.15s;
 }
 .agent-card:hover .trash-btn,
+.market-card:hover .trash-btn,
 .trash-btn:focus-visible {
  opacity: 1;
 }
@@ -2844,22 +2845,6 @@ pre,
  padding-top: 8px;
  border-top: 1px solid var(--line);
 }
-.market-uninstall-action {
- margin-left: auto;
- width: 30px;
- height: 30px;
- min-height: 30px;
- padding: 7px;
- border: 1px solid var(--line);
- border-radius: 6px;
- background: var(--color-base-100);
- color: var(--color-error);
- opacity: 0;
- pointer-events: none;
- transition:
-  opacity 120ms ease,
-  background 120ms ease;
-}
 .market-card-author {
  display: inline-flex;
  align-items: center;
@@ -2874,15 +2859,6 @@ pre,
  width: 14px;
  height: 14px;
  flex: 0 0 auto;
-}
-.market-card:hover .market-uninstall-action,
-.market-uninstall-action:focus-visible {
- opacity: 1;
- pointer-events: auto;
-}
-.market-uninstall-action:hover {
- background: var(--color-error);
- color: var(--color-error-content);
 }
 .market-extension-install {
  margin-top: 22px;
