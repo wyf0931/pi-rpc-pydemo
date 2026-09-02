@@ -364,13 +364,18 @@ function platform() {
       this.marketSearchLoading = true;
       this.marketSearchError = "";
       try {
-        const data = await this.api("/api/market/skills/search", {
+        const githubSource = this.marketSkillGitHubSource(query);
+        const data = await this.api(
+          githubSource ? "/api/market/skills/preview" : "/api/market/skills/search",
+          {
           method: "POST",
-          body: JSON.stringify({
-            query,
-            owner: this.marketOwner.trim() || null,
-          }),
-        });
+            body: JSON.stringify(
+              githubSource
+                ? { source: githubSource }
+                : { query, owner: this.marketOwner.trim() || null },
+            ),
+          },
+        );
         this.marketSearchResults = data.results || [];
       } catch (error) {
         this.marketSearchResults = [];
@@ -378,6 +383,12 @@ function platform() {
       } finally {
         this.marketSearchLoading = false;
       }
+    },
+    marketSkillGitHubSource(value) {
+      const source = value.trim().replace(/\/$/, "");
+      return /^(?:[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+|https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?(?:\/tree\/[^/]+(?:\/.*)?)?|git@github\.com:[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?|ssh:\/\/git@github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?)$/i.test(source)
+        ? source
+        : "";
     },
     openMarketInstall() {
       this.marketSearch = "";
@@ -394,7 +405,9 @@ function platform() {
     },
     marketSkillInstalled(result) {
       return this.resources.skills.some(
-        (item) => item.name === result.skill && item.source === result.repo,
+        (item) =>
+          item.name === result.skill &&
+          (!result.repo || item.source === result.repo || !item.source),
       );
     },
     async installMarketSkill(result) {

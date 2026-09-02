@@ -8,10 +8,12 @@ from app.market import (
     install_skill,
     normalize_npm_package,
     npm_package_name,
+    parse_skill_preview,
     parse_skill_search,
     uninstall_extension,
     uninstall_local_extension,
     uninstall_skill,
+    validate_skill_source,
 )
 
 
@@ -41,6 +43,28 @@ owner/collection@small-skill 1,234 installs
 
 def test_parse_skill_search_ignores_unpaired_result():
     assert parse_skill_search("owner/repo@skill 10K installs\n") == []
+
+
+def test_parse_skill_preview_reads_available_skills():
+    output = """
+◇  Available Skills
+│
+│    mono-color
+│
+└  Use --skill <name> to install specific skills
+"""
+    assert parse_skill_preview(output) == [{"skill": "mono-color"}]
+
+
+def test_validate_skill_source_accepts_github_references():
+    for source in (
+        "owner/repo",
+        "https://github.com/owner/repo",
+        "https://github.com/owner/repo/tree/main/skills/example",
+        "git@github.com:owner/repo.git",
+        "ssh://git@github.com/owner/repo.git",
+    ):
+        validate_skill_source(source, "example")
 
 
 def test_install_skill_uses_copy_and_pi_target(monkeypatch):

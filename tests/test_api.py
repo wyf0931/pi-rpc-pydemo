@@ -117,6 +117,27 @@ def test_market_skill_search(client, monkeypatch):
     assert response.json()["results"][0]["skill"] == "python"
 
 
+def test_market_skill_preview(client, monkeypatch):
+    async def fake_preview(source):
+        assert source == "https://github.com/yanliudesign/mono-color-skill"
+        return [{"skill": "mono-color"}]
+
+    monkeypatch.setattr("app.main.preview_skills", fake_preview)
+    response = client.post(
+        "/api/market/skills/preview",
+        json={"source": "https://github.com/yanliudesign/mono-color-skill"},
+    )
+    assert response.status_code == 200
+    assert response.json()["results"] == [
+        {
+            "repo": "https://github.com/yanliudesign/mono-color-skill",
+            "skill": "mono-color",
+            "url": "",
+            "installs": "",
+        }
+    ]
+
+
 def test_market_skill_install(client, monkeypatch):
     called = {}
 
