@@ -75,9 +75,6 @@ jobs:
             "$target" "$remote" '${{ github.sha }}'
 
       - name: Smoke check production
-        env:
-          OMA_SMOKE_BASIC_AUTH: ${{ secrets.OMA_SMOKE_BASIC_AUTH }}
         run: |
           curl -fsS --max-time 15 \
-            -u "$OMA_SMOKE_BASIC_AUTH" \
             https://studio.ohmyagent.ai/api/health
