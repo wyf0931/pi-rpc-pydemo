@@ -102,6 +102,20 @@ function platform() {
     marketUninstallTarget: null,
     toastMessage: "",
     toastKind: "success",
+    authChecked: false,
+    authUser: null,
+    loginUsername: "",
+    loginPassword: "",
+    loginLoading: false,
+    loginError: "",
+    usersOpen: false,
+    users: [],
+    usersLoading: false,
+    userAddOpen: false,
+    userCreating: false,
+    userDeleteTarget: null,
+    newUserUsername: "",
+    newUserEmail: "",
     searchOpen: false,
     chatSearchQuery: "",
     error: "",
@@ -158,7 +172,15 @@ function platform() {
         window.location.pathname.startsWith("/share/") ||
         window.location.pathname === "/file-view" ||
         new URLSearchParams(location.search).has("share");
+      if (this.sharedMode) this.authChecked = true;
       this.setTheme(this.theme);
+      if (!this.sharedMode) {
+        await this.loadSession();
+        if (!this.authUser) {
+          this.appReady = true;
+          return;
+        }
+      }
       try {
         this.feedback = JSON.parse(
           localStorage.getItem("oma-feedback") || "{}",
@@ -249,6 +271,47 @@ function platform() {
       }
       return data;
     },
+    async loadSession() {
+      try {
+        const data = await this.api("/api/auth/session");
+        this.authUser = data.user;
+      } catch (error) {
+        this.authUser = null;
+        this.loginError = error.message;
+      } finally {
+        this.authChecked = true;
+      }
+    },
+    async login() {
+      if (this.loginLoading) return;
+      this.loginLoading = true;
+      this.loginError = "";
+      try {
+        this.authUser = await this.api("/api/auth/login", {
+          method: "POST",
+          body: JSON.stringify({
+            username: this.loginUsername,
+            password: this.loginPassword,
+          }),
+        });
+        this.loginPassword = "";
+        this.appReady = false;
+        await Promise.all([
+          this.loadAgents(),
+          this.loadChats(),
+          this.loadHealth(),
+          this.loadResources(),
+        ]);
+        if (this.agents.length) this.selectedAgentId = this.agents[0].id;
+        this.appReady = true;
+        await this.routeFromUrl();
+      } catch (error) {
+        this.authUser = null;
+        this.loginError = error.message;
+      } finally {
+        this.loginLoading = false;
+      }
+    },
     errorFromResponse(response, requestId, data = null) {
       const detail = data?.detail || `Server returned ${response.status}`;
       const error = new Error(`${detail} (request_id: ${requestId})`);
@@ -266,6 +329,73 @@ function platform() {
       const data = await this.api("/api/agents");
       this.agents = data.agents || [];
       return this.agents;
+    },
+    async loadUsers() {
+      this.usersLoading = true;
+      try {
+        this.users = (await this.api("/api/users")).users;
+      } catch (error) {
+        this.showError(error);
+      } finally {
+        this.usersLoading = false;
+      }
+    },
+    async openUsers() {
+      this.usersOpen = true;
+      await this.loadUsers();
+    },
+    openAddUser() {
+      this.newUserUsername = "";
+      this.newUserEmail = "";
+      this.userAddOpen = true;
+    },
+    async createManagedUser() {
+      if (this.userCreating) return;
+      this.userCreating = true;
+      try {
+        await this.api("/api/users", {
+          method: "POST",
+          body: JSON.stringify({
+            username: this.newUserUsername,
+            email: this.newUserEmail || null,
+          }),
+        });
+        await this.loadUsers();
+        this.userAddOpen = false;
+        this.showToast(`User ${this.newUserUsername} added`);
+      } catch (error) {
+        this.showError(error);
+      } finally {
+        this.userCreating = false;
+      }
+    },
+    async toggleManagedUser(user) {
+      const status = user.status === "active" ? "disabled" : "active";
+      try {
+        await this.api(`/api/users/${user.id}/status`, {
+          method: "PATCH",
+          body: JSON.stringify({ status }),
+        });
+        await this.loadUsers();
+        this.showToast(`User ${user.username} ${status}`);
+      } catch (error) {
+        this.showError(error);
+      }
+    },
+    requestDeleteUser(user) {
+      if (user.role !== "admin") this.userDeleteTarget = user;
+    },
+    async confirmDeleteUser() {
+      const user = this.userDeleteTarget;
+      if (!user) return;
+      try {
+        await this.api(`/api/users/${user.id}`, { method: "DELETE" });
+        await this.loadUsers();
+        this.userDeleteTarget = null;
+        this.showToast(`User ${user.username} deleted`);
+      } catch (error) {
+        this.showError(error);
+      }
     },
     async loadChats() {
       try {

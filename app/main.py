@@ -4,14 +4,15 @@ import json
 import logging
 import time
 from collections.abc import AsyncIterator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, Response, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from .auth import verify_password
 from .autopilots import AutopilotScheduler, next_run_at
 from .avatars import avatar_file, remove_avatar, save_avatar, seed_default_avatar
 from .config import get_settings
@@ -58,6 +59,11 @@ if not default_agent.get("avatar_path"):
             seeded_agent["id"], {"avatar_path": seeded_agent["avatar_path"]}
         )
 runtime = PiRuntimeManager(settings, store)
+if not settings.admin_password or not settings.default_user_password:
+    raise RuntimeError(
+        "OMA_ADMIN_PASSWORD and OMA_DEFAULT_USER_PASSWORD must be configured"
+    )
+store.ensure_default_user(settings.admin_password)
 
 # SSE heartbeat cadence. Any proxy/browser idle timeout must be far larger
 # than this (Cloudflare cuts idle streams at ~100s).
@@ -65,6 +71,36 @@ SSE_KEEPALIVE_SECONDS = 20.0
 app = FastAPI(title="Pi Agent Platform")
 app.middleware("http")(trace_request)
 logger = logging.getLogger(__name__)
+SESSION_COOKIE = "oma_session"
+
+
+def _request_user(request: Request) -> dict | None:
+    token = request.cookies.get(SESSION_COOKIE)
+    return store.get_session_user(token) if token else None
+
+
+def _is_auth_exempt(path: str) -> bool:
+    return (
+        path in {"/api/health", "/api/auth/login", "/api/auth/session"}
+        or path.startswith("/api/share/")
+        or not path.startswith("/api/")
+    )
+
+
+def _require_admin(request: Request) -> dict:
+    user = request.state.user
+    if not user or user.get("role") != "admin":
+        raise HTTPException(403, "Admin access required")
+    return user
+
+
+@app.middleware("http")
+async def require_login(request: Request, call_next):
+    user = _request_user(request)
+    request.state.user = user
+    if not user and not _is_auth_exempt(request.url.path):
+        return JSONResponse({"detail": "Authentication required"}, status_code=401)
+    return await call_next(request)
 
 
 def _has_session_file(chat: dict) -> bool:
@@ -122,6 +158,20 @@ class SkillPreview(BaseModel):
     source: str = Field(min_length=3, max_length=1000)
 
 
+class LoginPayload(BaseModel):
+    username: str = Field(min_length=1, max_length=80)
+    password: str = Field(min_length=1, max_length=200)
+
+
+class UserCreate(BaseModel):
+    username: str = Field(min_length=1, max_length=80, pattern=r"^[A-Za-z0-9_.-]+$")
+    email: str | None = Field(default=None, max_length=200)
+
+
+class UserStatusUpdate(BaseModel):
+    status: str = Field(pattern=r"^(active|disabled)$")
+
+
 class SkillUninstall(BaseModel):
     source: str | None = Field(default=None, min_length=3, max_length=200)
     skill: str = Field(min_length=1, max_length=100)
@@ -174,6 +224,86 @@ async def health():
         if client.process and client.process.returncode is None
     )
     return {"ok": True, "active_processes": active_processes}
+
+
+@app.post("/api/auth/login")
+async def login(payload: LoginPayload, request: Request, response: Response):
+    user = store.get_user_by_username(payload.username.strip())
+    if (
+        not user
+        or user.get("status") != "active"
+        or not verify_password(payload.password, user.get("password_hash", ""))
+    ):
+        raise HTTPException(401, "Invalid username or password")
+    updated = store.mark_user_login(user["id"]) or user
+    expires_at = datetime.now(UTC) + timedelta(days=7)
+    token = store.create_session(user["id"], expires_at.isoformat())
+    response.set_cookie(
+        SESSION_COOKIE,
+        token,
+        httponly=True,
+        max_age=7 * 24 * 60 * 60,
+        samesite="lax",
+        secure=request.headers.get("x-forwarded-proto", request.url.scheme) == "https",
+    )
+    return store.public_user(updated)
+
+
+@app.get("/api/auth/session")
+async def auth_session(request: Request):
+    user = request.state.user
+    return {"user": store.public_user(user) if user else None}
+
+
+@app.post("/api/auth/logout")
+async def logout(request: Request, response: Response):
+    token = request.cookies.get(SESSION_COOKIE)
+    if token:
+        store.delete_session(token)
+    response.delete_cookie(SESSION_COOKIE)
+    return {"ok": True}
+
+
+@app.get("/api/users")
+async def list_users(request: Request):
+    _require_admin(request)
+    return {"users": store.list_users()}
+
+
+@app.post("/api/users", status_code=201)
+async def create_user(payload: UserCreate, request: Request):
+    _require_admin(request)
+    if not settings.default_user_password:
+        raise HTTPException(500, "OMA_DEFAULT_USER_PASSWORD is not configured")
+    username = payload.username.strip()
+    if store.get_user_by_username(username):
+        raise HTTPException(409, "Username already exists")
+    user = store.create_user(username, payload.email, settings.default_user_password)
+    return store.public_user(user)
+
+
+@app.patch("/api/users/{user_id}/status")
+async def update_user_status(user_id: str, payload: UserStatusUpdate, request: Request):
+    _require_admin(request)
+    user = store.get_user(user_id)
+    if not user:
+        raise HTTPException(404, "User not found")
+    if user.get("role") == "admin" and payload.status == "disabled":
+        raise HTTPException(400, "The admin account cannot be disabled")
+    updated = store.update_user_status(user_id, payload.status)
+    return store.public_user(updated or user)
+
+
+@app.delete("/api/users/{user_id}")
+async def delete_user(user_id: str, request: Request):
+    _require_admin(request)
+    user = store.get_user(user_id)
+    if not user:
+        raise HTTPException(404, "User not found")
+    if user.get("role") == "admin":
+        raise HTTPException(400, "The admin account cannot be deleted")
+    store.delete_user(user_id)
+    return {"ok": True}
 
 
 @app.get("/api/agents")
