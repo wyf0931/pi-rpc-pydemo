@@ -535,12 +535,10 @@ body {
  cursor: pointer;
  min-height: 190px;
  transition:
-  transform 0.2s,
-  border-color 0.2s;
+  transform 0.2s;
 }
 .agent-card:hover {
  transform: translateY(-3px);
- border-color: var(--color-primary);
 }
 .agent-card .agent-card-identity {
  justify-content: flex-start;
@@ -2790,7 +2788,14 @@ pre,
 }
 .market-card {
  min-width: 0;
+ background: var(--card);
+ border: 1px solid var(--line);
+ border-radius: 9px;
  color: var(--ink);
+ transition: transform 0.2s;
+}
+.market-card:hover {
+ transform: translateY(-3px);
 }
 .market-card .card-body {
  display: flex;
