@@ -7,6 +7,7 @@ from app.market import (
     install_extension,
     install_skill,
     normalize_npm_package,
+    npm_package_name,
     parse_skill_search,
     uninstall_extension,
     uninstall_local_extension,
@@ -90,6 +91,11 @@ def test_normalize_npm_package(value, expected):
 def test_normalize_npm_package_rejects_commands(value):
     with pytest.raises(ValueError):
         normalize_npm_package(value)
+
+
+def test_npm_package_name_strips_optional_version():
+    assert npm_package_name("npm:pi-mcp-adapter@1.2.3") == "pi-mcp-adapter"
+    assert npm_package_name("npm:@scope/package@^1.0.0") == "@scope/package"
 
 
 def test_pi_install_and_remove_use_argument_lists(monkeypatch):
