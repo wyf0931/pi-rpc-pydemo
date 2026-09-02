@@ -1,7 +1,13 @@
 import os
+import tempfile
+from pathlib import Path
 
 os.environ.setdefault("OMA_ADMIN_PASSWORD", "test-admin-password")
 os.environ.setdefault("OMA_DEFAULT_USER_PASSWORD", "test-user-password")
+_test_data_dir = Path(tempfile.mkdtemp(prefix="oma-test-data-"))
+os.environ.setdefault("PI_PLATFORM_DATA_DIR", str(_test_data_dir))
+os.environ.setdefault("PI_SESSION_DIR", str(_test_data_dir / "sessions"))
+os.environ.setdefault("PI_CWD", str(_test_data_dir / "workspace"))
 
 import pytest
 from fastapi.testclient import TestClient
