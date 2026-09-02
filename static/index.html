@@ -25,7 +25,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260903error" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260903cards" />
   </head>
   <body
     x-data="platform()"
@@ -925,8 +925,10 @@
                     <div class="card-actions market-card-footer">
                       <span
                         class="market-card-author"
-                        x-text="marketResourceAuthor('skills', item)"
-                      ><i data-lucide="user" aria-hidden="true"></i></span
+                      ><i data-lucide="user" aria-hidden="true"></i
+                        ><span
+                          x-text="marketResourceAuthor('skills', item)"
+                        ></span></span
                       >
                       <button
                         type="button"
@@ -985,8 +987,10 @@
                     <div class="card-actions market-card-footer">
                       <span
                         class="market-card-author"
-                        x-text="marketResourceAuthor('extensions', item)"
-                      ><i data-lucide="user" aria-hidden="true"></i></span
+                      ><i data-lucide="user" aria-hidden="true"></i
+                        ><span
+                          x-text="marketResourceAuthor('extensions', item)"
+                        ></span></span
                       >
                       <button
                         type="button"
@@ -2523,6 +2527,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260903error"></script>
+    <script src="/static/app.js?v=20260903cards"></script>
   </body>
 </html>
