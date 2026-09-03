@@ -726,6 +726,7 @@
                         ><a
                           class="btn btn-sm btn-ghost"
                           :href="downloadUrl(file)"
+                          :download="file.name"
                           title="Download file"
                           aria-label="Download file"
                           ><i data-lucide="download" aria-hidden="true"></i></a
@@ -1557,7 +1558,7 @@
                 <a
                   class="btn btn-sm btn-ghost btn-square file-download"
                   :href="downloadUrl(file)"
-                  download
+                  :download="file.name"
                   @click.stop
                   title="Download file"
                   aria-label="Download file"
