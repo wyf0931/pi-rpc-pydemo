@@ -139,6 +139,12 @@ def test_agent_marketplace_publishes_and_installs_private_copy(client):
         "/api/agents",
         json={"name": f"shared-{uuid4().hex[:8]}", "instruction": "Share this"},
     ).json()
+    uploaded = client.put(
+        f"/api/agents/{source['id']}/avatar",
+        content=b"\xff\xd8\xffsource-avatar",
+        headers={"Content-Type": "image/jpeg"},
+    )
+    assert uploaded.status_code == 200
     published = client.post(
         f"/api/agents/{source['id']}/publish", json={"version": "v1.0.0"}
     )
@@ -168,6 +174,8 @@ def test_agent_marketplace_publishes_and_installs_private_copy(client):
     assert copy["id"] != source["id"]
     assert copy["user_id"] == created["id"]
     assert copy["source_publication_id"] == listing["id"]
+    assert copy["avatar_path"].startswith("avatars/")
+    assert client.get(f"/api/agents/{copy['id']}/avatar").status_code == 200
 
     market = client.get("/api/market/agents").json()["agents"]
     assert (
