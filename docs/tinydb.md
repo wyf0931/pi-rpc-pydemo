@@ -1,6 +1,6 @@
 # TinyDB 数据结构
 
-OMA Studio 的平台元数据保存在 `~/.oma-studio/data/platform.json`。当前由 `app/store.py` 创建并管理五张 TinyDB 表。消息正文、工具调用结果、完整对话记录和 Pi 原生 session 文件不在本文范围内，也不会写入这些表。
+OMA Studio 的平台元数据保存在 `~/.oma-studio/data/platform.json`。当前由 `app/store.py` 创建并管理七张 TinyDB 表。消息正文、工具调用结果、完整对话记录和 Pi 原生 session 文件不在本文范围内，也不会写入这些表。
 
 ## ER 图
 
@@ -11,6 +11,7 @@ erDiagram
     AUTOPILOTS ||--o{ AUTOPILOT_RUNS : "产生"
     CHATS ||--o{ AUTOPILOT_RUNS : "承载"
     CHATS ||--o| SHARES : "分享"
+    USERS ||--o{ SESSIONS : "登录"
 
     AGENTS {
         string id PK "UUID，默认 Agent 使用 default-assistant"
@@ -72,6 +73,25 @@ erDiagram
         string chat_id FK "被分享的 Chat"
         datetime created_at
     }
+
+    USERS {
+        string id PK "UUID"
+        string username UK "唯一登录名"
+        string email "可选邮箱"
+        string password_hash "scrypt 加盐密码哈希"
+        string role "admin 或 normal"
+        string status "active 或 disabled"
+        datetime created_at
+        datetime last_login_at "最近登录时间，可为空"
+    }
+
+    SESSIONS {
+        string id PK "UUID"
+        string token_hash UK "Session token 的 SHA-256 摘要"
+        string user_id FK "所属用户"
+        datetime created_at
+        datetime expires_at "登录后 24 小时"
+    }
 ```
 
 ## 表说明
@@ -102,6 +122,22 @@ erDiagram
 
 保存 Chat 的公开分享令牌。当前应用逻辑为一个 Chat 最多创建一个分享记录，重复创建时复用已有记录。删除 Chat 时会先删除对应的分享记录。
 
+### `users`
+
+保存平台登录用户和管理状态。`username` 由应用层保证唯一，`role` 目前只有
+`admin` 和 `normal`。系统首次启动时会从运行时配置初始化内置 admin 用户；密码
+只以 scrypt 加盐哈希保存，`password_hash` 不会通过 API 返回。普通用户由 admin
+创建，初始密码由运行时配置提供，当前不支持注册或修改密码。
+
+`status = disabled` 的用户不能登录。内置 admin 不能被删除或禁用。
+
+### `sessions`
+
+保存登录 session 的摘要和过期时间。浏览器只持有 HttpOnly cookie 中的原始 token，
+TinyDB 只保存 token 的 SHA-256 摘要。Session 默认 24 小时过期，主动 logout 时会
+删除对应记录并清除 cookie。删除用户时会清理该用户的 session 记录，这是应用层实现
+的级联行为。
+
 ## 关系和约束
 
 | 关系 | 含义 |
@@ -111,12 +147,13 @@ erDiagram
 | `autopilots.id` → `autopilot_runs.autopilot_id` | 一个自动任务可以产生多条运行记录 |
 | `chats.id` → `autopilot_runs.chat_id` | 一条运行记录关联一个 Chat |
 | `chats.id` → `shares.chat_id` | 一个 Chat 最多有一条分享记录，由应用层保证 |
+| `users.id` → `sessions.user_id` | 一个用户可以有多个登录 session，删除用户时清理其 session |
 
 TinyDB 的这些表没有 SQL 意义上的外键、唯一索引或级联约束。`PK` 和 `FK` 表示当前代码中的身份字段和关联字段，实际约束由 `Store` 及 API 逻辑维护。
 
 ## 数据边界
 
-TinyDB 只承担平台索引和元数据存储，主要包括 Agent 配置、Chat 索引、自动任务配置、自动任务运行状态和分享令牌。
+TinyDB 只承担平台索引和元数据存储，主要包括 Agent 配置、Chat 索引、自动任务配置、自动任务运行状态、分享令牌、用户身份和登录 session 摘要。
 
 以下数据不属于 TinyDB
 
@@ -125,5 +162,6 @@ TinyDB 只承担平台索引和元数据存储，主要包括 Agent 配置、Cha
 - Pi session transcript
 - Pi 原生 session 文件及其内部事件
 - Chat 生成文件的内容
+- 用户明文密码和浏览器 session token 原文
 
 Chat 生成文件通过 Pi 工具调用记录发现，并按授权规则从 `PI_CWD` 读取。TinyDB 不保存这些文件的正文。
