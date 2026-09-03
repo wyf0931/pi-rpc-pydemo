@@ -600,6 +600,15 @@ body {
  align-items: center;
  gap: 8px;
 }
+.agent-card-bottom-actions {
+ display: flex;
+ align-items: center;
+ gap: 8px;
+ margin-left: auto;
+}
+.agent-card-bottom-actions .trash-btn {
+ margin-left: 0;
+}
 .card-bottom {
  display: flex;
  align-items: center;
