@@ -49,6 +49,8 @@ function platform() {
     chatTitleSaving: false,
     messages: [],
     selectedAgentId: "",
+    skillCommandIndex: 0,
+    skillCommandDismissed: false,
     sidebarCollapsed: false,
     agentPickerOpen: false,
     activeProcesses: 0,
@@ -1221,6 +1223,60 @@ function platform() {
         this.messages = [];
         this.showError(e);
       }
+    },
+    skillCommandMatch() {
+      const match = this.draft.match(/^\/(?:skill:)?([^\s]*)$/i);
+      if (!match) return null;
+      const typed = match[1] || "";
+      return {
+        query: typed.toLowerCase(),
+        hasPrefix: /^\/skill:/i.test(this.draft),
+      };
+    },
+    skillCommandItems() {
+      const match = this.skillCommandMatch();
+      const agent = this.agents.find((item) => item.id === this.selectedAgentId);
+      if (!match || !agent) return [];
+      const enabled = agent.skills || [];
+      return this.resources.skills
+        .filter((skill) =>
+          enabled.some(
+            (path) => this.normalizeResourcePath(path) === this.normalizeResourcePath(skill.path),
+          ),
+        )
+        .filter((skill) => skill.name.toLowerCase().includes(match.query))
+        .slice(0, 8);
+    },
+    skillCommandVisible() {
+      return Boolean(this.skillCommandMatch()) && !this.skillCommandDismissed;
+    },
+    updateSkillCommandState() {
+      if (this.skillCommandMatch()) this.skillCommandDismissed = false;
+      this.skillCommandIndex = 0;
+    },
+    handleSkillCommandKeydown(event) {
+      if (!this.skillCommandVisible()) return;
+      const items = this.skillCommandItems();
+      if (event.key === "Escape") {
+        event.preventDefault();
+        this.skillCommandDismissed = true;
+      } else if (event.key === "ArrowDown" && items.length) {
+        event.preventDefault();
+        this.skillCommandIndex = (this.skillCommandIndex + 1) % items.length;
+      } else if (event.key === "ArrowUp" && items.length) {
+        event.preventDefault();
+        this.skillCommandIndex =
+          (this.skillCommandIndex - 1 + items.length) % items.length;
+      } else if ((event.key === "Enter" || event.key === "Tab") && items.length) {
+        event.preventDefault();
+        this.chooseSkillCommand(items[this.skillCommandIndex]);
+      }
+    },
+    chooseSkillCommand(skill) {
+      this.draft = `/skill:${skill.name} `;
+      this.skillCommandDismissed = true;
+      this.skillCommandIndex = 0;
+      this.$nextTick(() => document.getElementById("new-chat-message")?.focus());
     },
     async sendMessage() {
       const content = this.draft.trim();
