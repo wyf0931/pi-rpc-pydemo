@@ -1278,6 +1278,27 @@ function platform() {
       this.skillCommandIndex = 0;
       this.$nextTick(() => document.getElementById("new-chat-message")?.focus());
     },
+    skillCommandHighlightHtml() {
+      const command = this.draft.match(/^\/skill:([^\s]+)/i);
+      if (!command) return this.escape(this.draft);
+      const agent = this.agents.find((item) => item.id === this.selectedAgentId);
+      const enabled = agent?.skills || [];
+      const skill = this.resources.skills.find(
+        (item) =>
+          item.name.toLowerCase() === command[1].toLowerCase() &&
+          enabled.some(
+            (path) => this.normalizeResourcePath(path) === this.normalizeResourcePath(item.path),
+          ),
+      );
+      if (!skill) return this.escape(this.draft);
+      return `<span class="skill-command-highlight-token">${this.escape(command[0])}</span>${this.escape(this.draft.slice(command[0].length))}`;
+    },
+    syncSkillCommandScroll(event) {
+      const mirror = this.$refs.skillCommandHighlight;
+      if (!mirror) return;
+      mirror.scrollTop = event.target.scrollTop;
+      mirror.scrollLeft = event.target.scrollLeft;
+    },
     async sendMessage() {
       const content = this.draft.trim();
       if (!content || !this.activeChat || this.loading) return;

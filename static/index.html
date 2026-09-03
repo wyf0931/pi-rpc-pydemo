@@ -358,17 +358,26 @@
               <p class="chat-empty-subtitle">What should we do?</p>
               <div class="start-grid">
                 <div class="start-card rounded-box">
-                  <textarea
-                    id="new-chat-message"
-                    name="message"
-                    rows="3"
-                    class="textarea textarea-bordered start-input"
-                    x-model="draft"
-                    @input="resizeStartInput($event); updateSkillCommandState()"
-                    @keydown="handleSkillCommandKeydown($event)"
-                    @keydown.enter.meta.prevent="sendFirst()"
-                    placeholder="What would you like to explore?"
-                  ></textarea>
+                  <div class="skill-command-editor">
+                    <div
+                      class="skill-command-highlight"
+                      x-ref="skillCommandHighlight"
+                      aria-hidden="true"
+                      x-html="skillCommandHighlightHtml()"
+                    ></div>
+                    <textarea
+                      id="new-chat-message"
+                      name="message"
+                      rows="3"
+                      class="textarea textarea-bordered start-input"
+                      x-model="draft"
+                      @input="resizeStartInput($event); updateSkillCommandState()"
+                      @scroll="syncSkillCommandScroll($event)"
+                      @keydown="handleSkillCommandKeydown($event)"
+                      @keydown.enter.meta.prevent="sendFirst()"
+                      placeholder="What would you like to explore?"
+                    ></textarea>
+                  </div>
                   <div
                     class="skill-command-palette"
                     x-show="skillCommandVisible()"
