@@ -4261,6 +4261,19 @@ body > .link-drawer {
 .content-panel:has(.conversation) .message-list {
  padding-top: 84px;
 }
+.content-panel:has(.conversation) .message-list:has(.chat-loading) {
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ justify-content: center;
+ flex: 1;
+ min-height: 0;
+ overflow: hidden;
+ padding: 0 3px;
+}
+.content-panel:has(.conversation) .message-list:has(.chat-loading) .chat-loading {
+ min-height: 0;
+}
 @media (max-width: 800px) {
  .chat-header {
   inset: 56px 0 auto 0;
@@ -4269,6 +4282,9 @@ body > .link-drawer {
  }
  .content-panel:has(.conversation) .message-list {
   padding-top: 68px;
+ }
+ .content-panel:has(.conversation) .message-list:has(.chat-loading) {
+  padding: 0 3px;
  }
 }
 @media (max-width: 800px) {
