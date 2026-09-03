@@ -125,6 +125,49 @@ def test_file_download_links_preserve_generated_filename():
     assert html.count(':download="file.name"') == 2
 
 
+def test_chat_file_list_and_download_include_chat_id(
+    client, temporary_agent, monkeypatch
+):
+    import app.main as main_module
+
+    agent_id = temporary_agent({"name": "file-download", "instruction": "x"}).json()[
+        "id"
+    ]
+    chat = client.post("/api/chats", json={"agent_id": agent_id}).json()
+    file_path = main_module.settings.pi_cwd / "research" / "context" / "notes.md"
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.write_text("# Notes\n", encoding="utf-8")
+    messages = [
+        {
+            "role": "assistant",
+            "content": [
+                {
+                    "type": "toolCall",
+                    "name": "write",
+                    "arguments": {"path": "research/context/notes.md"},
+                }
+            ],
+        }
+    ]
+
+    async def fake_messages(_chat):
+        return messages
+
+    monkeypatch.setattr(main_module, "_has_session_file", lambda _chat: True)
+    monkeypatch.setattr(main_module.runtime, "messages", fake_messages)
+
+    listed = client.get(f"/api/chats/{chat['id']}/files")
+    assert listed.status_code == 200
+    assert listed.json()["files"][0]["chat_id"] == chat["id"]
+
+    downloaded = client.get(
+        f"/api/chats/{chat['id']}/files/download?path=research/context/notes.md"
+    )
+    assert downloaded.status_code == 200
+    assert downloaded.content == b"# Notes\n"
+    assert 'filename="notes.md"' in downloaded.headers["content-disposition"]
+
+
 def test_auth_rejects_unauthenticated_requests(client):
     client.post("/api/auth/logout")
     assert client.get("/api/agents").status_code == 401
