@@ -25,7 +25,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260903owner-border" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260903owner-border-chat-search" />
   </head>
   <body
     x-data="platform()"
@@ -1833,7 +1833,8 @@
             <i data-lucide="x" aria-hidden="true"></i>
           </button>
         </div>
-        <label class="chat-search-input"
+        <div class="chat-search-toolbar">
+          <label class="chat-search-input"
           ><i data-lucide="search" aria-hidden="true"></i
           ><input
             class="input"
@@ -1841,7 +1842,48 @@
             placeholder="Search by session name"
             autofocus
             aria-label="Search sessions"
-        /></label>
+          /></label>
+          <div
+            class="agent-picker filter-agent-picker chat-search-agent-picker"
+            @click.outside="chatSearchAgentPickerOpen = false"
+          >
+            <button
+              type="button"
+              class="agent-picker-button filter-agent-picker-button"
+              @click="chatSearchAgentPickerOpen = !chatSearchAgentPickerOpen"
+              :aria-expanded="chatSearchAgentPickerOpen"
+              aria-haspopup="listbox"
+              aria-label="Filter chats by agent"
+            >
+              <span
+                class="agent-avatar"
+                x-text="initials(chatSearchAgentFilter ? agentName(chatSearchAgentFilter) : 'All')"
+              ></span>
+              <span
+                class="filter-agent-picker-label"
+                x-text="chatSearchAgentFilter ? agentName(chatSearchAgentFilter) : 'All agents'"
+              ></span>
+              <i class="picker-chevron" data-lucide="chevron-down" aria-hidden="true"></i>
+            </button>
+            <div
+              class="agent-picker-menu filter-agent-picker-menu"
+              x-show="chatSearchAgentPickerOpen"
+              x-cloak
+              role="listbox"
+            >
+              <button type="button" class="agent-picker-option" @click="selectChatSearchAgent('')">
+                <span class="agent-avatar" x-text="initials('All')"></span>
+                <span><b>All agents</b></span>
+              </button>
+              <template x-for="agent in agents" :key="agent.id">
+                <button type="button" class="agent-picker-option" @click="selectChatSearchAgent(agent.id)">
+                  <span class="agent-avatar" x-text="initials(agent.name)"></span>
+                  <span><b x-text="agent.name"></b></span>
+                </button>
+              </template>
+            </div>
+          </div>
+        </div>
         <div class="chat-search-results">
           <template x-if="searchChatResults().length === 0"
             ><div class="files-empty">No matching chats</div></template
@@ -2746,6 +2788,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260903users"></script>
+    <script src="/static/app.js?v=20260903owner-border-chat-search"></script>
   </body>
 </html>

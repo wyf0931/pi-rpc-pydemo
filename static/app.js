@@ -118,6 +118,8 @@ function platform() {
     newUserEmail: "",
     searchOpen: false,
     chatSearchQuery: "",
+    chatSearchAgentFilter: "",
+    chatSearchAgentPickerOpen: false,
     error: "",
     dialog: null,
     confirmTarget: null,
@@ -447,18 +449,27 @@ function platform() {
     },
     openChatSearch() {
       this.chatSearchQuery = "";
+      this.chatSearchAgentFilter = "";
+      this.chatSearchAgentPickerOpen = false;
       this.searchOpen = true;
     },
     searchChatResults() {
       const query = this.chatSearchQuery.trim().toLowerCase();
-      const matches = query
-        ? this.chats.filter(
-            (chat) =>
-              chat.title.toLowerCase().includes(query) ||
-              this.agentName(chat.agent_id).toLowerCase().includes(query),
-          )
-        : this.chats;
-      return matches.slice(0, query ? 50 : 5);
+      const matches = this.chats.filter((chat) => {
+        const matchesAgent =
+          !this.chatSearchAgentFilter ||
+          chat.agent_id === this.chatSearchAgentFilter;
+        const matchesQuery =
+          !query ||
+          chat.title.toLowerCase().includes(query) ||
+          this.agentName(chat.agent_id).toLowerCase().includes(query);
+        return matchesAgent && matchesQuery;
+      });
+      return matches.slice(0, query || this.chatSearchAgentFilter ? 50 : 5);
+    },
+    selectChatSearchAgent(agentId) {
+      this.chatSearchAgentFilter = agentId;
+      this.chatSearchAgentPickerOpen = false;
     },
     selectSearchChat(chat) {
       this.searchOpen = false;
