@@ -299,6 +299,43 @@ body {
  border-radius: 10px;
  overflow: hidden;
 }
+.skill-command-editor {
+ position: relative;
+ min-height: 220px;
+}
+.skill-command-highlight,
+.skill-command-editor .start-input {
+ box-sizing: border-box;
+ width: 100%;
+ min-height: 220px;
+ padding: 25px;
+ font: 15px / 1.7 Manrope;
+ white-space: pre-wrap;
+ overflow-wrap: anywhere;
+}
+.skill-command-highlight {
+ position: absolute;
+ inset: 0;
+ z-index: 1;
+ overflow: hidden;
+ color: var(--ink);
+ pointer-events: none;
+}
+.skill-command-highlight-token {
+ color: var(--color-primary);
+}
+.skill-command-editor .start-input {
+ position: relative;
+ z-index: 2;
+ height: 220px;
+ background: transparent;
+ color: transparent;
+ -webkit-text-fill-color: transparent;
+}
+.skill-command-editor .start-input:placeholder-shown {
+ color: var(--muted);
+ -webkit-text-fill-color: var(--muted);
+}
 .skill-command-palette {
  position: absolute;
  left: 16px;
