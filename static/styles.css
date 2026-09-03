@@ -1012,19 +1012,16 @@ body {
  stroke-linejoin: round;
 }
 .agent-publish-btn {
- width: 30px;
- height: 30px;
- padding: 7px;
- opacity: 0;
- transition: opacity 0.15s, color 0.15s, background 0.15s;
+ margin-left: 0;
+ color: var(--color-primary);
 }
 .agent-card:hover .agent-publish-btn,
 .agent-publish-btn:focus-visible {
  opacity: 1;
 }
 .agent-publish-btn:hover {
- color: var(--color-primary);
- background: var(--color-primary-content);
+ background: var(--color-primary);
+ color: var(--color-primary-content);
 }
 .content-panel:has(.conversation) {
  padding-top: 24px;
