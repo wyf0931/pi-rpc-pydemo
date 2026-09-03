@@ -1,4 +1,5 @@
 from pathlib import Path
+from shutil import copyfile
 
 from fastapi import HTTPException
 
@@ -62,3 +63,13 @@ def remove_avatar(data_dir: Path, agent: dict) -> None:
     path = avatar_file(data_dir, agent)
     if path:
         path.unlink(missing_ok=True)
+
+
+def copy_avatar(data_dir: Path, source_agent: dict, target_agent_id: str) -> str | None:
+    source = avatar_file(data_dir, source_agent)
+    if not source:
+        return None
+    target = avatar_dir(data_dir) / f"{target_agent_id}{source.suffix}"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    copyfile(source, target)
+    return f"{AVATAR_DIRNAME}/{target.name}"

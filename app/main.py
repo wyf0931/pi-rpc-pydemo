@@ -15,7 +15,13 @@ from pydantic import BaseModel, Field
 
 from .auth import verify_password
 from .autopilots import AutopilotScheduler, next_run_at
-from .avatars import avatar_file, remove_avatar, save_avatar, seed_default_avatar
+from .avatars import (
+    avatar_file,
+    copy_avatar,
+    remove_avatar,
+    save_avatar,
+    seed_default_avatar,
+)
 from .config import get_settings
 from .files import (
     delete_chat_files,
@@ -639,6 +645,14 @@ async def install_market_agent(
     installed = store.install_agent_publication(publication_id, owner_id, version)
     if not installed:
         raise HTTPException(404, "Published Agent version not found")
+    source_agent = store.get_agent(publication["source_agent_id"])
+    if source_agent:
+        avatar_path = copy_avatar(settings.data_dir, source_agent, installed["id"])
+        if avatar_path:
+            installed = (
+                store.update_agent(installed["id"], {"avatar_path": avatar_path})
+                or installed
+            )
     return {"agent": installed}
 
 
