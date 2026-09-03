@@ -211,6 +211,42 @@ def test_agent_marketplace_publishes_and_installs_private_copy(client):
     assert own_listing.json()["agent"]["author"] == created["username"]
 
 
+def test_deleting_installed_agent_copy_does_not_delete_source_or_publication(client):
+    source = client.post(
+        "/api/agents",
+        json={"name": f"delete-source-{uuid4().hex[:8]}", "instruction": "Keep source"},
+    ).json()
+    listing = client.post(
+        f"/api/agents/{source['id']}/publish", json={"version": "v1.0.0"}
+    ).json()["agent"]
+    created = client.post(
+        "/api/users", json={"username": f"copy-owner-{uuid4().hex[:8]}"}
+    ).json()
+    client.post("/api/auth/logout")
+    client.post(
+        "/api/auth/login",
+        json={"username": created["username"], "password": "test-user-password"},
+    )
+    installed = client.post(
+        f"/api/market/agents/{listing['id']}/install", json={"version": "v1.0.0"}
+    ).json()["agent"]
+
+    assert client.delete(f"/api/agents/{installed['id']}").status_code == 200
+    assert client.get(f"/api/agents/{installed['id']}").status_code == 404
+
+    client.post(
+        "/api/auth/login",
+        json={"username": "admin", "password": "test-admin-password"},
+    )
+    assert client.get(f"/api/agents/{source['id']}").status_code == 200
+    remaining = next(
+        item
+        for item in client.get("/api/market/agents").json()["agents"]
+        if item["id"] == listing["id"]
+    )
+    assert remaining["install_count"] == 1
+
+
 def test_auth_login_uses_24_hour_cookie(client):
     response = client.post(
         "/api/auth/login",
