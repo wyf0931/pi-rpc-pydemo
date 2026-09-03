@@ -25,7 +25,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260903logout-chat-search-loading" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260903assistant-footer" />
   </head>
   <body
     x-data="platform()"
@@ -529,26 +529,6 @@
                             x-show="copiedKey !== message._key"
                             aria-hidden="true"
                           ></i>
-                        </button>
-                        <button
-                          type="button"
-                          class="action-btn"
-                          :class="{ active: feedbackFor(message) === 'up' }"
-                          @click="rateMessage(message, 'up')"
-                          title="Good response"
-                          aria-label="Good response"
-                        >
-                          <i data-lucide="thumbs-up" aria-hidden="true"></i>
-                        </button>
-                        <button
-                          type="button"
-                          class="action-btn"
-                          :class="{ active: feedbackFor(message) === 'down' }"
-                          @click="rateMessage(message, 'down')"
-                          title="Bad response"
-                          aria-label="Bad response"
-                        >
-                          <i data-lucide="thumbs-down" aria-hidden="true"></i>
                         </button>
                         <button
                           type="button"
@@ -2826,6 +2806,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260903logout-chat-search"></script>
+    <script src="/static/app.js?v=20260903assistant-footer-actions"></script>
   </body>
 </html>

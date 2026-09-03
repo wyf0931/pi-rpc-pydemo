@@ -65,7 +65,6 @@ function platform() {
     creatingShare: false,
     copiedShare: false,
     copiedKey: "",
-    feedback: {},
     messagesLoading: false,
     sessionUsage: {
       input: 0,
@@ -183,13 +182,6 @@ function platform() {
           this.appReady = true;
           return;
         }
-      }
-      try {
-        this.feedback = JSON.parse(
-          localStorage.getItem("oma-feedback") || "{}",
-        );
-      } catch {
-        this.feedback = {};
       }
       window.addEventListener("popstate", () => this.routeFromUrl());
       try {
@@ -1537,19 +1529,6 @@ function platform() {
       setTimeout(() => {
         if (this.copiedKey === message._key) this.copiedKey = "";
       }, 1500);
-    },
-    feedbackFor(message) {
-      return (
-        (this.feedback || {})[`${this.activeChat?.id}:${message._key}`] || ""
-      );
-    },
-    rateMessage(message, value) {
-      const key = `${this.activeChat?.id}:${message._key}`;
-      const feedback = { ...(this.feedback || {}) };
-      if (feedback[key] === value) delete feedback[key];
-      else feedback[key] = value;
-      this.feedback = feedback;
-      localStorage.setItem("oma-feedback", JSON.stringify(feedback));
     },
     startShare() {
       if (!this.activeChat || this.sharedMode) return;
