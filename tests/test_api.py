@@ -1,3 +1,4 @@
+from pathlib import Path
 from uuid import uuid4
 
 from app.main import pi_terminal_failure, visible_messages
@@ -116,6 +117,12 @@ def test_auth_login_uses_24_hour_cookie(client):
     )
     assert response.status_code == 200
     assert "Max-Age=86400" in response.headers["set-cookie"]
+
+
+def test_file_download_links_preserve_generated_filename():
+    html = Path("static/index.html").read_text(encoding="utf-8")
+
+    assert html.count(':download="file.name"') == 2
 
 
 def test_auth_rejects_unauthenticated_requests(client):
