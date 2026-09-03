@@ -11,10 +11,16 @@ erDiagram
     AUTOPILOTS ||--o{ AUTOPILOT_RUNS : "产生"
     CHATS ||--o{ AUTOPILOT_RUNS : "承载"
     CHATS ||--o| SHARES : "分享"
+    USERS ||--o{ AGENTS : "拥有"
+    USERS ||--o{ CHATS : "拥有"
+    USERS ||--o{ AUTOPILOTS : "拥有"
+    USERS ||--o{ AUTOPILOT_RUNS : "拥有"
+    USERS ||--o{ SHARES : "创建"
     USERS ||--o{ SESSIONS : "登录"
 
     AGENTS {
         string id PK "UUID，默认 Agent 使用 default-assistant"
+        string user_id FK "所属用户"
         string name "Agent 名称"
         string instruction "系统指令"
         string provider "可选的模型提供方"
@@ -33,6 +39,7 @@ erDiagram
 
     CHATS {
         string id PK "UUID，同时作为 Pi session id"
+        string user_id FK "所属用户"
         string session_id "Pi session id，通常与 id 相同"
         string agent_id FK "固定绑定一个 Agent"
         string title "会话展示标题"
@@ -44,6 +51,7 @@ erDiagram
 
     AUTOPILOTS {
         string id PK "UUID"
+        string user_id FK "所属用户"
         string name "自动任务名称"
         string instruction "自动任务指令"
         string agent_id FK "执行任务的 Agent"
@@ -58,6 +66,7 @@ erDiagram
 
     AUTOPILOT_RUNS {
         string id PK "UUID"
+        string user_id FK "所属用户"
         string autopilot_id FK "所属自动任务"
         string chat_id FK "本次运行创建或使用的 Chat"
         string session_id "本次运行对应的 Pi session id"
@@ -70,6 +79,7 @@ erDiagram
 
     SHARES {
         string token PK "不可预测的分享令牌"
+        string user_id FK "创建分享的用户"
         string chat_id FK "被分享的 Chat"
         datetime created_at
     }
@@ -147,9 +157,23 @@ TinyDB 只保存 token 的 SHA-256 摘要。Session 默认 24 小时过期，主
 | `autopilots.id` → `autopilot_runs.autopilot_id` | 一个自动任务可以产生多条运行记录 |
 | `chats.id` → `autopilot_runs.chat_id` | 一条运行记录关联一个 Chat |
 | `chats.id` → `shares.chat_id` | 一个 Chat 最多有一条分享记录，由应用层保证 |
+| `users.id` → `agents.user_id` | 一个用户可以拥有多个 Agent；管理员可以查看全部 |
+| `users.id` → `chats.user_id` | 一个用户可以拥有多个 Chat；Chat 同时固定绑定一个 Agent |
+| `users.id` → `autopilots.user_id` | 一个用户可以拥有多个自动任务 |
+| `users.id` → `autopilot_runs.user_id` | 运行记录继承所属自动任务/Chat 的用户归属 |
+| `users.id` → `shares.user_id` | 分享记录记录创建者；分享链接本身仍按 token 公开访问 |
 | `users.id` → `sessions.user_id` | 一个用户可以有多个登录 session，删除用户时清理其 session |
 
 TinyDB 的这些表没有 SQL 意义上的外键、唯一索引或级联约束。`PK` 和 `FK` 表示当前代码中的身份字段和关联字段，实际约束由 `Store` 及 API 逻辑维护。
+
+普通用户只能读取和修改自己拥有的 Agents、Chats、Autopilots、Runs 和 Shares；管理员可以跨用户查看和管理这些记录。Marketplace 的 Skills 和 Extensions 是全局资源，仅管理员可以安装或卸载，不属于某个用户。
+
+历史数据不在应用启动时自动迁移。部署或本地升级时由操作者执行一次性回填脚本；脚本默认只预览，带 `--apply` 才会写入，重复执行不会产生额外修改：
+
+```bash
+uv run python scripts/backfill_user_ownership.py --data ~/.oma-studio/data
+uv run python scripts/backfill_user_ownership.py --data ~/.oma-studio/data --apply
+```
 
 ## 数据边界
 

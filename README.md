@@ -307,6 +307,23 @@ If the `pi-mcp-adapter` extension is selected, its `mcp` and `mcpScript` tools a
 
 TinyDB records chat identity, title, Agent binding, timestamps, and status only. It is intentionally not a second message store.
 
+Agents, Chats, Autopilots, Autopilot runs, and Shares carry an explicit `user_id`.
+Normal users can only see and modify their own records; administrators can see all
+users' records. Marketplace Skills and Extensions are global Pi resources and can
+only be installed or uninstalled by administrators. Existing records are assigned
+to the built-in admin with a one-off backfill script rather than being migrated on
+every application startup:
+
+```bash
+uv run python scripts/backfill_user_ownership.py --data ~/.oma-studio/data
+uv run python scripts/backfill_user_ownership.py --data ~/.oma-studio/data --apply
+```
+
+The first command is a dry run. The script is idempotent and does not rewrite Pi
+session transcripts or generated files. File listing, preview, and download routes
+apply the same ownership check; token-based share routes remain accessible to anyone
+with the valid share token.
+
 ## HTTP surface
 
 This MVP is a single FastAPI application with a static frontend. The main endpoints are:
