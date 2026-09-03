@@ -179,6 +179,7 @@ class Store:
         skills: list[str] | None = None,
         mcp_servers: list[str] | None = None,
         thinking_level: str | None = None,
+        user_id: str | None = None,
     ) -> dict:
         item = {
             "id": str(uuid4()),
@@ -197,6 +198,8 @@ class Store:
             "created_at": now_iso(),
             "updated_at": now_iso(),
         }
+        if user_id:
+            item["user_id"] = user_id
         self.agents.insert(item)
         return item
 
@@ -224,7 +227,11 @@ class Store:
         return self.chats.get(Query().id == chat_id)
 
     def create_chat(
-        self, agent_id: str, session_id: str | None = None, status: str = "starting"
+        self,
+        agent_id: str,
+        session_id: str | None = None,
+        status: str = "starting",
+        user_id: str | None = None,
     ) -> dict:
         timestamp = now_iso()
         chat_id = str(uuid4())
@@ -238,12 +245,16 @@ class Store:
             "updated_at": timestamp,
             "last_activity_at": timestamp,
         }
+        if user_id:
+            item["user_id"] = user_id
         self.chats.insert(item)
         return item
 
-    def create_autopilot_chat(self, agent_id: str, title: str) -> dict:
+    def create_autopilot_chat(
+        self, agent_id: str, title: str, user_id: str | None = None
+    ) -> dict:
         """Create a fresh chat whose Pi session ID is unique to this run."""
-        chat = self.create_chat(agent_id, status="starting")
+        chat = self.create_chat(agent_id, status="starting", user_id=user_id)
         return self.update_chat(chat["id"], {"title": title}) or chat
 
     def update_chat(self, chat_id: str, values: dict) -> dict | None:
@@ -263,7 +274,7 @@ class Store:
         matches = self.shares.search(Query().token == token)
         return matches[0] if matches else None
 
-    def create_share(self, chat_id: str) -> dict:
+    def create_share(self, chat_id: str, user_id: str | None = None) -> dict:
         """Create (or reuse) the unguessable public share token for a chat."""
         existing = self.shares.search(Query().chat_id == chat_id)
         if existing:
@@ -273,6 +284,8 @@ class Store:
             "chat_id": chat_id,
             "created_at": now_iso(),
         }
+        if user_id:
+            share["user_id"] = user_id
         self.shares.insert(share)
         return share
 
@@ -294,6 +307,7 @@ class Store:
         cron: str,
         starts_at: str | None = None,
         ends_at: str | None = None,
+        user_id: str | None = None,
     ) -> dict:
         timestamp = now_iso()
         item = {
@@ -309,6 +323,8 @@ class Store:
             "updated_at": timestamp,
             "last_run_at": None,
         }
+        if user_id:
+            item["user_id"] = user_id
         self.autopilots.insert(item)
         return item
 
@@ -322,7 +338,11 @@ class Store:
         return bool(self.autopilots.remove(Query().id == autopilot_id))
 
     def create_autopilot_run(
-        self, autopilot_id: str, chat_id: str, session_id: str
+        self,
+        autopilot_id: str,
+        chat_id: str,
+        session_id: str,
+        user_id: str | None = None,
     ) -> dict:
         item = {
             "id": str(uuid4()),
@@ -335,6 +355,8 @@ class Store:
             "duration_ms": None,
             "error": None,
         }
+        if user_id:
+            item["user_id"] = user_id
         self.autopilot_runs.insert(item)
         return item
 

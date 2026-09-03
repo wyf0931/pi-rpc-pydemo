@@ -14,13 +14,14 @@ global resources and remain admin-managed only.
 also pass same-user validation when created or changed. Sessions remain
 authentication records and are owned by `users`.
 
-## Migration
+## Legacy data
 
-Startup creates the built-in admin first, then runs an idempotent ownership
-backfill. Existing Agents become admin-owned. Chats inherit from their Agent,
-Autopilots inherit from their Agent, Runs inherit from Chat or Autopilot, and
-Shares inherit from Chat; unresolved records fall back to admin. Pi session
-ids, transcripts, message bodies, and files are not rewritten.
+Legacy ownership is handled by a one-off operator script rather than startup
+logic. The script supports dry-run, assigns existing Agents to admin, lets
+Chats and Autopilots inherit from their known Agent, lets Runs inherit from
+Chat or Autopilot, and lets Shares inherit from Chat; unresolved records fall
+back to admin. Pi session ids, transcripts, message bodies, and files are not
+rewritten.
 
 ## Authorization
 

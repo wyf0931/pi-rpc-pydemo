@@ -110,6 +110,30 @@ def test_auth_logout_expires_session_cookie(client):
     assert client.get("/api/auth/session").json()["user"] is None
 
 
+def test_normal_user_cannot_read_admin_owned_agent(client):
+    created = client.post(
+        "/api/users",
+        json={"username": f"normal-{uuid4().hex[:8]}"},
+    )
+    username = created.json()["username"]
+    admin_agent = client.get("/api/agents").json()["agents"][0]
+    admin_chat = client.post("/api/chats", json={"agent_id": admin_agent["id"]}).json()
+
+    client.post("/api/auth/logout")
+    assert (
+        client.post(
+            "/api/auth/login",
+            json={"username": username, "password": "test-user-password"},
+        ).status_code
+        == 200
+    )
+    assert client.get("/api/agents").json()["agents"] == []
+    assert client.get(f"/api/agents/{admin_agent['id']}").status_code == 404
+    assert client.get(f"/api/chats/{admin_chat['id']}").status_code == 404
+    assert client.get(f"/api/chats/{admin_chat['id']}/files").status_code == 404
+    assert client.get("/api/users").status_code == 403
+
+
 def test_auth_login_uses_24_hour_cookie(client):
     response = client.post(
         "/api/auth/login",

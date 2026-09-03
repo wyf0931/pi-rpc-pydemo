@@ -63,7 +63,12 @@ if not settings.admin_password or not settings.default_user_password:
     raise RuntimeError(
         "OMA_ADMIN_PASSWORD and OMA_DEFAULT_USER_PASSWORD must be configured"
     )
-store.ensure_default_user(settings.admin_password)
+admin_user = store.ensure_default_user(settings.admin_password)
+if not default_agent.get("user_id"):
+    default_agent = (
+        store.update_agent(default_agent["id"], {"user_id": admin_user["id"]})
+        or default_agent
+    )
 
 # SSE heartbeat cadence. Any proxy/browser idle timeout must be far larger
 # than this (Cloudflare cuts idle streams at ~100s).
@@ -92,6 +97,34 @@ def _require_admin(request: Request) -> dict:
     if not user or user.get("role") != "admin":
         raise HTTPException(403, "Admin access required")
     return user
+
+
+def _user_id(request: Request) -> str:
+    user = request.state.user
+    if not user:
+        raise HTTPException(401, "Authentication required")
+    return user["id"]
+
+
+def _can_access(record: dict, request: Request) -> bool:
+    user = request.state.user
+    return bool(user and user.get("role") == "admin") or record.get(
+        "user_id"
+    ) == _user_id(request)
+
+
+def _visible_or_404(record: dict | None, request: Request, label: str) -> dict:
+    if not record or not _can_access(record, request):
+        raise HTTPException(404, f"{label} not found")
+    return record
+
+
+def _visible_records(records: list[dict], request: Request) -> list[dict]:
+    user = request.state.user
+    if user and user.get("role") == "admin":
+        return records
+    user_id = _user_id(request)
+    return [record for record in records if record.get("user_id") == user_id]
 
 
 @app.middleware("http")
@@ -307,8 +340,8 @@ async def delete_user(user_id: str, request: Request):
 
 
 @app.get("/api/agents")
-async def list_agents():
-    return {"agents": store.list_agents()}
+async def list_agents(request: Request):
+    return {"agents": _visible_records(store.list_agents(), request)}
 
 
 @app.get("/api/resources")
@@ -355,7 +388,8 @@ async def market_skill_search(payload: SkillSearch):
 
 
 @app.post("/api/market/skills/install")
-async def market_skill_install(payload: SkillInstall):
+async def market_skill_install(payload: SkillInstall, request: Request):
+    _require_admin(request)
     source = payload.source.strip()
     skill = payload.skill.strip()
     logger.info(
@@ -403,7 +437,8 @@ async def market_skill_preview(payload: SkillPreview):
 
 
 @app.post("/api/market/skills/uninstall")
-async def market_skill_uninstall(payload: SkillUninstall):
+async def market_skill_uninstall(payload: SkillUninstall, request: Request):
+    _require_admin(request)
     source = payload.source.strip() if payload.source else None
     skill = payload.skill.strip()
     try:
@@ -418,7 +453,8 @@ async def market_skill_uninstall(payload: SkillUninstall):
 
 
 @app.post("/api/market/extensions/install")
-async def market_extension_install(payload: ExtensionPackage):
+async def market_extension_install(payload: ExtensionPackage, request: Request):
+    _require_admin(request)
     try:
         package = normalize_npm_package(payload.package)
         package_name = npm_package_name(package)
@@ -439,7 +475,8 @@ async def market_extension_install(payload: ExtensionPackage):
 
 
 @app.post("/api/market/extensions/uninstall")
-async def market_extension_uninstall(payload: ExtensionUninstall):
+async def market_extension_uninstall(payload: ExtensionUninstall, request: Request):
+    _require_admin(request)
     try:
         if payload.package:
             package = normalize_npm_package(payload.package)
@@ -476,10 +513,11 @@ async def market_extension_uninstall(payload: ExtensionUninstall):
 
 
 @app.post("/api/agents", status_code=201)
-async def create_agent(payload: AgentCreate):
+async def create_agent(payload: AgentCreate, request: Request):
+    owner_id = _user_id(request)
     if any(
         agent["name"].casefold() == payload.name.strip().casefold()
-        for agent in store.list_agents()
+        for agent in _visible_records(store.list_agents(), request)
     ):
         raise HTTPException(409, "Agent name already exists")
     tools = (
@@ -509,22 +547,18 @@ async def create_agent(payload: AgentCreate):
         payload.skills,
         payload.mcp_servers or [],
         thinking_level=payload.thinking_level,
+        user_id=owner_id,
     )
 
 
 @app.get("/api/agents/{agent_id}")
-async def get_agent(agent_id: str):
-    agent = store.get_agent(agent_id)
-    if not agent:
-        raise HTTPException(404, "Agent not found")
-    return agent
+async def get_agent(agent_id: str, request: Request):
+    return _visible_or_404(store.get_agent(agent_id), request, "Agent")
 
 
 @app.get("/api/agents/{agent_id}/avatar")
-async def get_agent_avatar(agent_id: str):
-    agent = store.get_agent(agent_id)
-    if not agent:
-        raise HTTPException(404, "Agent not found")
+async def get_agent_avatar(agent_id: str, request: Request):
+    agent = _visible_or_404(store.get_agent(agent_id), request, "Agent")
     path = avatar_file(settings.data_dir, agent)
     if not path:
         raise HTTPException(404, "Agent avatar not found")
@@ -533,9 +567,7 @@ async def get_agent_avatar(agent_id: str):
 
 @app.put("/api/agents/{agent_id}/avatar")
 async def upload_agent_avatar(agent_id: str, request: Request):
-    agent = store.get_agent(agent_id)
-    if not agent:
-        raise HTTPException(404, "Agent not found")
+    _visible_or_404(store.get_agent(agent_id), request, "Agent")
     content_length = request.headers.get("content-length")
     if content_length:
         try:
@@ -555,7 +587,7 @@ async def upload_agent_avatar(agent_id: str, request: Request):
 
 
 @app.patch("/api/agents/{agent_id}")
-async def update_agent(agent_id: str, payload: AgentUpdate):
+async def update_agent(agent_id: str, payload: AgentUpdate, request: Request):
     if payload.tools is not None and any(
         tool not in SUPPORTED_TOOLS for tool in payload.tools
     ):
@@ -576,9 +608,7 @@ async def update_agent(agent_id: str, payload: AgentUpdate):
         for name in payload.mcp_servers
     ):
         raise HTTPException(400, "Unsupported MCP server")
-    existing = store.get_agent(agent_id)
-    if not existing:
-        raise HTTPException(404, "Agent not found")
+    existing = _visible_or_404(store.get_agent(agent_id), request, "Agent")
     _validate_model_selection(
         payload.provider
         if "provider" in payload.model_fields_set
@@ -625,12 +655,11 @@ def _validate_thinking_level(level: str | None) -> None:
 
 
 @app.delete("/api/agents/{agent_id}")
-async def delete_agent(agent_id: str):
-    agent = store.get_agent(agent_id)
+async def delete_agent(agent_id: str, request: Request):
+    agent = _visible_or_404(store.get_agent(agent_id), request, "Agent")
     if not store.delete_agent(agent_id):
         raise HTTPException(400, "Agent does not exist or is protected")
-    if agent:
-        remove_avatar(settings.data_dir, agent)
+    remove_avatar(settings.data_dir, agent)
     return {"ok": True}
 
 
@@ -676,50 +705,47 @@ def visible_messages(messages: list[dict], mode: str = "production") -> list[dic
 
 
 @app.get("/api/chats")
-async def list_chats():
+async def list_chats(request: Request):
     chats = [
         chat
-        for chat in store.list_chats()
+        for chat in _visible_records(store.list_chats(), request)
         if chat.get("title") != "New conversation" or _has_session_file(chat)
     ]
     return {"chats": chats}
 
 
 @app.post("/api/chats", status_code=201)
-async def create_chat(payload: ChatCreate):
-    agent = store.get_agent(payload.agent_id)
-    if not agent:
-        raise HTTPException(404, "Agent not found")
+async def create_chat(payload: ChatCreate, request: Request):
+    agent = _visible_or_404(store.get_agent(payload.agent_id), request, "Agent")
     # Pi accepts an externally supplied session id. The platform chat id is a UUID
     # and is therefore also a valid Pi session id.
-    return store.create_chat(payload.agent_id, status="created")
+    return store.create_chat(
+        payload.agent_id,
+        status="created",
+        user_id=agent.get("user_id") or _user_id(request),
+    )
 
 
 @app.patch("/api/chats/{chat_id}")
-async def update_chat(chat_id: str, payload: ChatUpdate):
+async def update_chat(chat_id: str, payload: ChatUpdate, request: Request):
     if not payload.title.strip():
         raise HTTPException(422, "Chat title cannot be empty")
+    _visible_or_404(store.get_chat(chat_id), request, "Chat")
     chat = store.update_chat(chat_id, {"title": payload.title.strip()})
-    if not chat:
-        raise HTTPException(404, "Chat not found")
     return chat
 
 
 @app.get("/api/chats/{chat_id}")
-async def get_chat(chat_id: str):
-    chat = store.get_chat(chat_id)
-    if not chat:
-        raise HTTPException(404, "Chat not found")
+async def get_chat(chat_id: str, request: Request):
+    chat = _visible_or_404(store.get_chat(chat_id), request, "Chat")
     if chat.get("title") == "New conversation" and not _has_session_file(chat):
         raise HTTPException(404, "Chat has not started")
     return chat
 
 
 @app.delete("/api/chats/{chat_id}")
-async def delete_chat(chat_id: str):
-    chat = store.get_chat(chat_id)
-    if not chat:
-        raise HTTPException(404, "Chat not found")
+async def delete_chat(chat_id: str, request: Request):
+    chat = _visible_or_404(store.get_chat(chat_id), request, "Chat")
     await runtime.close_chat(chat_id)
     session_id = chat.get("session_id") or chat_id
     session_paths = [
@@ -736,7 +762,7 @@ async def delete_chat(chat_id: str):
     except PiRpcError:
         messages = []
     protected_paths: set[str] = set()
-    for other_chat in store.list_chats():
+    for other_chat in _visible_records(store.list_chats(), request):
         if other_chat["id"] == chat_id:
             continue
         try:
@@ -764,10 +790,8 @@ async def delete_chat(chat_id: str):
 
 
 @app.get("/api/chats/{chat_id}/messages")
-async def get_messages(chat_id: str, mode: str = "production"):
-    chat = store.get_chat(chat_id)
-    if not chat:
-        raise HTTPException(404, "Chat not found")
+async def get_messages(chat_id: str, request: Request, mode: str = "production"):
+    chat = _visible_or_404(store.get_chat(chat_id), request, "Chat")
     if chat["status"] == "created":
         # No prompt yet: no Pi session exists for this chat.
         return {"messages": []}
@@ -788,10 +812,8 @@ async def get_messages(chat_id: str, mode: str = "production"):
 
 
 @app.get("/api/chats/{chat_id}/files")
-async def list_chat_files(chat_id: str):
-    chat = store.get_chat(chat_id)
-    if not chat:
-        raise HTTPException(404, "Chat not found")
+async def list_chat_files(chat_id: str, request: Request):
+    chat = _visible_or_404(store.get_chat(chat_id), request, "Chat")
     if not _has_session_file(chat):
         return {"files": []}
     try:
@@ -802,10 +824,8 @@ async def list_chat_files(chat_id: str):
 
 
 @app.get("/api/chats/{chat_id}/files/content")
-async def get_chat_file(chat_id: str, path: str):
-    chat = store.get_chat(chat_id)
-    if not chat:
-        raise HTTPException(404, "Chat not found")
+async def get_chat_file(chat_id: str, path: str, request: Request):
+    chat = _visible_or_404(store.get_chat(chat_id), request, "Chat")
     if not _has_session_file(chat):
         raise HTTPException(404, "Pi session not found for this chat")
     try:
@@ -824,11 +844,15 @@ async def get_chat_file(chat_id: str, path: str):
 
 @app.get("/api/library/files")
 async def list_library_files(
-    search: str = "", agent_id: str | None = None, page: int = 1, page_size: int = 20
+    request: Request,
+    search: str = "",
+    agent_id: str | None = None,
+    page: int = 1,
+    page_size: int = 20,
 ):
     page = max(1, page)
     page_size = min(max(1, page_size), 100)
-    chats = store.list_chats()
+    chats = _visible_records(store.list_chats(), request)
 
     def files_for_chat(chat: dict) -> list[dict]:
         session_id = chat.get("session_id") or chat["id"]
@@ -870,10 +894,8 @@ async def list_library_files(
 
 
 @app.get("/api/chats/{chat_id}/files/download")
-async def download_chat_file(chat_id: str, path: str):
-    chat = store.get_chat(chat_id)
-    if not chat:
-        raise HTTPException(404, "Chat not found")
+async def download_chat_file(chat_id: str, path: str, request: Request):
+    chat = _visible_or_404(store.get_chat(chat_id), request, "Chat")
     try:
         file_path = resolve_chat_file(
             await runtime.messages(chat), settings.pi_cwd, path
@@ -981,10 +1003,10 @@ SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
 
 
 @app.post("/api/chats/{chat_id}/messages")
-async def send_message(chat_id: str, payload: MessageCreate, mode: str = "production"):
-    chat = store.get_chat(chat_id)
-    if not chat:
-        raise HTTPException(404, "Chat not found")
+async def send_message(
+    chat_id: str, payload: MessageCreate, request: Request, mode: str = "production"
+):
+    chat = _visible_or_404(store.get_chat(chat_id), request, "Chat")
     store.update_chat(
         chat_id,
         {
@@ -1016,12 +1038,10 @@ async def send_message(chat_id: str, payload: MessageCreate, mode: str = "produc
 
 
 @app.get("/api/chats/{chat_id}/stream")
-async def resume_chat_stream(chat_id: str):
+async def resume_chat_stream(chat_id: str, request: Request):
     """Replay + follow the active turn, so refreshes, shared links, and
     other tabs stay in sync. 204 when nothing is running."""
-    chat = store.get_chat(chat_id)
-    if not chat:
-        raise HTTPException(404, "Chat not found")
+    _visible_or_404(store.get_chat(chat_id), request, "Chat")
     turn = runtime.active_turn(chat_id)
     if turn is None:
         return Response(status_code=204)
@@ -1034,10 +1054,8 @@ async def resume_chat_stream(chat_id: str):
 
 
 @app.post("/api/chats/{chat_id}/abort")
-async def abort_chat(chat_id: str):
-    chat = store.get_chat(chat_id)
-    if not chat:
-        raise HTTPException(404, "Chat not found")
+async def abort_chat(chat_id: str, request: Request):
+    _visible_or_404(store.get_chat(chat_id), request, "Chat")
     await runtime.abort(chat_id)
     return {"ok": True}
 
@@ -1054,8 +1072,13 @@ def _autopilot_view(item: dict) -> dict:
 
 
 async def execute_autopilot(autopilot: dict) -> None:
-    chat = store.create_autopilot_chat(autopilot["agent_id"], autopilot["name"])
-    run = store.create_autopilot_run(autopilot["id"], chat["id"], chat["id"])
+    user_id = autopilot.get("user_id")
+    chat = store.create_autopilot_chat(
+        autopilot["agent_id"], autopilot["name"], user_id=user_id
+    )
+    run = store.create_autopilot_run(
+        autopilot["id"], chat["id"], chat["id"], user_id=user_id
+    )
     started = time.monotonic()
     prompt = f"{autopilot['instruction'].strip()}\n\nCurrent time: {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S')}"
     try:
@@ -1100,9 +1123,14 @@ async def execute_autopilot(autopilot: dict) -> None:
 
 
 @app.get("/api/autopilots")
-async def list_autopilots(search: str = "", agent_id: str | None = None):
+async def list_autopilots(
+    request: Request, search: str = "", agent_id: str | None = None
+):
     query = search.strip().casefold()
-    items = [_autopilot_view(item) for item in store.list_autopilots()]
+    items = [
+        _autopilot_view(item)
+        for item in _visible_records(store.list_autopilots(), request)
+    ]
     if agent_id:
         items = [item for item in items if item["agent_id"] == agent_id]
     if query:
@@ -1111,9 +1139,8 @@ async def list_autopilots(search: str = "", agent_id: str | None = None):
 
 
 @app.post("/api/autopilots", status_code=201)
-async def create_autopilot(payload: AutopilotCreate):
-    if not store.get_agent(payload.agent_id):
-        raise HTTPException(404, "Agent not found")
+async def create_autopilot(payload: AutopilotCreate, request: Request):
+    agent = _visible_or_404(store.get_agent(payload.agent_id), request, "Agent")
     if next_run_at({"cron": payload.cron}) is None:
         raise HTTPException(400, "Invalid cron expression")
     return _autopilot_view(
@@ -1124,35 +1151,37 @@ async def create_autopilot(payload: AutopilotCreate):
             payload.cron,
             payload.starts_at,
             payload.ends_at,
+            user_id=agent.get("user_id") or _user_id(request),
         )
     )
 
 
 @app.patch("/api/autopilots/{autopilot_id}")
-async def update_autopilot(autopilot_id: str, payload: AutopilotUpdate):
-    current = store.get_autopilot(autopilot_id)
-    if not current:
-        raise HTTPException(404, "Autopilot not found")
+async def update_autopilot(
+    autopilot_id: str, payload: AutopilotUpdate, request: Request
+):
+    current = _visible_or_404(store.get_autopilot(autopilot_id), request, "Autopilot")
     values = payload.model_dump(exclude_unset=True)
-    if "agent_id" in values and not store.get_agent(values["agent_id"]):
-        raise HTTPException(404, "Agent not found")
+    if "agent_id" in values:
+        agent = _visible_or_404(store.get_agent(values["agent_id"]), request, "Agent")
+        if agent.get("user_id") != current.get("user_id"):
+            raise HTTPException(400, "Agent belongs to another user")
     if "cron" in values and next_run_at({"cron": values["cron"]}) is None:
         raise HTTPException(400, "Invalid cron expression")
     return _autopilot_view(store.update_autopilot(autopilot_id, values) or current)
 
 
 @app.delete("/api/autopilots/{autopilot_id}")
-async def delete_autopilot(autopilot_id: str):
+async def delete_autopilot(autopilot_id: str, request: Request):
+    _visible_or_404(store.get_autopilot(autopilot_id), request, "Autopilot")
     if not store.delete_autopilot(autopilot_id):
         raise HTTPException(404, "Autopilot not found")
     return {"ok": True}
 
 
 @app.post("/api/autopilots/{autopilot_id}/run", status_code=202)
-async def run_autopilot(autopilot_id: str):
-    autopilot = store.get_autopilot(autopilot_id)
-    if not autopilot:
-        raise HTTPException(404, "Autopilot not found")
+async def run_autopilot(autopilot_id: str, request: Request):
+    autopilot = _visible_or_404(store.get_autopilot(autopilot_id), request, "Autopilot")
     if autopilot_id in scheduler.running:
         raise HTTPException(409, "Autopilot is already running")
     store.update_autopilot(autopilot_id, {"last_run_at": datetime.now(UTC).isoformat()})
@@ -1162,10 +1191,9 @@ async def run_autopilot(autopilot_id: str):
 
 
 @app.get("/api/autopilots/{autopilot_id}/runs")
-async def list_autopilot_runs(autopilot_id: str):
-    if not store.get_autopilot(autopilot_id):
-        raise HTTPException(404, "Autopilot not found")
-    return {"runs": store.list_autopilot_runs(autopilot_id)}
+async def list_autopilot_runs(autopilot_id: str, request: Request):
+    _visible_or_404(store.get_autopilot(autopilot_id), request, "Autopilot")
+    return {"runs": _visible_records(store.list_autopilot_runs(autopilot_id), request)}
 
 
 scheduler = AutopilotScheduler(store, execute_autopilot)
@@ -1176,12 +1204,10 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
 @app.post("/api/chats/{chat_id}/share")
-async def create_chat_share(chat_id: str):
+async def create_chat_share(chat_id: str, request: Request):
     """Create (or reuse) the unguessable public share token for a chat."""
-    chat = store.get_chat(chat_id)
-    if not chat:
-        raise HTTPException(404, "Chat not found")
-    share = store.create_share(chat_id)
+    chat = _visible_or_404(store.get_chat(chat_id), request, "Chat")
+    share = store.create_share(chat_id, user_id=chat.get("user_id"))
     return {"token": share["token"], "url": f"/share/{share['token']}"}
 
 
