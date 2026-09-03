@@ -1083,7 +1083,7 @@ body {
 .agents-page .page-heading {
  margin-bottom: 28px;
 }
-.agent-grid {
+.agents-page .agent-grid {
  grid-template-columns: repeat(3, minmax(0, 1fr));
  gap: 18px;
 }
