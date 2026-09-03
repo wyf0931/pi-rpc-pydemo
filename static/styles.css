@@ -2767,6 +2767,7 @@ pre,
 }
 .market-owner {
  width: 190px;
+ border-color: var(--line);
 }
 .market-search-state {
  margin-bottom: 24px;
