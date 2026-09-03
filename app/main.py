@@ -236,13 +236,13 @@ async def login(payload: LoginPayload, request: Request, response: Response):
     ):
         raise HTTPException(401, "Invalid username or password")
     updated = store.mark_user_login(user["id"]) or user
-    expires_at = datetime.now(UTC) + timedelta(days=7)
+    expires_at = datetime.now(UTC) + timedelta(hours=24)
     token = store.create_session(user["id"], expires_at.isoformat())
     response.set_cookie(
         SESSION_COOKIE,
         token,
         httponly=True,
-        max_age=7 * 24 * 60 * 60,
+        max_age=24 * 60 * 60,
         samesite="lax",
         secure=request.headers.get("x-forwarded-proto", request.url.scheme) == "https",
     )
