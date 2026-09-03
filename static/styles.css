@@ -4117,7 +4117,7 @@ body > .link-drawer {
  stroke-width: 1.8;
 }
 .usage-tools {
- color: var(--color-primary);
+ color: var(--muted);
 }
 .action-btn {
  display: inline-flex;
