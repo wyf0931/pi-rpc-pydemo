@@ -114,6 +114,7 @@ function platform() {
     userAddOpen: false,
     userCreating: false,
     userDeleteTarget: null,
+    logoutConfirmOpen: false,
     newUserUsername: "",
     newUserEmail: "",
     searchOpen: false,
@@ -310,6 +311,22 @@ function platform() {
         this.loginError = error.message;
       } finally {
         this.loginLoading = false;
+      }
+    },
+    requestLogout() {
+      this.logoutConfirmOpen = true;
+    },
+    async confirmLogout() {
+      try {
+        await this.api("/api/auth/logout", { method: "POST" });
+        this.logoutConfirmOpen = false;
+        this.usersOpen = false;
+        this.authUser = null;
+        this.authChecked = true;
+        this.appReady = true;
+        this.page = "chat";
+      } catch (error) {
+        this.showError(error);
       }
     },
     errorFromResponse(response, requestId, data = null) {

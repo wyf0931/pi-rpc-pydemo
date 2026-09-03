@@ -281,6 +281,15 @@
             >
               <i data-lucide="settings" aria-hidden="true"></i>
             </button>
+            <button
+              type="button"
+              class="theme-toggle"
+              title="Log out"
+              aria-label="Log out"
+              @click="requestLogout()"
+            >
+              <i data-lucide="log-out" aria-hidden="true"></i>
+            </button>
           </div>
         </aside>
         <button
@@ -2002,6 +2011,35 @@
       </div>
     </dialog>
     <dialog
+      class="modal modal-middle"
+      :open="logoutConfirmOpen"
+      x-show="logoutConfirmOpen"
+      x-cloak
+      @click.self="logoutConfirmOpen = false"
+    >
+      <div class="modal-box confirm-box">
+        <div class="dialog-head">
+          <div>
+            <div class="eyebrow">Session</div>
+            <h2>Log out?</h2>
+          </div>
+          <button
+            type="button"
+            class="icon-btn"
+            @click="logoutConfirmOpen = false"
+            aria-label="Close logout dialog"
+          >
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <p class="confirm-copy">You will need to sign in again to access the workspace.</p>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-ghost" @click="logoutConfirmOpen = false">Cancel</button>
+          <button type="button" class="btn btn-error" @click="confirmLogout()">Log out</button>
+        </div>
+      </div>
+    </dialog>
+    <dialog
       class="modal modal-middle settings-dialog"
       :open="settingsOpen"
       x-show="settingsOpen"
@@ -2746,6 +2784,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260903users"></script>
+    <script src="/static/app.js?v=20260903logout"></script>
   </body>
 </html>

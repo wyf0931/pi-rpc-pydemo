@@ -101,6 +101,23 @@ def test_auth_session_and_admin_users(client):
     assert "password_hash" not in created.json()
 
 
+def test_auth_logout_expires_session_cookie(client):
+    response = client.post("/api/auth/logout")
+    assert response.status_code == 200
+    assert 'oma_session=""' in response.headers["set-cookie"]
+    assert "Max-Age=0" in response.headers["set-cookie"]
+    assert client.get("/api/auth/session").json()["user"] is None
+
+
+def test_auth_login_uses_24_hour_cookie(client):
+    response = client.post(
+        "/api/auth/login",
+        json={"username": "admin", "password": "test-admin-password"},
+    )
+    assert response.status_code == 200
+    assert "Max-Age=86400" in response.headers["set-cookie"]
+
+
 def test_auth_rejects_unauthenticated_requests(client):
     client.post("/api/auth/logout")
     assert client.get("/api/agents").status_code == 401
