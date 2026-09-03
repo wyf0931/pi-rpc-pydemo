@@ -134,6 +134,61 @@ def test_normal_user_cannot_read_admin_owned_agent(client):
     assert client.get("/api/users").status_code == 403
 
 
+def test_agent_marketplace_publishes_and_installs_private_copy(client):
+    source = client.post(
+        "/api/agents",
+        json={"name": f"shared-{uuid4().hex[:8]}", "instruction": "Share this"},
+    ).json()
+    published = client.post(
+        f"/api/agents/{source['id']}/publish", json={"version": "v1.0.0"}
+    )
+    assert published.status_code == 200
+    listing = published.json()["agent"]
+    assert listing["version"] == "v1.0.0"
+    assert listing["author"] == "admin"
+    assert listing["install_count"] == 0
+
+    created = client.post(
+        "/api/users", json={"username": f"installer-{uuid4().hex[:8]}"}
+    ).json()
+    client.post("/api/auth/logout")
+    assert (
+        client.post(
+            "/api/auth/login",
+            json={"username": created["username"], "password": "test-user-password"},
+        ).status_code
+        == 200
+    )
+    installed = client.post(
+        f"/api/market/agents/{listing['id']}/install",
+        json={"version": "v1.0.0"},
+    )
+    assert installed.status_code == 201
+    copy = installed.json()["agent"]
+    assert copy["id"] != source["id"]
+    assert copy["user_id"] == created["id"]
+    assert copy["source_publication_id"] == listing["id"]
+
+    market = client.get("/api/market/agents").json()["agents"]
+    assert (
+        next(item for item in market if item["id"] == listing["id"])["install_count"]
+        == 1
+    )
+
+    own = client.post(
+        "/api/agents",
+        json={
+            "name": f"normal-shared-{uuid4().hex[:8]}",
+            "instruction": "Own share",
+        },
+    ).json()
+    own_listing = client.post(
+        f"/api/agents/{own['id']}/publish", json={"version": "v1.0.0"}
+    )
+    assert own_listing.status_code == 200
+    assert own_listing.json()["agent"]["author"] == created["username"]
+
+
 def test_auth_login_uses_24_hour_cookie(client):
     response = client.post(
         "/api/auth/login",

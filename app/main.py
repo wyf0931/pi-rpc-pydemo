@@ -2,6 +2,7 @@ import asyncio
 import copy
 import json
 import logging
+import re
 import time
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
@@ -163,6 +164,14 @@ class AgentUpdate(BaseModel):
     extensions: list[str] | None = None
     skills: list[str] | None = None
     mcp_servers: list[str] | None = None
+
+
+class AgentPublish(BaseModel):
+    version: str = Field(pattern=r"^v?\d+\.\d+\.\d+$")
+
+
+class AgentInstall(BaseModel):
+    version: str | None = Field(default=None, pattern=r"^v?\d+\.\d+\.\d+$")
 
 
 class ChatCreate(BaseModel):
@@ -549,6 +558,88 @@ async def create_agent(payload: AgentCreate, request: Request):
         thinking_level=payload.thinking_level,
         user_id=owner_id,
     )
+
+
+def _normalize_agent_version(version: str) -> str:
+    value = version.strip()
+    if not re.fullmatch(r"v?\d+\.\d+\.\d+", value):
+        raise HTTPException(422, "Agent version must use SemVer, for example v1.0.0")
+    return value if value.startswith("v") else f"v{value}"
+
+
+def _market_agent_view(publication: dict) -> dict:
+    latest = publication["latest"]
+    source_agent = store.get_agent(publication["source_agent_id"])
+    return {
+        "id": publication["id"],
+        "name": latest["content"]["name"],
+        "instruction": latest["content"]["instruction"],
+        "provider": latest["content"].get("provider"),
+        "model": latest["content"].get("model"),
+        "thinking_level": latest["content"].get("thinking_level"),
+        "tools": latest["content"].get("tools", []),
+        "extensions": latest["content"].get("extensions", []),
+        "skills": latest["content"].get("skills", []),
+        "mcp_servers": latest["content"].get("mcp_servers", []),
+        "version": latest["version"],
+        "content_hash": latest["content_hash"],
+        "author": publication["author_username"],
+        "install_count": publication.get("install_count", 0),
+        "source_agent_id": publication["source_agent_id"],
+        "avatar_available": bool(source_agent and source_agent.get("avatar_path")),
+    }
+
+
+@app.get("/api/market/agents")
+async def list_market_agents():
+    return {
+        "agents": [_market_agent_view(item) for item in store.list_agent_publications()]
+    }
+
+
+@app.post("/api/agents/{agent_id}/publish")
+async def publish_agent(agent_id: str, payload: AgentPublish, request: Request):
+    agent = _visible_or_404(store.get_agent(agent_id), request, "Agent")
+    version = _normalize_agent_version(payload.version)
+    publication = next(
+        (
+            item
+            for item in store.list_agent_publications()
+            if item["source_agent_id"] == agent_id
+        ),
+        None,
+    )
+    if publication and store.has_agent_publication_version(publication["id"], version):
+        raise HTTPException(409, f"Agent version {version} already exists")
+    published = store.publish_agent(agent, _user_id(request), version)
+    return {"agent": _market_agent_view(published)}
+
+
+@app.get("/api/market/agents/{publication_id}/avatar")
+async def get_market_agent_avatar(publication_id: str):
+    publication = store.get_agent_publication(publication_id)
+    if not publication:
+        raise HTTPException(404, "Published Agent not found")
+    agent = store.get_agent(publication["source_agent_id"])
+    path = avatar_file(settings.data_dir, agent) if agent else None
+    if not path:
+        raise HTTPException(404, "Published Agent avatar not found")
+    return FileResponse(path)
+
+
+@app.post("/api/market/agents/{publication_id}/install", status_code=201)
+async def install_market_agent(
+    publication_id: str, payload: AgentInstall, request: Request
+):
+    owner_id = _user_id(request)
+    publication = store.get_agent_publication(publication_id)
+    if not publication:
+        raise HTTPException(404, "Published Agent not found")
+    version = _normalize_agent_version(payload.version) if payload.version else None
+    installed = store.install_agent_publication(publication_id, owner_id, version)
+    if not installed:
+        raise HTTPException(404, "Published Agent version not found")
+    return {"agent": installed}
 
 
 @app.get("/api/agents/{agent_id}")

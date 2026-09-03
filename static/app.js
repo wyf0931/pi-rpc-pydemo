@@ -88,6 +88,13 @@ function platform() {
     libraryPages: 1,
     libraryTotal: 0,
     marketTab: "skills",
+    marketAgents: [],
+    marketAgentsLoading: false,
+    marketPublishTarget: null,
+    marketPublishVersion: "v1.0.0",
+    marketPublishing: false,
+    marketInstallAgentTarget: null,
+    marketInstallingAgent: false,
     marketCatalogSearch: "",
     marketInstallOpen: false,
     marketSearch: "",
@@ -502,6 +509,25 @@ function platform() {
       if (this.resources.tools?.length) this.toolCatalog = this.resources.tools;
       return this.resources;
     },
+    async loadMarketAgents() {
+      this.marketAgentsLoading = true;
+      try {
+        this.marketAgents = (await this.api("/api/market/agents")).agents || [];
+      } catch (error) {
+        this.showError(error);
+      } finally {
+        this.marketAgentsLoading = false;
+      }
+    },
+    marketAgentItems() {
+      const query = this.marketCatalogSearch.trim().toLowerCase();
+      if (!query) return this.marketAgents;
+      return this.marketAgents.filter((item) =>
+        `${item.name || ""} ${item.instruction || ""} ${item.author || ""}`
+          .toLowerCase()
+          .includes(query),
+      );
+    },
     marketCatalogItems(kind) {
       const items = this.resources[kind] || [];
       const query = this.marketCatalogSearch.trim().toLowerCase();
@@ -865,6 +891,7 @@ function platform() {
       history.pushState({}, "", path + this.modeQuery());
       if (page === "library") this.loadLibrary(1);
       if (page === "autopilots") this.loadAutopilots();
+      if (page === "market") this.loadMarketAgents();
     },
     openCronBuilder() {
       this.syncCronBuilder();
@@ -2126,6 +2153,11 @@ function platform() {
       if (!agent?.avatar_path || !agent.id) return "";
       return `/api/agents/${encodeURIComponent(agent.id)}/avatar?v=${encodeURIComponent(agent.updated_at || agent.avatar_path)}`;
     },
+    marketAgentAvatarUrl(agent) {
+      return agent?.id
+        ? `/api/market/agents/${encodeURIComponent(agent.id)}/avatar`
+        : "";
+    },
     async uploadAvatarFile(agentId, file) {
       const requestId = crypto.randomUUID();
       const response = await fetch(
@@ -2196,6 +2228,49 @@ function platform() {
     deleteAgent(agent) {
       if (!agent.protected) this.confirmTarget = agent;
     },
+    publishAgent(agent) {
+      this.marketPublishTarget = agent;
+      this.marketPublishVersion = "v1.0.0";
+    },
+    async confirmPublishAgent() {
+      const agent = this.marketPublishTarget;
+      if (!agent || this.marketPublishing) return;
+      this.marketPublishing = true;
+      try {
+        const data = await this.api(`/api/agents/${agent.id}/publish`, {
+          method: "POST",
+          body: JSON.stringify({ version: this.marketPublishVersion }),
+        });
+        this.marketPublishTarget = null;
+        await this.loadMarketAgents();
+        this.showToast(`Agent ${data.agent.name} ${data.agent.version} published`);
+      } catch (error) {
+        this.showError(error);
+      } finally {
+        this.marketPublishing = false;
+      }
+    },
+    installMarketAgent(agent) {
+      this.marketInstallAgentTarget = agent;
+    },
+    async confirmInstallMarketAgent() {
+      const agent = this.marketInstallAgentTarget;
+      if (!agent || this.marketInstallingAgent) return;
+      this.marketInstallingAgent = true;
+      try {
+        const data = await this.api(`/api/market/agents/${agent.id}/install`, {
+          method: "POST",
+          body: JSON.stringify({ version: agent.version }),
+        });
+        await this.refreshAgents();
+        this.marketInstallAgentTarget = null;
+        this.showToast(`Agent ${data.agent.name} installed`);
+      } catch (error) {
+        this.showError(error);
+      } finally {
+        this.marketInstallingAgent = false;
+      }
+    },
     deleteChat(chat) {
       this.deleteChatTarget = chat;
     },
@@ -2264,6 +2339,7 @@ function platform() {
       }
       if (window.location.pathname === "/market") {
         this.page = "market";
+        await this.loadMarketAgents();
         return;
       }
       if (window.location.pathname === "/autopilots") {

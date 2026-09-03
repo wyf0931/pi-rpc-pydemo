@@ -1,6 +1,6 @@
 # TinyDB 数据结构
 
-OMA Studio 的平台元数据保存在 `~/.oma-studio/data/platform.json`。当前由 `app/store.py` 创建并管理七张 TinyDB 表。消息正文、工具调用结果、完整对话记录和 Pi 原生 session 文件不在本文范围内，也不会写入这些表。
+OMA Studio 的平台元数据保存在 `~/.oma-studio/data/platform.json`。当前由 `app/store.py` 创建并管理九张 TinyDB 表。消息正文、工具调用结果、完整对话记录和 Pi 原生 session 文件不在本文范围内，也不会写入这些表。
 
 ## ER 图
 
@@ -17,6 +17,8 @@ erDiagram
     USERS ||--o{ AUTOPILOT_RUNS : "拥有"
     USERS ||--o{ SHARES : "创建"
     USERS ||--o{ SESSIONS : "登录"
+    AGENT_PUBLICATIONS ||--o{ AGENT_PUBLICATION_VERSIONS : "版本"
+    AGENTS ||--o{ AGENT_PUBLICATIONS : "发布来源"
 
     AGENTS {
         string id PK "UUID，默认 Agent 使用 default-assistant"
@@ -32,6 +34,10 @@ erDiagram
         bool tools_configured "工具配置是否已初始化"
         string[] mcp_servers "已选择的 MCP 服务"
         string avatar_path "头像文件路径，可为空"
+        string content_hash "当前配置 SHA-256"
+        string source_publication_id "安装来源，可为空"
+        string source_version "安装来源版本，可为空"
+        string source_hash "安装时来源 hash，可为空"
         bool protected "是否为受保护的默认 Agent"
         datetime created_at
         datetime updated_at
@@ -102,6 +108,26 @@ erDiagram
         datetime created_at
         datetime expires_at "登录后 24 小时"
     }
+
+    AGENT_PUBLICATIONS {
+        string id PK "发布资源 UUID"
+        string source_agent_id FK "发布时的用户 Agent"
+        string owner_user_id FK "发布者"
+        string name "Marketplace 展示名称"
+        string description "展示描述"
+        int install_count "累计安装次数"
+        datetime created_at
+        datetime updated_at
+    }
+
+    AGENT_PUBLICATION_VERSIONS {
+        string id PK "版本 UUID"
+        string publication_id FK "所属发布资源"
+        string version "SemVer，例如 v1.0.0"
+        string content_hash "配置快照 SHA-256"
+        json content "不可变 Agent 配置快照"
+        datetime created_at
+    }
 ```
 
 ## 表说明
@@ -148,6 +174,17 @@ TinyDB 只保存 token 的 SHA-256 摘要。Session 默认 24 小时过期，主
 删除对应记录并清除 cookie。删除用户时会清理该用户的 session 记录，这是应用层实现
 的级联行为。
 
+### `agent_publications` 与 `agent_publication_versions`
+
+Marketplace 发布资源与用户实际使用的 Agent 实例分开保存。`agent_publications`
+保存发布者、来源 Agent 和累计安装次数；`agent_publication_versions` 保存不可变的
+Agent 配置快照。Admin 和 normal 用户都可以发布自己拥有的 Agent，其他用户安装时
+会复制为自己的私有 Agent，不会修改原作者或其他安装者的实例。
+
+版本使用 SemVer，配置快照使用 canonical JSON 计算 SHA-256 `content_hash`。更新发布
+只会增加新版本，旧版本保留用于审计和后续回滚。当前不设置 system default Agent，
+`assistant` 也只是普通 Agent 资源。
+
 ## 关系和约束
 
 | 关系 | 含义 |
@@ -163,6 +200,8 @@ TinyDB 只保存 token 的 SHA-256 摘要。Session 默认 24 小时过期，主
 | `users.id` → `autopilot_runs.user_id` | 运行记录继承所属自动任务/Chat 的用户归属 |
 | `users.id` → `shares.user_id` | 分享记录记录创建者；分享链接本身仍按 token 公开访问 |
 | `users.id` → `sessions.user_id` | 一个用户可以有多个登录 session，删除用户时清理其 session |
+| `agents.id` → `agent_publications.source_agent_id` | 发布记录追踪最初的用户 Agent |
+| `agent_publications.id` → `agent_publication_versions.publication_id` | 一个发布资源拥有多个不可变版本 |
 
 TinyDB 的这些表没有 SQL 意义上的外键、唯一索引或级联约束。`PK` 和 `FK` 表示当前代码中的身份字段和关联字段，实际约束由 `Store` 及 API 逻辑维护。
 

@@ -344,7 +344,11 @@ This MVP is a single FastAPI application with a static frontend. The main endpoi
 | `DELETE /api/agents/{id}` | Delete a non-default Agent |
 | `GET /api/agents/{id}/avatar` | Read an Agent avatar |
 | `PUT /api/agents/{id}/avatar` | Upload or replace an Agent avatar |
+| `POST /api/agents/{id}/publish` | Publish an owned Agent snapshot to the organization Marketplace |
 | `GET /api/resources` | Discover extensions, skills, MCP servers, Providers, and Models |
+| `GET /api/market/agents` | List organization Agent publications and latest versions |
+| `GET /api/market/agents/{id}/avatar` | Read a published Agent avatar |
+| `POST /api/market/agents/{id}/install` | Install a published Agent as a private copy |
 | `POST /api/market/skills/search` | Search skills.sh for installable skills |
 | `POST /api/market/skills/preview` | Preview skills available from a GitHub source |
 | `POST /api/market/skills/install` | Install a selected skill globally for Pi |

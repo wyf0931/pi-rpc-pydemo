@@ -25,7 +25,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260903-user-add-spacing" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260903-agent-marketplace" />
   </head>
   <body
     x-data="platform()"
@@ -835,7 +835,18 @@
                 </div>
                 <p class="agent-instruction" x-text="agent.instruction"></p>
                 <div class="card-bottom">
-                  <span x-text="chatCount(agent.id) + ' chats' "></span>
+                  <div class="agent-card-bottom-start">
+                    <span x-text="chatCount(agent.id) + ' chats' "></span>
+                    <button
+                      type="button"
+                      class="icon-btn agent-publish-btn"
+                      @click.stop="publishAgent(agent)"
+                      aria-label="Share agent"
+                      title="Share agent"
+                    >
+                      <i data-lucide="rss" aria-hidden="true"></i>
+                    </button>
+                  </div>
                   <button
                     type="button"
                     class="trash-btn"
@@ -1104,11 +1115,62 @@
           </div>
           <div
             class="market-empty"
-            x-show="marketTab === 'agents' || marketTab === 'agent_teams'"
+            x-show="marketTab === 'agent_teams'"
             x-cloak
           >
             <h2>Coming soon</h2>
             <p>This catalog is reserved for a future release.</p>
+          </div>
+          <div class="market-content" x-show="marketTab === 'agents'" x-cloak>
+            <div class="market-grid" x-show="!marketAgentsLoading && marketAgentItems().length">
+              <template x-for="item in marketAgentItems()" :key="item.id">
+                <article class="card card-border market-card agent-market-card bg-base-100">
+                  <div class="card-body">
+                    <div class="market-card-top">
+                      <template x-if="item.avatar_available">
+                        <img
+                          class="agent-mark"
+                          :src="marketAgentAvatarUrl(item)"
+                          :alt="item.name + ' avatar'"
+                          @error="$el.remove()"
+                        />
+                      </template>
+                      <template x-if="!item.avatar_available">
+                        <span class="agent-mark" x-text="initials(item.name)"></span>
+                      </template>
+                      <h2 class="card-title" x-text="item.name"></h2>
+                    </div>
+                    <p class="market-description" x-text="item.instruction"></p>
+                    <div class="card-actions market-card-footer">
+                      <div class="market-agent-meta">
+                        <span class="market-card-author">
+                          <i data-lucide="user" aria-hidden="true"></i>
+                          <span x-text="item.author"></span>
+                        </span>
+                        <span class="market-card-separator"></span>
+                        <span x-text="item.install_count + ' installed'"></span>
+                      </div>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm btn-square market-agent-install-action"
+                        @click.stop="installMarketAgent(item)"
+                        :aria-label="'Install ' + item.name"
+                        title="Install agent"
+                      >
+                        <i data-lucide="plus" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              </template>
+            </div>
+            <div class="files-empty" x-show="marketAgentsLoading">
+              <span class="loading loading-dots loading-sm"></span>
+            </div>
+            <div class="market-empty" x-show="!marketAgentsLoading && !marketAgentItems().length">
+              <h2>No shared Agents yet</h2>
+              <p>Share an Agent from the Agents page to make it available here.</p>
+            </div>
           </div>
         </section>
         <dialog
@@ -1328,6 +1390,66 @@
             <div class="dialog-actions">
               <button type="button" class="btn btn-ghost" @click="marketUninstallTarget = null">Cancel</button>
               <button type="button" class="btn btn-error" @click="confirmMarketUninstall()">Uninstall</button>
+            </div>
+          </div>
+        </dialog>
+        <dialog
+          class="modal modal-middle"
+          :open="!!marketPublishTarget"
+          x-show="marketPublishTarget"
+          x-cloak
+          @click.self="marketPublishTarget = null"
+        >
+          <div class="modal-box confirm-box agent-publish-dialog">
+            <div class="dialog-head">
+              <div>
+                <div class="eyebrow">Share Agent</div>
+                <h2>Publish <span x-text="marketPublishTarget?.name"></span>?</h2>
+              </div>
+              <button type="button" class="icon-btn" @click="marketPublishTarget = null" aria-label="Close publish dialog">
+                <i data-lucide="x" aria-hidden="true"></i>
+              </button>
+            </div>
+            <p class="confirm-copy">All organization members will be able to view and install an independent copy of this Agent.</p>
+            <form @submit.prevent="confirmPublishAgent()">
+              <label class="form-field">
+                <span>Version</span>
+                <input class="input input-bordered" x-model="marketPublishVersion" placeholder="v1.0.0" pattern="v?\d+\.\d+\.\d+" required :disabled="marketPublishing" />
+              </label>
+              <div class="dialog-actions">
+                <button type="button" class="btn btn-ghost" @click="marketPublishTarget = null">Cancel</button>
+                <button type="submit" class="btn btn-primary" :disabled="marketPublishing">
+                  <span x-show="!marketPublishing">Publish</span>
+                  <span x-show="marketPublishing" class="loading loading-spinner loading-sm"></span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </dialog>
+        <dialog
+          class="modal modal-middle"
+          :open="!!marketInstallAgentTarget"
+          x-show="marketInstallAgentTarget"
+          x-cloak
+          @click.self="marketInstallAgentTarget = null"
+        >
+          <div class="modal-box confirm-box">
+            <div class="dialog-head">
+              <div>
+                <div class="eyebrow">Install Agent</div>
+                <h2>Install <span x-text="marketInstallAgentTarget?.name"></span>?</h2>
+              </div>
+              <button type="button" class="icon-btn" @click="marketInstallAgentTarget = null" aria-label="Close install dialog">
+                <i data-lucide="x" aria-hidden="true"></i>
+              </button>
+            </div>
+            <p class="confirm-copy">A private copy of version <b x-text="marketInstallAgentTarget?.version"></b> will be added to your Agents. Your changes will not affect the original.</p>
+            <div class="dialog-actions">
+              <button type="button" class="btn btn-ghost" @click="marketInstallAgentTarget = null">Cancel</button>
+              <button type="button" class="btn btn-primary" @click="confirmInstallMarketAgent()" :disabled="marketInstallingAgent">
+                <span x-show="!marketInstallingAgent">Install</span>
+                <span x-show="marketInstallingAgent" class="loading loading-spinner loading-sm"></span>
+              </button>
             </div>
           </div>
         </dialog>
@@ -2807,6 +2929,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260903assistant-footer-actions"></script>
+    <script src="/static/app.js?v=20260903-agent-marketplace"></script>
   </body>
 </html>
