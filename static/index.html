@@ -940,7 +940,7 @@
             </label>
             <button
               class="btn btn-soft btn-primary"
-              x-show="['skills', 'extensions'].includes(marketTab)"
+              x-show="authUser?.role === 'admin' && ['skills', 'extensions'].includes(marketTab)"
               x-cloak
               @click="openMarketInstall()"
             >
@@ -983,7 +983,7 @@
                       <button
                         type="button"
                         class="trash-btn market-uninstall-action"
-                        x-show="marketResourceSource('skills', item)"
+                        x-show="authUser?.role === 'admin' && marketResourceSource('skills', item)"
                         @click.stop="openMarketUninstall('skills', item)"
                         :aria-label="'Uninstall ' + item.name"
                         title="Uninstall skill"
@@ -1045,7 +1045,7 @@
                       <button
                         type="button"
                         class="trash-btn market-uninstall-action"
-                        x-show="marketResourceSource('extensions', item)"
+                        x-show="authUser?.role === 'admin' && marketResourceSource('extensions', item)"
                         @click.stop="openMarketUninstall('extensions', item)"
                         :aria-label="'Uninstall ' + item.name"
                         title="Uninstall extension"

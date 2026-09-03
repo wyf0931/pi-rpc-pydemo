@@ -132,6 +132,20 @@ def test_normal_user_cannot_read_admin_owned_agent(client):
     assert client.get(f"/api/chats/{admin_chat['id']}").status_code == 404
     assert client.get(f"/api/chats/{admin_chat['id']}/files").status_code == 404
     assert client.get("/api/users").status_code == 403
+    assert (
+        client.post(
+            "/api/market/extensions/uninstall",
+            json={"package": "npm:example-extension"},
+        ).status_code
+        == 403
+    )
+    assert (
+        client.post(
+            "/api/market/skills/uninstall",
+            json={"source": "acme/skills", "skill": "example-skill"},
+        ).status_code
+        == 403
+    )
 
 
 def test_agent_marketplace_publishes_and_installs_private_copy(client):
