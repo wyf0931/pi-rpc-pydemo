@@ -1,3 +1,5 @@
+import hashlib
+import json
 import secrets
 from datetime import UTC, datetime
 from pathlib import Path
@@ -44,6 +46,8 @@ class Store:
         self.shares = self.db.table("shares")
         self.users = self.db.table("users")
         self.sessions = self.db.table("sessions")
+        self.agent_publications = self.db.table("agent_publications")
+        self.agent_publication_versions = self.db.table("agent_publication_versions")
 
     @staticmethod
     def public_user(user: dict) -> dict:
@@ -66,6 +70,33 @@ class Store:
         }
         self.users.insert(user)
         return user
+
+    @staticmethod
+    def agent_config(agent: dict) -> dict:
+        return {
+            key: agent.get(key)
+            for key in (
+                "name",
+                "instruction",
+                "provider",
+                "model",
+                "thinking_level",
+                "tools",
+                "extensions",
+                "skills",
+                "mcp_servers",
+            )
+        }
+
+    @classmethod
+    def agent_content_hash(cls, agent: dict) -> str:
+        payload = json.dumps(
+            cls.agent_config(agent),
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        return hashlib.sha256(payload).hexdigest()
 
     def list_users(self) -> list[dict]:
         return [self.public_user(user) for user in self.users.all()]
@@ -200,6 +231,7 @@ class Store:
         }
         if user_id:
             item["user_id"] = user_id
+        item["content_hash"] = self.agent_content_hash(item)
         self.agents.insert(item)
         return item
 
@@ -209,8 +241,145 @@ class Store:
             values["tools_configured"] = True
         values["updated_at"] = now_iso()
         if self.agents.update(values, Query().id == agent_id):
-            return self.get_agent(agent_id)
+            agent = self.get_agent(agent_id)
+            if agent:
+                self.agents.update(
+                    {"content_hash": self.agent_content_hash(agent)},
+                    Query().id == agent_id,
+                )
+                agent["content_hash"] = self.agent_content_hash(agent)
+            return agent
         return None
+
+    def list_agent_publications(self) -> list[dict]:
+        publications = []
+        for publication in self.agent_publications.all():
+            versions = self.agent_publication_versions.search(
+                Query().publication_id == publication["id"]
+            )
+            if not versions:
+                continue
+            latest = max(versions, key=lambda item: tuple(item["version_sort"]))
+            author = self.get_user(publication["owner_user_id"])
+            publications.append(
+                {
+                    **publication,
+                    "latest_version": latest["version"],
+                    "latest_hash": latest["content_hash"],
+                    "latest": latest,
+                    "author_username": author.get("username", "admin")
+                    if author
+                    else "admin",
+                }
+            )
+        return sorted(
+            publications, key=lambda item: item.get("updated_at", ""), reverse=True
+        )
+
+    def get_agent_publication(self, publication_id: str) -> dict | None:
+        publication = self.agent_publications.get(Query().id == publication_id)
+        if not publication:
+            return None
+        versions = self.agent_publication_versions.search(
+            Query().publication_id == publication_id
+        )
+        if not versions:
+            return None
+        latest = max(versions, key=lambda item: tuple(item["version_sort"]))
+        author = self.get_user(publication["owner_user_id"])
+        return {
+            **publication,
+            "latest_version": latest["version"],
+            "latest_hash": latest["content_hash"],
+            "latest": latest,
+            "author_username": author.get("username", "admin") if author else "admin",
+        }
+
+    def has_agent_publication_version(self, publication_id: str, version: str) -> bool:
+        return bool(
+            self.agent_publication_versions.get(
+                (Query().publication_id == publication_id)
+                & (Query().version == version)
+            )
+        )
+
+    def publish_agent(self, agent: dict, owner_user_id: str, version: str) -> dict:
+        content = self.agent_config(agent)
+        content_hash = self.agent_content_hash(agent)
+        publication = self.agent_publications.get(
+            (Query().owner_user_id == owner_user_id)
+            & (Query().source_agent_id == agent["id"])
+        )
+        timestamp = now_iso()
+        if not publication:
+            publication = {
+                "id": str(uuid4()),
+                "source_agent_id": agent["id"],
+                "owner_user_id": owner_user_id,
+                "name": agent["name"],
+                "description": agent["instruction"],
+                "install_count": 0,
+                "created_at": timestamp,
+                "updated_at": timestamp,
+            }
+            self.agent_publications.insert(publication)
+        else:
+            self.agent_publications.update(
+                {
+                    "name": agent["name"],
+                    "description": agent["instruction"],
+                    "updated_at": timestamp,
+                },
+                Query().id == publication["id"],
+            )
+        version_record = {
+            "id": str(uuid4()),
+            "publication_id": publication["id"],
+            "version": version,
+            "version_sort": [int(part) for part in version[1:].split(".")],
+            "content": content,
+            "content_hash": content_hash,
+            "created_at": timestamp,
+        }
+        self.agent_publication_versions.insert(version_record)
+        return self.get_agent_publication(publication["id"]) or publication
+
+    def install_agent_publication(
+        self, publication_id: str, owner_user_id: str, version: str | None = None
+    ) -> dict | None:
+        publication = self.get_agent_publication(publication_id)
+        if not publication:
+            return None
+        target_version = publication["latest"]
+        if version:
+            target_version = self.agent_publication_versions.get(
+                (Query().publication_id == publication_id)
+                & (Query().version == version)
+            )
+            if not target_version:
+                return None
+        content = target_version["content"]
+        timestamp = now_iso()
+        agent = {
+            "id": str(uuid4()),
+            **content,
+            "user_id": owner_user_id,
+            "tools_configured": True,
+            "avatar_path": None,
+            "protected": False,
+            "created_at": timestamp,
+            "updated_at": timestamp,
+            "content_hash": target_version["content_hash"],
+            "source_publication_id": publication_id,
+            "source_version": target_version["version"],
+            "source_hash": target_version["content_hash"],
+        }
+        self.agents.insert(agent)
+        self.agent_publications.update(
+            {"install_count": int(publication.get("install_count", 0)) + 1},
+            Query().id == publication_id,
+        )
+        return agent
 
     def delete_agent(self, agent_id: str) -> bool:
         agent = self.get_agent(agent_id)
