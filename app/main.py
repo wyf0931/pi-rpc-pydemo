@@ -795,9 +795,8 @@ async def list_chat_files(chat_id: str):
     if not _has_session_file(chat):
         return {"files": []}
     try:
-        return {
-            "files": discover_chat_files(await runtime.messages(chat), settings.pi_cwd)
-        }
+        files = discover_chat_files(await runtime.messages(chat), settings.pi_cwd)
+        return {"files": [{**file, "chat_id": chat_id} for file in files]}
     except PiRpcError as exc:
         raise HTTPException(503, str(exc)) from exc
 
