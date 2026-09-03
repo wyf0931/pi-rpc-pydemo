@@ -330,6 +330,7 @@ body {
  height: 220px;
  background: transparent;
  color: transparent;
+ caret-color: var(--ink);
  -webkit-text-fill-color: transparent;
 }
 .skill-command-editor .start-input:placeholder-shown {
