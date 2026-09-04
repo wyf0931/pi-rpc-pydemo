@@ -171,6 +171,7 @@ def test_agent_tools_use_product_capability_groups_with_safe_defaults():
     assert "dialogToolGroupState(group)" in html
     assert "Choose what this Agent can access." not in html
     assert "align-items: center" in styles
+    assert ".form-field .tool-group" in styles
     assert 'class="modal modal-middle agent-dialog"' in html
     assert 'class="modal-box agent-dialog-box"' in html
 

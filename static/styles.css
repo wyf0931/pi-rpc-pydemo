@@ -1243,6 +1243,13 @@ body {
  background: var(--color-base-200);
  cursor: pointer;
 }
+.form-field .tool-group {
+ display: flex !important;
+ flex-direction: row !important;
+ align-items: center !important;
+ text-transform: none;
+ letter-spacing: normal;
+}
 .tool-group:hover {
  border-color: var(--line);
 }
