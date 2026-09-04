@@ -224,6 +224,7 @@ function platform() {
     },
     observeIcons() {
       if (!window.MutationObserver) return;
+      if (this._iconObserver) return;
       const observer = new MutationObserver((mutations) => {
         const hasIcons = mutations.some((mutation) =>
           [...mutation.addedNodes].some(
@@ -236,6 +237,9 @@ function platform() {
         );
         if (hasIcons) this.renderIcons();
       });
+      // Keep a reference: an unreferenced MutationObserver is garbage-collected
+      // even while observing, which silently killed icon conversion after init.
+      this._iconObserver = observer;
       observer.observe(document.body, { childList: true, subtree: true });
     },
     async api(path, options = {}) {

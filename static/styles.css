@@ -3256,7 +3256,12 @@ pre,
 }
 .chat-search-toolbar .chat-search-input {
  flex: 1;
- margin-top: 0;
+ height: 38px;
+ margin: 0;
+}
+.chat-search-toolbar .chat-search-input .input {
+ min-height: 0;
+ height: 100%;
 }
 .chat-search-agent-picker {
  flex: 0 0 auto;
@@ -3306,6 +3311,11 @@ pre,
  color: var(--ink);
  text-align: left;
  cursor: pointer;
+}
+.chat-search-item .lucide {
+ width: 16px;
+ height: 16px;
+ flex: 0 0 auto;
 }
 .chat-search-item:hover,
 .chat-search-item:focus-visible {
