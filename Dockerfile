@@ -18,6 +18,16 @@ RUN apt-get update \
 # uv for reproducible installs from uv.lock (no pip in the image)
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
+# Trafilatura is an agent-facing HTML-to-text/Markdown CLI. Keep it outside
+# the FastAPI environment so its release can be updated independently.
+ARG TRAFILATURA_VERSION=2.2.0
+ENV UV_TOOL_DIR=/opt/uv-tools \
+    UV_TOOL_BIN_DIR=/usr/local/bin
+RUN mkdir -p "$UV_TOOL_DIR" \
+  && uv tool install --python /usr/bin/python3 \
+       "trafilatura==${TRAFILATURA_VERSION}" \
+  && trafilatura --version
+
 # Pi CLI — the app layer spawns it via PI_CLI_PATH (multi-process: one
 # short-lived pi process per chat operation)
 RUN npm install -g --ignore-scripts @earendil-works/pi-coding-agent@0.84.4
