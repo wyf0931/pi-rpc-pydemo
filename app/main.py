@@ -1,5 +1,4 @@
 import logging
-import re
 from pathlib import Path
 
 from fastapi import HTTPException, Request
@@ -27,17 +26,7 @@ from .api.routers.resource_catalog import (
 )
 from .api.routers.shares import create_router as create_share_router
 from .autopilots import AutopilotScheduler
-from .avatars import (
-    avatar_file,
-    copy_avatar,
-    remove_avatar,
-    save_avatar,
-)
 from .core.application import create_app, create_context
-from .resources import discover_resources
-from .store import (
-    SUPPORTED_TOOLS,
-)
 
 context = create_context()
 settings = context.settings
@@ -125,7 +114,6 @@ def _has_session_file(chat: dict) -> bool:
     return any(settings.pi_session_dir.glob(f"*_{session_id}.jsonl"))
 
 
-
 @app.get("/api/health")
 async def health():
     active_processes = sum(
@@ -134,7 +122,6 @@ async def health():
         if client.process and client.process.returncode is None
     )
     return {"ok": True, "active_processes": active_processes}
-
 
 
 app.include_router(
