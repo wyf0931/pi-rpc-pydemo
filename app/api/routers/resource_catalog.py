@@ -13,10 +13,14 @@ def catalog_response(settings: Settings) -> dict:
     catalog["tools"] = [
         {
             "name": name,
-            "description": "Platform web tool"
+            "description": "Platform artifact tool"
+            if name == "publish_artifact"
+            else "Platform web tool"
             if name in {"web_fetch", "web_search"}
             else "Pi built-in tool",
-            "source": "platform" if name in {"web_fetch", "web_search"} else "builtin",
+            "source": "platform"
+            if name in {"web_fetch", "web_search", "publish_artifact"}
+            else "builtin",
         }
         for name in SUPPORTED_TOOLS
     ]

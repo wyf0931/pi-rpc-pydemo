@@ -298,12 +298,13 @@ An Agent selects an allowlist from Pi's built-in tools:
 | `find` | Find files |
 | `ls` | List a directory |
 
-OMA Studio also provides two platform tools through `extensions/oma-web-tools.ts`:
+OMA Studio also provides platform tools through `extensions/oma-web-tools.ts`:
 
 | Tool | Purpose |
 | --- | --- |
 | `web_fetch` | Fetch a URL as readable Markdown through Jina Reader |
 | `web_search` | Search the web through the Baidu Qianfan Search API |
+| `publish_artifact` | Publish an existing workspace file to Chat Files and Library |
 
 Set `JINA_API_KEY` and `BAIDU_SEARCH_API_KEY` in `.env` when enabling the corresponding tools. `BAIDU_SEARCH_BASE_URL` defaults to `https://qianfan.baidubce.com`. In development mode, their tool calls and results are retained in the chat transcript; production mode keeps the quieter process view.
 
