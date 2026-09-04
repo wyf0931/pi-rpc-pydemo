@@ -114,7 +114,6 @@ function platform() {
     loginPassword: "",
     loginLoading: false,
     loginError: "",
-    usersOpen: false,
     users: [],
     usersLoading: false,
     userAddOpen: false,
@@ -304,7 +303,6 @@ function platform() {
       try {
         await this.api("/api/auth/logout", { method: "POST" });
         this.logoutConfirmOpen = false;
-        this.usersOpen = false;
         this.authUser = null;
         this.authChecked = true;
         this.appReady = true;
@@ -340,10 +338,6 @@ function platform() {
       } finally {
         this.usersLoading = false;
       }
-    },
-    async openUsers() {
-      this.usersOpen = true;
-      await this.loadUsers();
     },
     openAddUser() {
       this.newUserUsername = "";
@@ -1030,6 +1024,10 @@ function platform() {
     openSettings() {
       this.settingsTab = "general";
       this.settingsOpen = true;
+    },
+    async openSettingsTab(tab) {
+      this.settingsTab = tab;
+      if (tab === "users" && this.authUser?.role === "admin") await this.loadUsers();
     },
     saveLanguage() {
       if (this.language !== "en") this.language = "en";
