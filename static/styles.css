@@ -1426,6 +1426,10 @@ body {
  font: inherit;
  text-transform: none;
  letter-spacing: normal;
+ color: var(--ink);
+}
+.form-field .resource-check b {
+ color: var(--ink);
 }
 .form-field .tool-check b,
 .form-field .resource-check b {
@@ -1445,6 +1449,9 @@ body {
  white-space: nowrap;
  overflow: hidden;
  text-overflow: ellipsis;
+}
+.resource-check input {
+ margin-top: 0;
 }
 .resource-check span {
  min-width: 0;

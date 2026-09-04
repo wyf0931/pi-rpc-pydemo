@@ -22,7 +22,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260905-agent-tools-details" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260905-agent-tools-resources" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -2512,6 +2512,7 @@
                 ><label class="resource-check" :title="item.description || item.path"
                   ><input
                     type="checkbox"
+                    class="checkbox checkbox-sm"
                     :value="item.path"
                     :checked="newAgentExtensions.includes(item.path)"
                     @change="toggleResource('extensions', item.path)" /><span
@@ -2528,6 +2529,7 @@
                 ><label class="resource-check" :title="item.description || item.path"
                   ><input
                     type="checkbox"
+                    class="checkbox checkbox-sm"
                     :value="item.path"
                     :checked="newAgentSkills.includes(item.path)"
                     @change="toggleResource('skills', item.path)" /><span
@@ -2544,6 +2546,7 @@
                 ><label class="resource-check" :title="server.path"
                   ><input
                     type="checkbox"
+                    class="checkbox checkbox-sm"
                     :value="server.id"
                     :checked="newAgentMcpServers.includes(server.id)"
                     @change="toggleResource('mcp', server.id)" /><span
@@ -2765,6 +2768,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260905-thought-render-runtime"></script>
+    <script src="/static/app.js?v=20260905-agent-save-list"></script>
   </body>
 </html>
