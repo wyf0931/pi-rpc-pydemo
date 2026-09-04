@@ -424,7 +424,13 @@ def create_router(
                 else None,
             )
         except PiRpcError as exc:
-            if "busy" not in str(exc).casefold():
+            if (
+                chat["title"] == "New conversation"
+                and "busy" not in str(exc).casefold()
+            ):
+                await runtime.close_chat(chat_id)
+                store.delete_chat(chat_id)
+            elif "busy" not in str(exc).casefold():
                 store.update_chat(chat_id, {"status": "error"})
             raise HTTPException(503, str(exc)) from exc
         queue, replay = turn.subscribe()
