@@ -22,7 +22,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260904-skill-success-color" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260904-settings-users-full-layout" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -180,17 +180,6 @@
             </div>
           </div>
           <div class="sidebar-footer">
-            <button
-              type="button"
-              class="theme-toggle"
-              x-show="authUser?.role === 'admin'"
-              x-cloak
-              title="Users"
-              aria-label="Users"
-              @click="openUsers()"
-            >
-              <i data-lucide="users" aria-hidden="true"></i>
-            </button>
             <label class="swap swap-rotate theme-toggle" title="Toggle theme"
               ><input
                 type="checkbox"
@@ -1653,89 +1642,6 @@
       </div>
     </dialog>
     <dialog
-      class="modal modal-middle users-dialog"
-      :open="usersOpen"
-      x-show="usersOpen"
-      x-cloak
-      @click.self="usersOpen = false"
-    >
-      <div class="modal-box">
-        <div class="dialog-head">
-          <div>
-            <div class="eyebrow">Administration</div>
-            <h2>Users</h2>
-          </div>
-          <button type="button" class="icon-btn" @click="usersOpen = false" aria-label="Close users">
-            <i data-lucide="x" aria-hidden="true"></i>
-          </button>
-        </div>
-        <div class="users-toolbar">
-          <p x-text="users.length + ' user' + (users.length === 1 ? '' : 's')"></p>
-          <button type="button" class="btn btn-ghost" @click="openAddUser()">
-            <i data-lucide="plus" aria-hidden="true"></i> Add
-          </button>
-        </div>
-        <div class="users-table-wrap">
-          <div class="files-empty" x-show="usersLoading">
-            <span class="loading loading-dots loading-sm"></span>
-          </div>
-          <table class="table" x-show="!usersLoading">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Status</th>
-                <th>Created</th>
-                <th>Last login</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="user in users" :key="user.id">
-                <tr>
-                  <td x-text="user.username"></td>
-                  <td><code x-text="user.username"></code></td>
-                  <td x-text="user.email || '—'"></td>
-                  <td>
-                    <span
-                      class="badge badge-soft"
-                      :class="user.status === 'active' ? 'badge-success' : 'badge-ghost'"
-                      x-text="user.status"
-                    ></span>
-                  </td>
-                  <td x-text="formatDateTime(user.created_at)"></td>
-                  <td x-text="user.last_login_at ? formatDateTime(user.last_login_at) : 'Never'"></td>
-                  <td>
-                    <div class="users-actions">
-                      <input
-                        type="checkbox"
-                        class="toggle toggle-sm toggle-success"
-                        :checked="user.status === 'active'"
-                        :disabled="user.role === 'admin'"
-                        @change="toggleManagedUser(user)"
-                        :aria-label="'Enable ' + user.username"
-                      />
-                      <button
-                        type="button"
-                        class="btn btn-ghost btn-error btn-sm btn-square"
-                        x-show="user.role !== 'admin'"
-                        @click="requestDeleteUser(user)"
-                        :aria-label="'Delete ' + user.username"
-                        title="Delete user"
-                      >
-                        <i data-lucide="trash-2" aria-hidden="true"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </dialog>
-    <dialog
       class="modal modal-middle user-add-dialog"
       :open="userAddOpen"
       x-show="userAddOpen"
@@ -1842,8 +1748,17 @@
         </div>
         <div class="settings-layout">
           <aside class="settings-menu menu" aria-label="Settings sections">
-            <button type="button" class="active" @click="settingsTab = 'general'">
+            <button type="button" :class="{active: settingsTab === 'general'}" @click="openSettingsTab('general')">
               <i data-lucide="settings" aria-hidden="true"></i> General
+            </button>
+            <button
+              type="button"
+              x-show="authUser?.role === 'admin'"
+              x-cloak
+              :class="{active: settingsTab === 'users'}"
+              @click="openSettingsTab('users')"
+            >
+              <i data-lucide="users" aria-hidden="true"></i> Users
             </button>
           </aside>
           <section class="settings-content" x-show="settingsTab === 'general'">
@@ -1916,6 +1831,79 @@
                   ><b>Follow system</b></label
                 >
               </div>
+            </div>
+          </section>
+          <section
+            class="settings-content settings-users"
+            x-show="settingsTab === 'users' && authUser?.role === 'admin'"
+          >
+            <div class="settings-title">
+              <h3>Users</h3>
+              <p>Manage workspace accounts and access status.</p>
+            </div>
+            <div class="users-toolbar">
+              <p x-text="users.length + ' user' + (users.length === 1 ? '' : 's')"></p>
+              <button type="button" class="btn btn-ghost" @click="openAddUser()">
+                <i data-lucide="plus" aria-hidden="true"></i> Add user
+              </button>
+            </div>
+            <div class="users-table-wrap overflow-x-auto">
+              <div class="files-empty" x-show="usersLoading">
+                <span class="loading loading-dots loading-sm"></span>
+              </div>
+              <table class="table" x-show="!usersLoading">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Last login</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="user in users" :key="user.id">
+                    <tr>
+                      <td x-text="user.username"></td>
+                      <td><code x-text="user.username"></code></td>
+                      <td x-text="user.email || '—'"></td>
+                      <td>
+                        <span
+                          class="badge badge-soft"
+                          :class="user.status === 'active' ? 'badge-success' : 'badge-ghost'"
+                          x-text="user.status"
+                        ></span>
+                      </td>
+                      <td x-text="formatDateTime(user.created_at)"></td>
+                      <td x-text="user.last_login_at ? formatDateTime(user.last_login_at) : 'Never'"></td>
+                      <td>
+                        <div class="users-actions">
+                          <input
+                            type="checkbox"
+                            class="toggle toggle-sm toggle-success"
+                            :checked="user.status === 'active'"
+                            :disabled="user.role === 'admin'"
+                            @change="toggleManagedUser(user)"
+                            :aria-label="'Enable ' + user.username"
+                          />
+                          <button
+                            type="button"
+                            class="btn btn-ghost btn-error btn-sm btn-square"
+                            x-show="user.role !== 'admin'"
+                            @click="requestDeleteUser(user)"
+                            :aria-label="'Delete ' + user.username"
+                            title="Delete user"
+                          >
+                            <i data-lucide="trash-2" aria-hidden="true"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
             </div>
           </section>
         </div>
@@ -2386,6 +2374,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260908-format-baseline"></script>
+    <script src="/static/app.js?v=20260904-settings-users-tab"></script>
   </body>
 </html>

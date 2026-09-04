@@ -130,6 +130,21 @@ def test_agent_edit_entry_is_card_action_only():
     assert '@click="editAgent(dialog)"' not in html
 
 
+def test_user_management_is_available_only_from_the_admin_settings_tab():
+    html = Path("static/index.html").read_text(encoding="utf-8")
+    script = Path("static/app.js").read_text(encoding="utf-8")
+    styles = Path("static/styles.css").read_text(encoding="utf-8")
+
+    assert 'title="Users"' not in html
+    assert "@click=\"openSettingsTab('users')\"" in html
+    assert "settingsTab === 'users' && authUser?.role === 'admin'" in html
+    assert "usersOpen" not in script
+    assert "async openSettingsTab(tab)" in script
+    assert "height: min(764px, calc(100vh - 32px))" in styles
+    assert "display: flex" in styles
+    assert "flex: 1 1 auto" in styles
+
+
 def test_request_id_is_propagated_and_generated(client):
     supplied = client.get("/api/health", headers={"X-Request-ID": "debug-123"})
     generated = client.get("/api/health")
