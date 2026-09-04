@@ -3,26 +3,37 @@ import copy
 import json
 import logging
 import re
-import time
 from collections.abc import AsyncIterator
-from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from .auth import verify_password
-from .autopilots import AutopilotScheduler, next_run_at
+from .api.routers.autopilots import (
+    create_executor as create_autopilot_executor,
+)
+from .api.routers.autopilots import (
+    create_router as create_autopilot_router,
+)
+from .api.routers.identity import create_router as create_identity_router
+from .api.routers.marketplace import create_router as create_marketplace_router
+from .api.routers.resource_catalog import (
+    catalog_response,
+)
+from .api.routers.resource_catalog import (
+    create_router as create_resource_catalog_router,
+)
+from .api.routers.shares import create_router as create_share_router
+from .autopilots import AutopilotScheduler
 from .avatars import (
     avatar_file,
     copy_avatar,
     remove_avatar,
     save_avatar,
-    seed_default_avatar,
 )
-from .config import get_settings
+from .core.application import create_app, create_context
 from .files import (
     delete_chat_files,
     discover_chat_files,
@@ -30,58 +41,23 @@ from .files import (
     read_session_messages,
     resolve_chat_file,
 )
-from .market import (
-    github_source_owner,
-    install_extension,
-    install_skill,
-    normalize_npm_package,
-    npm_package_name,
-    preview_skills,
-    search_skills,
-    uninstall_extension,
-    uninstall_local_extension,
-    uninstall_skill,
-    validate_skill_source,
-)
-from .observability import configure_logging, trace_request
-from .pi_rpc import ActiveTurn, PiRpcError, PiRuntimeManager
+from .pi_rpc import ActiveTurn, PiRpcError
 from .resources import discover_resources
 from .store import (
     SUPPORTED_TOOLS,
-    Store,
     now_iso,
     pi_terminal_failure,
 )
 
-settings = get_settings()
-settings.data_dir.mkdir(parents=True, exist_ok=True)
-settings.pi_session_dir.mkdir(parents=True, exist_ok=True)
-configure_logging(settings.log_dir)
-store = Store(settings.data_dir / "platform.json")
-default_agent = store.ensure_default_agent(list(settings.pi_default_tools))
-if not default_agent.get("avatar_path"):
-    seeded_agent = seed_default_avatar(settings.data_dir, default_agent)
-    if seeded_agent.get("avatar_path"):
-        store.update_agent(
-            seeded_agent["id"], {"avatar_path": seeded_agent["avatar_path"]}
-        )
-runtime = PiRuntimeManager(settings, store)
-if not settings.admin_password or not settings.default_user_password:
-    raise RuntimeError(
-        "OMA_ADMIN_PASSWORD and OMA_DEFAULT_USER_PASSWORD must be configured"
-    )
-admin_user = store.ensure_default_user(settings.admin_password)
-if not default_agent.get("user_id"):
-    default_agent = (
-        store.update_agent(default_agent["id"], {"user_id": admin_user["id"]})
-        or default_agent
-    )
+context = create_context()
+settings = context.settings
+store = context.store
+runtime = context.runtime
 
 # SSE heartbeat cadence. Any proxy/browser idle timeout must be far larger
 # than this (Cloudflare cuts idle streams at ~100s).
 SSE_KEEPALIVE_SECONDS = 20.0
-app = FastAPI(title="Pi Agent Platform")
-app.middleware("http")(trace_request)
+app = create_app(context)
 logger = logging.getLogger(__name__)
 SESSION_COOKIE = "oma_session"
 
@@ -137,6 +113,23 @@ async def require_login(request: Request, call_next):
     return await call_next(request)
 
 
+app.include_router(create_identity_router(settings, store))
+app.include_router(create_resource_catalog_router(settings))
+app.include_router(
+    create_marketplace_router(
+        settings, _require_admin, lambda: catalog_response(settings), logger
+    )
+)
+autopilot_executor = create_autopilot_executor(store, runtime)
+scheduler = AutopilotScheduler(store, autopilot_executor)
+context.scheduler = scheduler
+app.include_router(
+    create_autopilot_router(
+        store, scheduler, _visible_or_404, _visible_records, _user_id
+    )
+)
+
+
 def _has_session_file(chat: dict) -> bool:
     session_id = chat.get("session_id") or chat.get("id")
     return any(settings.pi_session_dir.glob(f"*_{session_id}.jsonl"))
@@ -186,78 +179,6 @@ class MessageCreate(BaseModel):
     content: str = Field(min_length=1, max_length=100000)
 
 
-class SkillSearch(BaseModel):
-    query: str = Field(min_length=1, max_length=200)
-    owner: str | None = Field(default=None, max_length=100)
-
-
-class SkillInstall(BaseModel):
-    source: str = Field(min_length=3, max_length=200)
-    skill: str = Field(min_length=1, max_length=100)
-
-
-class SkillPreview(BaseModel):
-    source: str = Field(min_length=3, max_length=1000)
-
-
-class LoginPayload(BaseModel):
-    username: str = Field(min_length=1, max_length=80)
-    password: str = Field(min_length=1, max_length=200)
-
-
-class UserCreate(BaseModel):
-    username: str = Field(min_length=1, max_length=80, pattern=r"^[A-Za-z0-9_.-]+$")
-    email: str | None = Field(default=None, max_length=200)
-
-
-class UserStatusUpdate(BaseModel):
-    status: str = Field(pattern=r"^(active|disabled)$")
-
-
-class SkillUninstall(BaseModel):
-    source: str | None = Field(default=None, min_length=3, max_length=200)
-    skill: str = Field(min_length=1, max_length=100)
-
-
-class ExtensionPackage(BaseModel):
-    package: str = Field(min_length=1, max_length=240)
-
-
-class ExtensionUninstall(BaseModel):
-    package: str | None = Field(default=None, min_length=1, max_length=240)
-    path: str | None = Field(default=None, min_length=1, max_length=1000)
-
-
-class AutopilotCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=80)
-    instruction: str = Field(min_length=1, max_length=10000)
-    agent_id: str
-    cron: str = "0 * * * *"
-    starts_at: str | None = None
-    ends_at: str | None = None
-
-
-class AutopilotUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=80)
-    instruction: str | None = Field(default=None, min_length=1, max_length=10000)
-    agent_id: str | None = None
-    cron: str | None = None
-    starts_at: str | None = None
-    ends_at: str | None = None
-    enabled: bool | None = None
-
-
-@app.on_event("startup")
-async def startup():
-    await scheduler.start()
-
-
-@app.on_event("shutdown")
-async def shutdown():
-    await scheduler.stop()
-    await runtime.close()
-
-
 @app.get("/api/health")
 async def health():
     active_processes = sum(
@@ -268,257 +189,9 @@ async def health():
     return {"ok": True, "active_processes": active_processes}
 
 
-@app.post("/api/auth/login")
-async def login(payload: LoginPayload, request: Request, response: Response):
-    user = store.get_user_by_username(payload.username.strip())
-    if (
-        not user
-        or user.get("status") != "active"
-        or not verify_password(payload.password, user.get("password_hash", ""))
-    ):
-        raise HTTPException(401, "Invalid username or password")
-    updated = store.mark_user_login(user["id"]) or user
-    expires_at = datetime.now(UTC) + timedelta(hours=24)
-    token = store.create_session(user["id"], expires_at.isoformat())
-    response.set_cookie(
-        SESSION_COOKIE,
-        token,
-        httponly=True,
-        max_age=24 * 60 * 60,
-        samesite="lax",
-        secure=request.headers.get("x-forwarded-proto", request.url.scheme) == "https",
-    )
-    return store.public_user(updated)
-
-
-@app.get("/api/auth/session")
-async def auth_session(request: Request):
-    user = request.state.user
-    return {"user": store.public_user(user) if user else None}
-
-
-@app.post("/api/auth/logout")
-async def logout(request: Request, response: Response):
-    token = request.cookies.get(SESSION_COOKIE)
-    if token:
-        store.delete_session(token)
-    response.delete_cookie(SESSION_COOKIE)
-    return {"ok": True}
-
-
-@app.get("/api/users")
-async def list_users(request: Request):
-    _require_admin(request)
-    return {"users": store.list_users()}
-
-
-@app.post("/api/users", status_code=201)
-async def create_user(payload: UserCreate, request: Request):
-    _require_admin(request)
-    if not settings.default_user_password:
-        raise HTTPException(500, "OMA_DEFAULT_USER_PASSWORD is not configured")
-    username = payload.username.strip()
-    if store.get_user_by_username(username):
-        raise HTTPException(409, "Username already exists")
-    user = store.create_user(username, payload.email, settings.default_user_password)
-    return store.public_user(user)
-
-
-@app.patch("/api/users/{user_id}/status")
-async def update_user_status(user_id: str, payload: UserStatusUpdate, request: Request):
-    _require_admin(request)
-    user = store.get_user(user_id)
-    if not user:
-        raise HTTPException(404, "User not found")
-    if user.get("role") == "admin" and payload.status == "disabled":
-        raise HTTPException(400, "The admin account cannot be disabled")
-    updated = store.update_user_status(user_id, payload.status)
-    return store.public_user(updated or user)
-
-
-@app.delete("/api/users/{user_id}")
-async def delete_user(user_id: str, request: Request):
-    _require_admin(request)
-    user = store.get_user(user_id)
-    if not user:
-        raise HTTPException(404, "User not found")
-    if user.get("role") == "admin":
-        raise HTTPException(400, "The admin account cannot be deleted")
-    store.delete_user(user_id)
-    return {"ok": True}
-
-
 @app.get("/api/agents")
 async def list_agents(request: Request):
     return {"agents": _visible_records(store.list_agents(), request)}
-
-
-@app.get("/api/resources")
-async def list_resources():
-    catalog = discover_resources(settings.pi_home, settings.pi_cwd)
-    catalog["default_provider"] = settings.pi_provider
-    catalog["default_model"] = settings.pi_model
-    catalog["default_tools"] = list(settings.pi_default_tools)
-    catalog["tools"] = [
-        {
-            "name": name,
-            "description": "Platform web tool"
-            if name in {"web_fetch", "web_search"}
-            else "Pi built-in tool",
-            "source": "platform" if name in {"web_fetch", "web_search"} else "builtin",
-        }
-        for name in SUPPORTED_TOOLS
-    ]
-    catalog["default_extensions"] = list(settings.pi_default_extensions)
-    catalog["default_skills"] = list(settings.pi_default_skills)
-    catalog["default_mcp_servers"] = list(settings.pi_default_mcp_servers)
-    catalog["mode"] = settings.mode
-    catalog["default_thinking_level"] = settings.pi_thinking_level
-    return catalog
-
-
-@app.post("/api/market/skills/search")
-async def market_skill_search(payload: SkillSearch):
-    query = payload.query.strip()
-    owner = payload.owner.strip() if payload.owner else None
-    if not query:
-        raise HTTPException(422, "Search query is required")
-    logger.info(
-        "market skill search",
-        extra={"event": "market.skill.search", "operation": "search"},
-    )
-    try:
-        results = await search_skills(query, owner)
-    except TimeoutError as exc:
-        raise HTTPException(504, str(exc)) from exc
-    except RuntimeError as exc:
-        raise HTTPException(502, f"skills search failed: {exc}") from exc
-    return {"results": results}
-
-
-@app.post("/api/market/skills/install")
-async def market_skill_install(payload: SkillInstall, request: Request):
-    _require_admin(request)
-    source = payload.source.strip()
-    skill = payload.skill.strip()
-    logger.info(
-        "market skill install",
-        extra={"event": "market.skill.install", "operation": "install"},
-    )
-    try:
-        validate_skill_source(source, skill)
-        catalog = discover_resources(settings.pi_home, settings.pi_cwd)
-        if any(item["name"] == skill for item in catalog["skills"]):
-            raise HTTPException(409, f"Skill {skill} is already installed")
-        await install_skill(source, skill)
-    except ValueError as exc:
-        raise HTTPException(422, str(exc)) from exc
-    except TimeoutError as exc:
-        raise HTTPException(504, str(exc)) from exc
-    except RuntimeError as exc:
-        raise HTTPException(502, f"skill install failed: {exc}") from exc
-    return {"skill": skill, "resources": await list_resources()}
-
-
-@app.post("/api/market/skills/preview")
-async def market_skill_preview(payload: SkillPreview):
-    source = payload.source.strip()
-    try:
-        results = await preview_skills(source)
-    except ValueError as exc:
-        raise HTTPException(422, str(exc)) from exc
-    except TimeoutError as exc:
-        raise HTTPException(504, str(exc)) from exc
-    except RuntimeError as exc:
-        raise HTTPException(502, f"skills preview failed: {exc}") from exc
-    return {
-        "results": [
-            {
-                "repo": source,
-                "skill": item["skill"],
-                "url": "",
-                "installs": "",
-                "owner": github_source_owner(source),
-            }
-            for item in results
-        ]
-    }
-
-
-@app.post("/api/market/skills/uninstall")
-async def market_skill_uninstall(payload: SkillUninstall, request: Request):
-    _require_admin(request)
-    source = payload.source.strip() if payload.source else None
-    skill = payload.skill.strip()
-    try:
-        await uninstall_skill(source, skill)
-    except ValueError as exc:
-        raise HTTPException(422, str(exc)) from exc
-    except TimeoutError as exc:
-        raise HTTPException(504, str(exc)) from exc
-    except RuntimeError as exc:
-        raise HTTPException(502, f"skill uninstall failed: {exc}") from exc
-    return {"skill": skill, "resources": await list_resources()}
-
-
-@app.post("/api/market/extensions/install")
-async def market_extension_install(payload: ExtensionPackage, request: Request):
-    _require_admin(request)
-    try:
-        package = normalize_npm_package(payload.package)
-        package_name = npm_package_name(package)
-        catalog = discover_resources(settings.pi_home, settings.pi_cwd)
-        if any(
-            item["name"] == package_name or item.get("source") == package
-            for item in catalog["extensions"]
-        ):
-            raise HTTPException(409, f"Extension {package_name} is already installed")
-        await install_extension(package)
-    except ValueError as exc:
-        raise HTTPException(422, str(exc)) from exc
-    except TimeoutError as exc:
-        raise HTTPException(504, str(exc)) from exc
-    except RuntimeError as exc:
-        raise HTTPException(502, f"extension install failed: {exc}") from exc
-    return {"package": package, "resources": await list_resources()}
-
-
-@app.post("/api/market/extensions/uninstall")
-async def market_extension_uninstall(payload: ExtensionUninstall, request: Request):
-    _require_admin(request)
-    try:
-        if payload.package:
-            package = normalize_npm_package(payload.package)
-            await uninstall_extension(package)
-        elif payload.path:
-            catalog = discover_resources(settings.pi_home, settings.pi_cwd)
-            discovered = next(
-                (
-                    item
-                    for item in catalog["extensions"]
-                    if item["path"] == payload.path
-                ),
-                None,
-            )
-            if not discovered:
-                raise ValueError("Local extension is not a discovered resource")
-            uninstall_local_extension(
-                payload.path,
-                [
-                    settings.pi_home / "extensions",
-                    settings.pi_cwd / ".pi" / "extensions",
-                ],
-            )
-            package = discovered["name"]
-        else:
-            raise ValueError("Extension package or path is required")
-    except ValueError as exc:
-        raise HTTPException(422, str(exc)) from exc
-    except TimeoutError as exc:
-        raise HTTPException(504, str(exc)) from exc
-    except RuntimeError as exc:
-        raise HTTPException(502, f"extension uninstall failed: {exc}") from exc
-    return {"package": package, "resources": await list_resources()}
 
 
 @app.post("/api/agents", status_code=201)
@@ -845,6 +518,18 @@ def visible_messages(messages: list[dict], mode: str = "production") -> list[dic
             continue
         visible.append(message)
     return visible
+
+
+app.include_router(
+    create_share_router(
+        settings,
+        store,
+        runtime,
+        _visible_or_404,
+        _has_session_file,
+        visible_messages,
+    )
+)
 
 
 @app.get("/api/chats")
@@ -1203,223 +888,8 @@ async def abort_chat(chat_id: str, request: Request):
     return {"ok": True}
 
 
-def _autopilot_view(item: dict) -> dict:
-    agent = store.get_agent(item["agent_id"]) or {}
-    upcoming = next_run_at(item)
-    return {
-        **item,
-        "agent_name": agent.get("name", "Unknown agent"),
-        "status": "active" if item.get("enabled") else "paused",
-        "next_run_at": upcoming.isoformat() if upcoming else None,
-    }
-
-
-async def execute_autopilot(autopilot: dict) -> None:
-    user_id = autopilot.get("user_id")
-    chat = store.create_autopilot_chat(
-        autopilot["agent_id"], autopilot["name"], user_id=user_id
-    )
-    run = store.create_autopilot_run(
-        autopilot["id"], chat["id"], chat["id"], user_id=user_id
-    )
-    started = time.monotonic()
-    prompt = f"{autopilot['instruction'].strip()}\n\nCurrent time: {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S')}"
-    try:
-        async for _event in runtime.stream(
-            chat, prompt, session_name=autopilot["name"]
-        ):
-            pass
-        # Autopilot output is real activity: surface the chat in the sidebar.
-        store.update_chat(chat["id"], {"last_activity_at": now_iso()})
-        store.update_autopilot_run(
-            run["id"],
-            {
-                "status": "success",
-                "finished_at": datetime.now(UTC).isoformat(),
-                "duration_ms": round((time.monotonic() - started) * 1000),
-            },
-        )
-        store.update_chat(chat["id"], {"status": "ready"})
-    except asyncio.CancelledError:
-        store.update_autopilot_run(
-            run["id"],
-            {
-                "status": "cancelled",
-                "finished_at": datetime.now(UTC).isoformat(),
-                "duration_ms": round((time.monotonic() - started) * 1000),
-                "error": "Application stopped before the run completed",
-            },
-        )
-        store.update_chat(chat["id"], {"status": "stopped"})
-        raise
-    except (PiRpcError, OSError, TimeoutError) as exc:
-        store.update_autopilot_run(
-            run["id"],
-            {
-                "status": "error",
-                "finished_at": datetime.now(UTC).isoformat(),
-                "duration_ms": round((time.monotonic() - started) * 1000),
-                "error": str(exc),
-            },
-        )
-        store.update_chat(chat["id"], {"status": "error"})
-
-
-@app.get("/api/autopilots")
-async def list_autopilots(
-    request: Request, search: str = "", agent_id: str | None = None
-):
-    query = search.strip().casefold()
-    items = [
-        _autopilot_view(item)
-        for item in _visible_records(store.list_autopilots(), request)
-    ]
-    if agent_id:
-        items = [item for item in items if item["agent_id"] == agent_id]
-    if query:
-        items = [item for item in items if query in item["name"].casefold()]
-    return {"autopilots": items}
-
-
-@app.post("/api/autopilots", status_code=201)
-async def create_autopilot(payload: AutopilotCreate, request: Request):
-    agent = _visible_or_404(store.get_agent(payload.agent_id), request, "Agent")
-    if next_run_at({"cron": payload.cron}) is None:
-        raise HTTPException(400, "Invalid cron expression")
-    return _autopilot_view(
-        store.create_autopilot(
-            payload.name,
-            payload.instruction,
-            payload.agent_id,
-            payload.cron,
-            payload.starts_at,
-            payload.ends_at,
-            user_id=agent.get("user_id") or _user_id(request),
-        )
-    )
-
-
-@app.patch("/api/autopilots/{autopilot_id}")
-async def update_autopilot(
-    autopilot_id: str, payload: AutopilotUpdate, request: Request
-):
-    current = _visible_or_404(store.get_autopilot(autopilot_id), request, "Autopilot")
-    values = payload.model_dump(exclude_unset=True)
-    if "agent_id" in values:
-        agent = _visible_or_404(store.get_agent(values["agent_id"]), request, "Agent")
-        if agent.get("user_id") != current.get("user_id"):
-            raise HTTPException(400, "Agent belongs to another user")
-    if "cron" in values and next_run_at({"cron": values["cron"]}) is None:
-        raise HTTPException(400, "Invalid cron expression")
-    return _autopilot_view(store.update_autopilot(autopilot_id, values) or current)
-
-
-@app.delete("/api/autopilots/{autopilot_id}")
-async def delete_autopilot(autopilot_id: str, request: Request):
-    _visible_or_404(store.get_autopilot(autopilot_id), request, "Autopilot")
-    if not store.delete_autopilot(autopilot_id):
-        raise HTTPException(404, "Autopilot not found")
-    return {"ok": True}
-
-
-@app.post("/api/autopilots/{autopilot_id}/run", status_code=202)
-async def run_autopilot(autopilot_id: str, request: Request):
-    autopilot = _visible_or_404(store.get_autopilot(autopilot_id), request, "Autopilot")
-    if autopilot_id in scheduler.running:
-        raise HTTPException(409, "Autopilot is already running")
-    store.update_autopilot(autopilot_id, {"last_run_at": datetime.now(UTC).isoformat()})
-    scheduler.running.add(autopilot_id)
-    asyncio.create_task(scheduler._execute(autopilot))
-    return {"ok": True, "status": "queued"}
-
-
-@app.get("/api/autopilots/{autopilot_id}/runs")
-async def list_autopilot_runs(autopilot_id: str, request: Request):
-    _visible_or_404(store.get_autopilot(autopilot_id), request, "Autopilot")
-    return {"runs": _visible_records(store.list_autopilot_runs(autopilot_id), request)}
-
-
-scheduler = AutopilotScheduler(store, execute_autopilot)
-
-
 static_dir = Path(__file__).parent.parent / "static"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
-
-
-@app.post("/api/chats/{chat_id}/share")
-async def create_chat_share(chat_id: str, request: Request):
-    """Create (or reuse) the unguessable public share token for a chat."""
-    chat = _visible_or_404(store.get_chat(chat_id), request, "Chat")
-    share = store.create_share(chat_id, user_id=chat.get("user_id"))
-    return {"token": share["token"], "url": f"/share/{share['token']}"}
-
-
-@app.get("/api/share/{token}")
-async def get_shared_chat(token: str):
-    """Public, read-only view of a shared chat — token is the only gate.
-
-    The SPA route /share/{token} (served by the catch-all below) consumes
-    this payload and renders the regular chat view in read-only mode."""
-    share = store.get_share(token)
-    if not share:
-        raise HTTPException(404, "Share not found")
-    chat = store.get_chat(share["chat_id"])
-    if not chat:
-        raise HTTPException(404, "Share not found")
-    if chat["status"] != "created" and _has_session_file(chat):
-        try:
-            messages = await runtime.messages(chat)
-        except PiRpcError as exc:
-            raise HTTPException(503, str(exc)) from exc
-    else:
-        messages = []
-    return {
-        "chat": {
-            "title": chat.get("title"),
-            "created_at": chat.get("created_at"),
-            "updated_at": chat.get("updated_at"),
-            "agent_id": chat.get("agent_id"),
-        },
-        "messages": visible_messages(messages, "production"),
-    }
-
-
-@app.get("/api/share/{token}/files")
-async def list_shared_chat_files(token: str):
-    """Files generated by the shared chat's own write/edit tool calls,
-    resolved inside PI_CWD — identical provenance rules as the owner
-    endpoint, just gated by the share token instead of auth."""
-    share = store.get_share(token)
-    if not share:
-        raise HTTPException(404, "Share not found")
-    chat = store.get_chat(share["chat_id"])
-    if not chat:
-        raise HTTPException(404, "Share not found")
-    session_file = runtime.newest_session_file(chat)
-    files = (
-        discover_session_files(session_file, settings.pi_cwd) if session_file else []
-    )
-    return {"files": files}
-
-
-@app.get("/api/share/{token}/files/content")
-async def get_shared_chat_file(token: str, path: str):
-    share = store.get_share(token)
-    if not share:
-        raise HTTPException(404, "Share not found")
-    chat = store.get_chat(share["chat_id"])
-    if not chat:
-        raise HTTPException(404, "Share not found")
-    session_file = runtime.newest_session_file(chat)
-    messages = read_session_messages(session_file) if session_file else []
-    file_path = resolve_chat_file(messages, settings.pi_cwd, path)
-    if not file_path:
-        raise HTTPException(404, "File not found or not generated by this chat")
-    try:
-        content = file_path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError) as exc:
-        raise HTTPException(415, "File is not a readable UTF-8 text file") from exc
-    return {"content": content}
 
 
 @app.get("/{path:path}")
