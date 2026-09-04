@@ -3588,7 +3588,8 @@ pre,
 .settings-modal-box {
  width: min(920px, calc(100vw - 32px));
  max-width: none;
- min-height: 560px;
+ height: min(764px, calc(100vh - 32px));
+ min-height: 0;
  padding: 0;
  overflow: hidden;
 }

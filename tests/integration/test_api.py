@@ -140,7 +140,7 @@ def test_user_management_is_available_only_from_the_admin_settings_tab():
     assert "settingsTab === 'users' && authUser?.role === 'admin'" in html
     assert "usersOpen" not in script
     assert "async openSettingsTab(tab)" in script
-    assert "min-height: 560px" in styles
+    assert "height: min(764px, calc(100vh - 32px))" in styles
 
 
 def test_request_id_is_propagated_and_generated(client):
