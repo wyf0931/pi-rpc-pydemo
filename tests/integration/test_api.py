@@ -147,6 +147,21 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     assert "hasPreference ? this.reasoningOpen[reasoningKey] : true" in script
 
 
+def test_agent_tools_use_product_capability_groups_with_safe_defaults():
+    html = Path("static/index.html").read_text(encoding="utf-8")
+    script = Path("static/app.js").read_text(encoding="utf-8")
+    styles = Path("static/styles.css").read_text(encoding="utf-8")
+
+    assert "tool-group-grid" in html
+    assert "Read only" in script
+    assert "Write files" in script
+    assert "Web access" in script
+    assert "Run scripts" in script
+    assert 'group.id !== "run_scripts"' in script
+    assert ".tool-group-grid" in styles
+    assert "dialogToolGroupState(group)" in html
+
+
 def test_new_chat_is_removed_when_pi_cannot_start(client, temporary_agent, monkeypatch):
     import app.main as main_module
     from app.pi_rpc import PiRpcError

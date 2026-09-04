@@ -182,6 +182,32 @@ function platform() {
       { name: "find", description: "Find files by glob" },
       { name: "ls", description: "List directory contents" },
     ],
+    toolGroups: [
+      {
+        id: "read_only",
+        label: "Read only",
+        description: "Inspect files and search the workspace without changing it.",
+        tools: ["ls", "read", "grep", "find"],
+      },
+      {
+        id: "write_files",
+        label: "Write files",
+        description: "Create, update, and publish files for the user.",
+        tools: ["write", "edit", "publish_artifact"],
+      },
+      {
+        id: "web_access",
+        label: "Web access",
+        description: "Search the web and fetch pages as readable content.",
+        tools: ["web_fetch", "web_search"],
+      },
+      {
+        id: "run_scripts",
+        label: "Run scripts",
+        description: "Execute shell commands in the workspace.",
+        tools: ["bash"],
+      },
+    ],
     theme: "light",
     systemThemeQuery: null,
     appReady: false,
@@ -2125,9 +2151,7 @@ function platform() {
       this.newAgentProvider = this.resources.default_provider || this.resources.providers[0]?.id || "";
       this.newAgentModel = this.defaultModelFor(this.newAgentProvider);
       this.newAgentThinkingLevel = this.defaultThinkingLevel();
-      this.newAgentTools = (this.resources.default_tools || []).filter((name) =>
-        this.toolCatalog.some((tool) => tool.name === name),
-      );
+      this.newAgentTools = this.defaultAgentTools();
       this.newAgentExtensions = this.defaultResources("extensions");
       this.newAgentSkills = this.defaultResources("skills");
       this.newAgentMcpServers = this.defaultResources("mcp_servers");
@@ -2156,6 +2180,10 @@ function platform() {
         : levels.includes("low")
           ? "low"
           : levels[0] || "off";
+    },
+    defaultAgentTools() {
+      const preferred = this.toolGroups.filter((group) => group.id !== "run_scripts").flatMap((group) => group.tools);
+      return preferred.filter((name) => this.toolCatalog.some((tool) => tool.name === name));
     },
     defaultModelFor(providerId) {
       const models = this.modelsFor(providerId);
@@ -2225,6 +2253,28 @@ function platform() {
       this.newAgentTools = this.newAgentTools.includes(name)
         ? this.newAgentTools.filter((tool) => tool !== name)
         : [...this.newAgentTools, name];
+    },
+    toolGroupTools(group) {
+      return group.tools.filter((name) => this.toolCatalog.some((tool) => tool.name === name));
+    },
+    toolGroupState(group) {
+      return this.toolGroupStateFor(group, this.newAgentTools);
+    },
+    toolGroupStateFor(group, selectedTools = []) {
+      const tools = this.toolGroupTools(group);
+      const selected = tools.filter((name) => selectedTools.includes(name)).length;
+      return selected === 0 ? "none" : selected === tools.length ? "all" : "partial";
+    },
+    dialogToolGroupState(group) {
+      return this.toolGroupStateFor(group, this.dialog?.tools || []);
+    },
+    toggleToolGroup(group) {
+      const tools = this.toolGroupTools(group);
+      if (this.toolGroupState(group) === "all") {
+        this.newAgentTools = this.newAgentTools.filter((name) => !tools.includes(name));
+      } else {
+        this.newAgentTools = [...new Set([...this.newAgentTools, ...tools])];
+      }
     },
     avatarUrl(agent) {
       if (!agent?.avatar_path || !agent.id) return "";
