@@ -145,6 +145,21 @@ def test_user_management_is_available_only_from_the_admin_settings_tab():
     assert "flex: 1 1 auto" in styles
 
 
+def test_theme_preference_defaults_to_system_and_is_managed_in_settings():
+    html = Path("static/index.html").read_text(encoding="utf-8")
+    script = Path("static/app.js").read_text(encoding="utf-8")
+
+    assert 'themePreference: "system"' in script
+    assert (
+        'localStorage.setItem("oma-theme-preference", this.themePreference)' in script
+    )
+    assert 'matchMedia?.("(prefers-color-scheme: dark)")' in script
+    assert 'systemThemeQuery?.addEventListener("change"' in script
+    assert "pi-theme" not in script
+    assert 'title="Toggle theme"' not in html
+    assert "Follow system" in html
+
+
 def test_request_id_is_propagated_and_generated(client):
     supplied = client.get("/api/health", headers={"X-Request-ID": "debug-123"})
     generated = client.get("/api/health")

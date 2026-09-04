@@ -4,9 +4,7 @@ function platform() {
     settingsTab: "general",
     language: localStorage.getItem("oma-language") || "en",
     timezone: localStorage.getItem("oma-timezone") || "Asia/Shanghai",
-    themePreference: ["system", "light", "dark"].includes(localStorage.getItem("oma-theme-preference"))
-      ? localStorage.getItem("oma-theme-preference")
-      : "system",
+    themePreference: "system",
     runError: "",
     mobileSidebarOpen: false,
     linkDrawerOpen: false,
@@ -168,7 +166,8 @@ function platform() {
       { name: "find", description: "Find files by glob" },
       { name: "ls", description: "List directory contents" },
     ],
-    theme: ["light", "dark"].includes(localStorage.getItem("pi-theme")) ? localStorage.getItem("pi-theme") : "light",
+    theme: "light",
+    systemThemeQuery: null,
     appReady: false,
     async init() {
       window.omaPlatform = this;
@@ -177,7 +176,7 @@ function platform() {
         window.location.pathname === "/file-view" ||
         new URLSearchParams(location.search).has("share");
       if (this.sharedMode) this.authChecked = true;
-      this.setTheme(this.theme);
+      this.initializeThemePreference();
       if (!this.sharedMode) {
         await this.loadSession();
         if (!this.authUser) {
@@ -1007,19 +1006,20 @@ function platform() {
     comingSoon(name) {
       this.showError(new Error(`${name} is reserved for the next iteration.`));
     },
+    initializeThemePreference() {
+      const preference = localStorage.getItem("oma-theme-preference");
+      this.applyThemePreference(preference);
+      this.systemThemeQuery = window.matchMedia?.("(prefers-color-scheme: dark)") || null;
+      this.systemThemeQuery?.addEventListener("change", () => {
+        if (this.themePreference === "system") this.applyThemePreference("system");
+      });
+    },
     applyThemePreference(value) {
       this.themePreference = ["system", "light", "dark"].includes(value) ? value : "system";
       const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
       this.theme = this.themePreference === "system" ? (prefersDark ? "dark" : "light") : this.themePreference;
       document.documentElement.dataset.theme = this.theme;
       localStorage.setItem("oma-theme-preference", this.themePreference);
-      localStorage.setItem("pi-theme", this.theme);
-    },
-    setTheme(_value) {
-      this.applyThemePreference(localStorage.getItem("oma-theme-preference") || "system");
-    },
-    toggleTheme() {
-      this.applyThemePreference(this.theme === "dark" ? "light" : "dark");
     },
     openSettings() {
       this.settingsTab = "general";
