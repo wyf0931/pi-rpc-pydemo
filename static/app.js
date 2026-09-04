@@ -1264,11 +1264,13 @@ function platform() {
     },
     async sendFirst() {
       if (!this.draft.trim() || !this.selectedAgentId) return;
+      let createdChatId = null;
       try {
         const chat = await this.api("/api/chats", {
           method: "POST",
           body: JSON.stringify({ agent_id: this.selectedAgentId }),
         });
+        createdChatId = chat.id;
         this.activeChat = chat;
         this.chats.unshift(chat);
         history.pushState({}, "", `/chat/${chat.id}`);
@@ -1280,6 +1282,9 @@ function platform() {
           history.pushState({}, "", "/chat" + this.modeQuery());
         }
       } catch (e) {
+        if (createdChatId) {
+          await this.api(`/api/chats/${createdChatId}`, { method: "DELETE" }).catch(() => {});
+        }
         if (this.activeChat?.title === "New conversation")
           this.chats = this.chats.filter((item) => item.id !== this.activeChat.id);
         this.activeChat = null;

@@ -2755,9 +2755,6 @@ pre,
  text-align: left;
  cursor: pointer;
 }
-.library-file-name:hover b {
- text-decoration: underline;
-}
 .library-file-name > span:last-child {
  display: flex;
  flex-direction: column;

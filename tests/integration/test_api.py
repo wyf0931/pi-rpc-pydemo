@@ -130,6 +130,31 @@ def test_agent_edit_entry_is_card_action_only():
     assert '@click="editAgent(dialog)"' not in html
 
 
+def test_library_file_name_does_not_add_hover_underline():
+    styles = Path("static/styles.css").read_text(encoding="utf-8")
+
+    assert ".library-file-name:hover b" not in styles
+
+
+def test_new_chat_is_removed_when_pi_cannot_start(client, temporary_agent, monkeypatch):
+    import app.main as main_module
+    from app.pi_rpc import PiRpcError
+
+    agent_id = temporary_agent({"name": "failed-start", "instruction": "x"}).json()[
+        "id"
+    ]
+    chat = client.post("/api/chats", json={"agent_id": agent_id}).json()
+
+    def fail_start(*_args, **_kwargs):
+        raise PiRpcError("Pi could not start")
+
+    monkeypatch.setattr(main_module.runtime, "start_turn", fail_start)
+    response = client.post(f"/api/chats/{chat['id']}/messages", json={"content": "hi"})
+
+    assert response.status_code == 503
+    assert main_module.store.get_chat(chat["id"]) is None
+
+
 def test_user_management_is_available_only_from_the_admin_settings_tab():
     html = Path("static/index.html").read_text(encoding="utf-8")
     script = Path("static/app.js").read_text(encoding="utf-8")
