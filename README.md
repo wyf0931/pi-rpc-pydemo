@@ -140,7 +140,7 @@ Open <http://127.0.0.1:8000>. To avoid a host-port conflict, pass a port to
 ### Docker
 
 Run the whole platform in one lightweight container — the app layer (FastAPI + web UI)
-and the process layer (Pi CLI, ripgrep, fd, git) share a single image; all state stays
+and the process layer (Pi CLI, curl, jq, ripgrep, fd, git) share a single image; all state stays
 on the host through bind mounts:
 
 ```bash
@@ -162,6 +162,13 @@ directly, and `init: true` reaps the short-lived Pi subprocesses the app spawns.
 host reaches model providers through a VPN/proxy, set `OMA_PROXY` (e.g. with
 Colima: `http://192.168.5.2:7897`) and the container pins its outbound model
 calls to it via Node 24 proxy support.
+
+The image includes `curl` and `jq` for ordinary HTTP and JSON debugging from an
+Agent's `bash` tool. Prefer the structured `web_fetch` and `web_search` tools for
+web research; `curl_cffi` is not bundled because it is a specialized TLS
+impersonation client rather than a drop-in replacement for standard `curl`. The
+image pins Node.js `24.20.0` and Pi `0.84.4`; upgrade either explicitly in the
+Dockerfile and verify the resulting image before deploying.
 
 Application logs are written as rotating JSONL to `PI_LOG_DIR` and also emitted to stdout. Each HTTP
 request receives an `X-Request-ID` response header; use that value to search the mounted log file after
