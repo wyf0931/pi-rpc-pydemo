@@ -131,7 +131,12 @@ def aggregate_usage(
         if chat_date is None or chat_date < start or chat_date > today:
             continue
         session_id = str(chat.get("session_id") or chat.get("id") or "")
-        usage = usage_for_session(session_paths_for(session_dir, session_id))
+        session_paths = session_paths_for(session_dir, session_id)
+        # Match the sidebar history contract: an untouched placeholder chat
+        # is metadata only and must not appear as a usage session.
+        if chat.get("title") == "New conversation" and not session_paths:
+            continue
+        usage = usage_for_session(session_paths)
         agent = agent_by_id.get(chat.get("agent_id")) or {}
         user = user_by_id.get(chat.get("user_id")) or {}
         row = _row_with_usage(
