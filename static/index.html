@@ -22,7 +22,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260905-library-hover-orphan-chats" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260905-agent-tool-groups" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -2295,7 +2295,23 @@
             <div class="reserved-grid">
               <div><span>Extensions</span><b x-text="resourceNames(dialog.extensions, 'extensions')"></b></div>
               <div><span>Skills</span><b x-text="resourceNames(dialog.skills, 'skills')"></b></div>
-              <div><span>Tools</span><b x-text="dialog.tools?.length ? dialog.tools.join(', ') : 'Disabled'"></b></div>
+              <div class="agent-detail-tools">
+                <span>Tools</span>
+                <div class="agent-tool-groups" x-show="dialog.tools?.length">
+                  <template x-for="group in toolGroups" :key="group.id">
+                    <span
+                      class="agent-tool-group"
+                      :class="{'agent-tool-group-muted': dialogToolGroupState(group) === 'none'}"
+                    >
+                      <b x-text="group.label"></b>
+                      <small
+                        x-text="dialogToolGroupState(group) === 'all' ? 'Enabled' : dialogToolGroupState(group) === 'partial' ? 'Partly enabled' : 'Disabled'"
+                      ></small>
+                    </span>
+                  </template>
+                </div>
+                <b x-show="!dialog.tools?.length">Disabled</b>
+              </div>
               <div><span>MCP servers</span><b>Not configured</b></div>
             </div>
           </div>
@@ -2454,16 +2470,27 @@
           </div>
           <div class="form-field">
             <label>Built-in tools</label>
-            <div class="tool-check-grid">
-              <template x-for="tool in toolCatalog" :key="tool.name"
-                ><label class="tool-check"
-                  ><input
+            <p class="field-hint">Choose what this Agent can access.</p>
+            <div class="tool-group-grid">
+              <template x-for="group in toolGroups" :key="group.id">
+                <label
+                  class="tool-group card card-border"
+                  :class="{'tool-group-partial': toolGroupState(group) === 'partial'}"
+                >
+                  <input
                     type="checkbox"
-                    :value="tool.name"
-                    :checked="newAgentTools.includes(tool.name)"
-                    @change="toggleAgentTool(tool.name)" /><span
-                    ><b x-text="tool.name"></b><small x-text="tool.description"></small></span></label
-              ></template>
+                    class="checkbox checkbox-sm"
+                    :checked="toolGroupState(group) === 'all'"
+                    :indeterminate="toolGroupState(group) === 'partial'"
+                    @change="toggleToolGroup(group)"
+                  />
+                  <span class="tool-group-copy">
+                    <b x-text="group.label"></b>
+                    <small x-text="group.description"></small>
+                    <em x-text="toolGroupTools(group).join(', ')"></em>
+                  </span>
+                </label>
+              </template>
             </div>
           </div>
           <div class="form-field">
