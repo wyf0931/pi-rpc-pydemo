@@ -1,0 +1,5 @@
+# Production-only Compose settings. Combine with the root definition:
+# docker compose -f docker-compose.yml -f deploy/docker-compose.production.yaml up -d --build
+services:
+  oma-studio:
+    restart: always
