@@ -7,7 +7,6 @@
 #
 # Server layout (provisioned once, outside this script):
 #   /opt/apps/oma-studio/.env.ops                        stable env + secrets
-#   /opt/apps/oma-studio/bin/docker-compose.override.yml loopback port + PI_HOME mount
 #   /opt/apps/oma-studio/releases/<UTCts>-<sha>/         git clone of this repo
 #   /opt/apps/oma-studio/current -> releases/<latest healthy release>
 #   /opt/apps/oma-studio/shared/                         oma/{data,workspace}, pi-home/agent
@@ -49,7 +48,6 @@ echo "==> cloning $REPO_URL (${checkout:-branch $REF}, $SHA) into $REL"
 git clone "${clone_args[@]}" "$REL"
 [ -z "$checkout" ] || git -C "$REL" checkout -q --detach "$checkout"
 ln -s ../../.env.ops "$REL/.env"
-ln -s ../../bin/docker-compose.override.yml "$REL/docker-compose.override.yml"
 
 cd "$REL"
 LOG_DIR="${PI_LOG_DIR:-./logs}"
@@ -61,7 +59,7 @@ if ! chown 1000:1000 "$LOG_DIR" 2>/dev/null; then
   chmod 0777 "$LOG_DIR"
 fi
 echo "==> building image and restarting service (project: ${COMPOSE_PROJECT_NAME:-oma-studio})"
-docker compose up -d --build
+docker compose -f docker-compose.yml -f deploy/docker-compose.production.yaml up -d --build
 
 echo "==> waiting for health on 127.0.0.1:$PORT"
 ok=0

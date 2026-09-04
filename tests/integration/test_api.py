@@ -1,7 +1,8 @@
 from pathlib import Path
 from uuid import uuid4
 
-from app.main import pi_terminal_failure, visible_messages
+from app.api.routers.chats import visible_messages
+from app.store import pi_terminal_failure
 
 
 def test_pi_terminal_failure_distinguishes_failed_and_successful_turns():
@@ -428,7 +429,7 @@ def test_market_skill_search(client, monkeypatch):
             }
         ]
 
-    monkeypatch.setattr("app.main.search_skills", fake_search)
+    monkeypatch.setattr("app.api.routers.marketplace.search_skills", fake_search)
     response = client.post(
         "/api/market/skills/search",
         json={"query": "python", "owner": "acme"},
@@ -442,7 +443,7 @@ def test_market_skill_preview(client, monkeypatch):
         assert source == "https://github.com/yanliudesign/mono-color-skill"
         return [{"skill": "mono-color"}]
 
-    monkeypatch.setattr("app.main.preview_skills", fake_preview)
+    monkeypatch.setattr("app.api.routers.marketplace.preview_skills", fake_preview)
     response = client.post(
         "/api/market/skills/preview",
         json={"source": "https://github.com/yanliudesign/mono-color-skill"},
@@ -465,7 +466,7 @@ def test_market_skill_install(client, monkeypatch):
     async def fake_install(source, skill):
         called.update(source=source, skill=skill)
 
-    monkeypatch.setattr("app.main.install_skill", fake_install)
+    monkeypatch.setattr("app.api.routers.marketplace.install_skill", fake_install)
     response = client.post(
         "/api/market/skills/install",
         json={"source": "acme/skills", "skill": "python"},
@@ -478,9 +479,9 @@ def test_market_skill_install_rejects_already_installed(client, monkeypatch):
     async def fail_install(*args):
         raise AssertionError("duplicate skill must not reach the CLI")
 
-    monkeypatch.setattr("app.main.install_skill", fail_install)
+    monkeypatch.setattr("app.api.routers.marketplace.install_skill", fail_install)
     monkeypatch.setattr(
-        "app.main.discover_resources",
+        "app.api.routers.marketplace.discover_resources",
         lambda *args: {"skills": [{"name": "python", "source": "acme/skills"}]},
     )
     response = client.post(
@@ -495,7 +496,7 @@ def test_market_skill_install_rejects_unsafe_source(client, monkeypatch):
     async def fail_install(*args):
         raise AssertionError("unsafe source must not reach the CLI")
 
-    monkeypatch.setattr("app.main.install_skill", fail_install)
+    monkeypatch.setattr("app.api.routers.marketplace.install_skill", fail_install)
     response = client.post(
         "/api/market/skills/install",
         json={"source": "../../repo", "skill": "python"},
@@ -509,7 +510,7 @@ def test_market_extension_install(client, monkeypatch):
     async def fake_install(package):
         called["package"] = package
 
-    monkeypatch.setattr("app.main.install_extension", fake_install)
+    monkeypatch.setattr("app.api.routers.marketplace.install_extension", fake_install)
     response = client.post(
         "/api/market/extensions/install",
         json={"package": "@scope/extension"},
@@ -522,9 +523,9 @@ def test_market_extension_install_rejects_already_installed(client, monkeypatch)
     async def fail_install(*args):
         raise AssertionError("duplicate extension must not reach Pi")
 
-    monkeypatch.setattr("app.main.install_extension", fail_install)
+    monkeypatch.setattr("app.api.routers.marketplace.install_extension", fail_install)
     monkeypatch.setattr(
-        "app.main.discover_resources",
+        "app.api.routers.marketplace.discover_resources",
         lambda *args: {
             "extensions": [{"name": "pi-mcp-adapter", "source": "npm:pi-mcp-adapter"}]
         },
@@ -541,7 +542,7 @@ def test_market_extension_install_rejects_command(client, monkeypatch):
     async def fail_install(*args):
         raise AssertionError("invalid package must not reach Pi")
 
-    monkeypatch.setattr("app.main.install_extension", fail_install)
+    monkeypatch.setattr("app.api.routers.marketplace.install_extension", fail_install)
     response = client.post(
         "/api/market/extensions/install",
         json={"package": "pi-mcp-adapter; rm -rf /"},
@@ -555,7 +556,9 @@ def test_market_extension_uninstall(client, monkeypatch):
     async def fake_uninstall(package):
         called["package"] = package
 
-    monkeypatch.setattr("app.main.uninstall_extension", fake_uninstall)
+    monkeypatch.setattr(
+        "app.api.routers.marketplace.uninstall_extension", fake_uninstall
+    )
     response = client.post(
         "/api/market/extensions/uninstall",
         json={"package": "npm:pi-mcp-adapter"},
@@ -576,12 +579,14 @@ def test_market_local_extension_uninstall(client, monkeypatch):
         called.update(path=path, roots=roots)
 
     monkeypatch.setattr(
-        "app.main.discover_resources",
+        "app.api.routers.marketplace.discover_resources",
         lambda *args: {
             "extensions": [{"path": "/tmp/local-extension", "name": "local-extension"}]
         },
     )
-    monkeypatch.setattr("app.main.uninstall_local_extension", fake_remove)
+    monkeypatch.setattr(
+        "app.api.routers.marketplace.uninstall_local_extension", fake_remove
+    )
     response = client.post(
         "/api/market/extensions/uninstall",
         json={"path": "/tmp/local-extension"},
@@ -596,7 +601,7 @@ def test_market_skill_uninstall(client, monkeypatch):
     async def fake_uninstall(source, skill):
         called.update(source=source, skill=skill)
 
-    monkeypatch.setattr("app.main.uninstall_skill", fake_uninstall)
+    monkeypatch.setattr("app.api.routers.marketplace.uninstall_skill", fake_uninstall)
     response = client.post(
         "/api/market/skills/uninstall",
         json={"source": "acme/skills", "skill": "python"},
@@ -611,7 +616,7 @@ def test_market_skill_uninstall_without_source(client, monkeypatch):
     async def fake_uninstall(source, skill):
         called.update(source=source, skill=skill)
 
-    monkeypatch.setattr("app.main.uninstall_skill", fake_uninstall)
+    monkeypatch.setattr("app.api.routers.marketplace.uninstall_skill", fake_uninstall)
     response = client.post(
         "/api/market/skills/uninstall",
         json={"skill": "local-skill"},
@@ -775,6 +780,7 @@ def test_turn_survives_viewer_disconnect(client, monkeypatch, temporary_agent):
 def test_message_stream_sends_keepalive_when_idle(client, monkeypatch, temporary_agent):
     import asyncio
 
+    import app.api.routers.chats as chats_router
     import app.main as main_module
 
     agent_id = temporary_agent({"name": "heartbeat", "instruction": "x"}).json()["id"]
@@ -789,7 +795,7 @@ def test_message_stream_sends_keepalive_when_idle(client, monkeypatch, temporary
         return IdleClient()
 
     monkeypatch.setattr(main_module.runtime, "_start", fake_start)
-    monkeypatch.setattr(main_module, "SSE_KEEPALIVE_SECONDS", 0.2)
+    monkeypatch.setattr(chats_router, "SSE_KEEPALIVE_SECONDS", 0.2)
 
     chunks = []
     with client.stream(

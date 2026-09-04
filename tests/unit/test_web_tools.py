@@ -1,6 +1,7 @@
 from pathlib import Path
 
-EXTENSION = Path(__file__).parents[1] / "extensions" / "oma-web-tools.ts"
+REPOSITORY_ROOT = Path(__file__).parents[2]
+EXTENSION = REPOSITORY_ROOT / "extensions" / "oma-web-tools.ts"
 
 
 def test_web_search_targets_baidu_qianfan_and_uses_search_v2_payload():
