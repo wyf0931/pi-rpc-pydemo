@@ -2650,6 +2650,7 @@ pre,
 .filter-agent-picker-button {
  width: 100%;
  min-width: 180px;
+ height: 40px;
 }
 .filter-agent-picker-label {
  min-width: 0;
