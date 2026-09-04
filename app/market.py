@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import re
 import shutil
@@ -34,6 +35,15 @@ NPM_PACKAGE_RE = re.compile(
     r"(?:@(?:[a-z0-9*^~<>=|.+-]+))?$",
     re.IGNORECASE,
 )
+MCP_SERVER_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$")
+
+
+class McpServerExistsError(ValueError):
+    pass
+
+
+class McpConfigError(ValueError):
+    pass
 
 
 @dataclass(frozen=True)
@@ -196,6 +206,80 @@ def npm_package_name(source: str) -> str:
         package.find("@", 1) if package.startswith("@") else package.find("@")
     )
     return package if version_separator < 0 else package[:version_separator]
+
+
+def parse_mcp_config(raw: str) -> dict[str, dict]:
+    """Parse and validate a pasted Pi mcpServers configuration."""
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"MCP configuration is not valid JSON: {exc.msg}") from exc
+    if not isinstance(payload, dict) or not isinstance(payload.get("mcpServers"), dict):
+        raise McpConfigError("MCP configuration must contain an mcpServers object")
+    servers = payload["mcpServers"]
+    if not servers:
+        raise ValueError("MCP configuration must define at least one server")
+    for name, definition in servers.items():
+        if not isinstance(name, str) or not MCP_SERVER_NAME_RE.fullmatch(name):
+            raise ValueError(
+                "MCP server names must start with a letter or number and contain only letters, numbers, '.', '_' or '-'"
+            )
+        if not isinstance(definition, dict):
+            raise McpConfigError(f"MCP server {name} must be an object")
+        if not any(definition.get(key) for key in ("url", "command", "socket")):
+            raise ValueError(f"MCP server {name} must define url, command, or socket")
+    return servers
+
+
+def read_mcp_config(path: Path) -> dict:
+    if not path.is_file():
+        return {"mcpServers": {}}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError("Existing MCP configuration is not valid JSON") from exc
+    if not isinstance(payload, dict) or not isinstance(payload.get("mcpServers"), dict):
+        raise McpConfigError(
+            "Existing MCP configuration must contain an mcpServers object"
+        )
+    return payload
+
+
+def write_mcp_config(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, raw_path = tempfile.mkstemp(prefix=".mcp-", suffix=".json", dir=path.parent)
+    temporary = Path(raw_path)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            json.dump(payload, stream, ensure_ascii=False, indent=2)
+            stream.write("\n")
+        os.replace(temporary, path)
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
+
+
+def add_mcp_servers(path: Path, servers: dict[str, dict]) -> list[str]:
+    payload = read_mcp_config(path)
+    existing = payload["mcpServers"]
+    duplicates = sorted(set(existing).intersection(servers))
+    if duplicates:
+        raise McpServerExistsError(
+            f"MCP server already exists: {', '.join(duplicates)}"
+        )
+    existing.update(servers)
+    write_mcp_config(path, payload)
+    return sorted(servers)
+
+
+def remove_mcp_server(path: Path, name: str) -> None:
+    if not MCP_SERVER_NAME_RE.fullmatch(name):
+        raise ValueError("Invalid MCP server name")
+    payload = read_mcp_config(path)
+    if name not in payload["mcpServers"]:
+        raise ValueError(f"MCP server not found: {name}")
+    del payload["mcpServers"][name]
+    write_mcp_config(path, payload)
 
 
 def github_source_owner(source: str) -> str | None:

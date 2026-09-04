@@ -6,12 +6,16 @@ from pydantic import BaseModel, Field
 
 from ...config import Settings
 from ...market import (
+    McpServerExistsError,
+    add_mcp_servers,
     github_source_owner,
     install_extension,
     install_skill,
     normalize_npm_package,
     npm_package_name,
+    parse_mcp_config,
     preview_skills,
+    remove_mcp_server,
     search_skills,
     uninstall_extension,
     uninstall_local_extension,
@@ -47,6 +51,10 @@ class ExtensionPackage(BaseModel):
 class ExtensionUninstall(BaseModel):
     package: str | None = Field(default=None, min_length=1, max_length=240)
     path: str | None = Field(default=None, min_length=1, max_length=1000)
+
+
+class McpServerConfig(BaseModel):
+    config: str = Field(min_length=2, max_length=200_000)
 
 
 def create_router(
@@ -196,5 +204,34 @@ def create_router(
         except RuntimeError as exc:
             raise HTTPException(502, f"extension uninstall failed: {exc}") from exc
         return {"package": package, "resources": resources()}
+
+    @router.post("/mcp-servers")
+    async def mcp_server_add(payload: McpServerConfig, request: Request):
+        require_admin(request)
+        try:
+            servers = parse_mcp_config(payload.config)
+            added = add_mcp_servers(settings.pi_home / "mcp.json", servers)
+        except McpServerExistsError as exc:
+            raise HTTPException(409, str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        except OSError as exc:
+            raise HTTPException(
+                500, f"MCP configuration could not be saved: {exc}"
+            ) from exc
+        return {"servers": added, "resources": resources()}
+
+    @router.delete("/mcp-servers/{name}")
+    async def mcp_server_delete(name: str, request: Request):
+        require_admin(request)
+        try:
+            remove_mcp_server(settings.pi_home / "mcp.json", name)
+        except ValueError as exc:
+            raise HTTPException(404, str(exc)) from exc
+        except OSError as exc:
+            raise HTTPException(
+                500, f"MCP configuration could not be saved: {exc}"
+            ) from exc
+        return {"name": name, "resources": resources()}
 
     return router

@@ -263,6 +263,37 @@ def test_normal_user_cannot_read_admin_owned_agent(client):
         ).status_code
         == 403
     )
+    assert (
+        client.post(
+            "/api/market/mcp-servers",
+            json={"config": '{"mcpServers":{"example":{"url":"https://example.com"}}}'},
+        ).status_code
+        == 403
+    )
+    assert client.delete("/api/market/mcp-servers/example").status_code == 403
+
+
+def test_market_mcp_server_add_and_delete_are_admin_only(client, monkeypatch):
+    calls = {}
+
+    def fake_add(path, servers):
+        calls["add"] = (path.name, servers)
+        return sorted(servers)
+
+    def fake_remove(path, name):
+        calls["remove"] = (path.name, name)
+
+    monkeypatch.setattr("app.api.routers.marketplace.add_mcp_servers", fake_add)
+    monkeypatch.setattr("app.api.routers.marketplace.remove_mcp_server", fake_remove)
+    config = '{"mcpServers":{"aihot":{"type":"http","url":"https://example.com/mcp"}}}'
+    added = client.post("/api/market/mcp-servers", json={"config": config})
+    assert added.status_code == 200
+    assert calls["add"][0] == "mcp.json"
+    assert calls["add"][1]["aihot"]["url"] == "https://example.com/mcp"
+
+    deleted = client.delete("/api/market/mcp-servers/aihot")
+    assert deleted.status_code == 200
+    assert calls["remove"] == ("mcp.json", "aihot")
 
 
 def test_admin_user_domain_views_are_scoped_to_admin_records(client):
