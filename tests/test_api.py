@@ -1,7 +1,8 @@
 from pathlib import Path
 from uuid import uuid4
 
-from app.main import pi_terminal_failure, visible_messages
+from app.api.routers.chats import visible_messages
+from app.store import pi_terminal_failure
 
 
 def test_pi_terminal_failure_distinguishes_failed_and_successful_turns():
@@ -779,6 +780,7 @@ def test_turn_survives_viewer_disconnect(client, monkeypatch, temporary_agent):
 def test_message_stream_sends_keepalive_when_idle(client, monkeypatch, temporary_agent):
     import asyncio
 
+    import app.api.routers.chats as chats_router
     import app.main as main_module
 
     agent_id = temporary_agent({"name": "heartbeat", "instruction": "x"}).json()["id"]
@@ -793,7 +795,7 @@ def test_message_stream_sends_keepalive_when_idle(client, monkeypatch, temporary
         return IdleClient()
 
     monkeypatch.setattr(main_module.runtime, "_start", fake_start)
-    monkeypatch.setattr(main_module, "SSE_KEEPALIVE_SECONDS", 0.2)
+    monkeypatch.setattr(chats_router, "SSE_KEEPALIVE_SECONDS", 0.2)
 
     chunks = []
     with client.stream(
