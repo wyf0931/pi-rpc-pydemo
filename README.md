@@ -367,6 +367,7 @@ This MVP is a single FastAPI application with a static frontend. The main endpoi
 | `GET /api/chats/{id}/files/content` | Read an authorized Chat-generated text file |
 | `GET /api/chats/{id}/files/download` | Download an authorized Chat-generated file |
 | `GET /api/library/files` | Search and paginate files created by Agents |
+| `GET /api/usage?range=7d` | Read date-bucketed usage statistics; admin responses also include User and Agent aggregates |
 | `GET /api/autopilots` | List and filter scheduled Agent instructions |
 | `POST /api/autopilots` | Create a scheduled Agent instruction |
 | `PATCH /api/autopilots/{id}` | Edit or enable/disable an Autopilot |
