@@ -148,6 +148,53 @@ def test_normal_user_cannot_read_admin_owned_agent(client):
     )
 
 
+def test_admin_user_domain_views_are_scoped_to_admin_records(client):
+    created = client.post(
+        "/api/users", json={"username": f"scoped-{uuid4().hex[:8]}"}
+    ).json()
+    client.post("/api/auth/logout")
+    client.post(
+        "/api/auth/login",
+        json={"username": created["username"], "password": "test-user-password"},
+    )
+    normal_agent = client.post(
+        "/api/agents",
+        json={"name": f"normal-agent-{uuid4().hex[:8]}", "instruction": "private"},
+    ).json()
+    normal_chat = client.post(
+        "/api/chats", json={"agent_id": normal_agent["id"]}
+    ).json()
+    normal_autopilot = client.post(
+        "/api/autopilots",
+        json={
+            "name": "normal autopilot",
+            "instruction": "private",
+            "agent_id": normal_agent["id"],
+            "cron": "0 * * * *",
+        },
+    ).json()
+
+    client.post(
+        "/api/auth/login",
+        json={"username": "admin", "password": "test-admin-password"},
+    )
+    assert normal_agent["id"] not in {
+        item["id"] for item in client.get("/api/agents").json()["agents"]
+    }
+    assert client.get(f"/api/agents/{normal_agent['id']}").status_code == 404
+    assert client.get(f"/api/chats/{normal_chat['id']}").status_code == 404
+    assert (
+        client.patch(
+            f"/api/autopilots/{normal_autopilot['id']}",
+            json={"name": "should stay private"},
+        ).status_code
+        == 404
+    )
+    assert normal_agent["id"] not in {
+        item["agent_id"] for item in client.get("/api/autopilots").json()["autopilots"]
+    }
+
+
 def test_agent_marketplace_publishes_and_installs_private_copy(client):
     source = client.post(
         "/api/agents",

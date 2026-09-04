@@ -114,10 +114,7 @@ def _user_id(request: Request) -> str:
 
 
 def _can_access(record: dict, request: Request) -> bool:
-    user = request.state.user
-    return bool(user and user.get("role") == "admin") or record.get(
-        "user_id"
-    ) == _user_id(request)
+    return record.get("user_id") == _user_id(request)
 
 
 def _visible_or_404(record: dict | None, request: Request, label: str) -> dict:
@@ -127,9 +124,6 @@ def _visible_or_404(record: dict | None, request: Request, label: str) -> dict:
 
 
 def _visible_records(records: list[dict], request: Request) -> list[dict]:
-    user = request.state.user
-    if user and user.get("role") == "admin":
-        return records
     user_id = _user_id(request)
     return [record for record in records if record.get("user_id") == user_id]
 
