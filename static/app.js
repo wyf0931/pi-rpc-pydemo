@@ -2,6 +2,18 @@ function platform() {
   return {
     settingsOpen: false,
     settingsTab: "general",
+    usageOpen: false,
+    usageTab: "overview",
+    usageRange: "7",
+    usageLoading: false,
+    usageError: "",
+    usageData: {
+      summary: { sessions: 0, input: 0, output: 0, cacheRead: 0, cost: 0, search: 0, fetch: 0 },
+      daily: [],
+      sessions: [],
+      users: [],
+      agents: [],
+    },
     language: localStorage.getItem("oma-language") || "en",
     timezone: localStorage.getItem("oma-timezone") || "Asia/Shanghai",
     themePreference: "system",
@@ -1024,6 +1036,149 @@ function platform() {
     openSettings() {
       this.settingsTab = "general";
       this.settingsOpen = true;
+    },
+    async openUsage() {
+      this.usageOpen = true;
+      this.usageTab = "overview";
+      await this.loadUsage();
+    },
+    async setUsageRange(range) {
+      if (!["1", "7", "30"].includes(range) || range === this.usageRange) return;
+      this.usageRange = range;
+      await this.loadUsage();
+    },
+    async loadUsage() {
+      if (this.usageLoading) return;
+      this.usageLoading = true;
+      this.usageError = "";
+      try {
+        const payload = await this.api(`/api/usage?days=${encodeURIComponent(this.usageRange)}`);
+        this.usageData = this.normalizeUsageData(payload);
+      } catch (error) {
+        this.usageError = error.message || "Unable to load usage statistics.";
+      } finally {
+        this.usageLoading = false;
+      }
+    },
+    usageNumber(value) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : 0;
+    },
+    usagePick(item, keys) {
+      for (const key of keys) {
+        if (item && item[key] !== undefined && item[key] !== null) return item[key];
+      }
+      return 0;
+    },
+    normalizeUsageSummary(value = {}) {
+      const source = value || {};
+      return {
+        sessions: this.usageNumber(this.usagePick(source, ["sessions", "session_count", "sessionCount"])),
+        input: this.usageNumber(this.usagePick(source, ["input", "input_tokens", "inputTokens"])),
+        output: this.usageNumber(this.usagePick(source, ["output", "output_tokens", "outputTokens"])),
+        cacheRead: this.usageNumber(
+          this.usagePick(source, ["cacheRead", "cache_read", "cache_read_tokens", "cached_tokens", "cachedTokens"]),
+        ),
+        cost: this.usageNumber(this.usagePick(source, ["cost", "total_cost", "totalCost"])),
+        search: this.usageNumber(this.usagePick(source, ["search", "web_search", "webSearch"])),
+        fetch: this.usageNumber(this.usagePick(source, ["fetch", "web_fetch", "webFetch"])),
+        tools: this.usageNumber(this.usagePick(source, ["tool_calls", "toolCalls", "tools"])),
+      };
+    },
+    normalizeUsageRow(row = {}) {
+      return {
+        ...row,
+        id:
+          row.id ||
+          row.session_id ||
+          row.sessionId ||
+          row.chat_id ||
+          row.chatId ||
+          row.user_id ||
+          row.userId ||
+          row.agent_id ||
+          row.agentId ||
+          row.name,
+        title: row.title || row.session_name || row.sessionName || row.name || "Untitled session",
+        username: row.username || row.user_name || row.userName || row.user || "—",
+        agent:
+          (typeof row.agent === "string" ? row.agent : row.agent?.name) ||
+          row.agent_name ||
+          row.agentName ||
+          row.name ||
+          "—",
+        createdAt: row.createdAt || row.created_at || row.created || row.date,
+        sessions: this.usageNumber(this.usagePick(row, ["sessions", "session_count", "sessionCount"])),
+        input: this.usageNumber(this.usagePick(row, ["input", "input_tokens", "inputTokens"])),
+        output: this.usageNumber(this.usagePick(row, ["output", "output_tokens", "outputTokens"])),
+        cacheRead: this.usageNumber(
+          this.usagePick(row, ["cacheRead", "cache_read", "cache_read_tokens", "cached_tokens", "cachedTokens"]),
+        ),
+        cost: this.usageNumber(this.usagePick(row, ["cost", "total_cost", "totalCost"])),
+        search: this.usageNumber(this.usagePick(row, ["search", "web_search", "webSearch"])),
+        fetch: this.usageNumber(this.usagePick(row, ["fetch", "web_fetch", "webFetch"])),
+        tools: this.usageNumber(this.usagePick(row, ["tool_calls", "toolCalls", "tools"])),
+      };
+    },
+    normalizeUsageData(payload = {}) {
+      const source = payload || {};
+      const daily = source.daily || source.series || source.daily_series || source.dailySeries || [];
+      const sessions = source.sessions || source.details || source.session_details || source.sessionDetails || [];
+      return {
+        ...source,
+        summary: this.normalizeUsageSummary(source.summary || source.totals || source.overview),
+        daily: Array.isArray(daily) ? daily.map((row) => this.normalizeUsageRow(row)) : [],
+        sessions: Array.isArray(sessions) ? sessions.map((row) => this.normalizeUsageRow(row)) : [],
+        users: Array.isArray(source.users || source.by_user || source.byUser)
+          ? (source.users || source.by_user || source.byUser).map((row) => this.normalizeUsageRow(row))
+          : [],
+        agents: Array.isArray(source.agents || source.by_agent || source.byAgent)
+          ? (source.agents || source.by_agent || source.byAgent).map((row) => this.normalizeUsageRow(row))
+          : [],
+      };
+    },
+    usageMetricValue(row, metric = "cost") {
+      if (metric === "tokens") return row.input + row.output + row.cacheRead;
+      if (metric === "sessions") return row.sessions;
+      return row.cost;
+    },
+    usageChartPoints(metric = "cost") {
+      const rows = this.usageData.daily || [];
+      if (!rows.length) return "24,188 736,188";
+      const values = rows.map((row) => this.usageMetricValue(row, metric));
+      const max = Math.max(...values, 1);
+      const left = 24;
+      const right = 736;
+      const baseline = 188;
+      const top = 18;
+      const span = Math.max(1, values.length - 1);
+      return values
+        .map((value, index) => {
+          const x = left + ((right - left) * index) / span;
+          const y = baseline - ((baseline - top) * value) / max;
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        })
+        .join(" ");
+    },
+    usageChartAreaPoints(metric = "cost") {
+      const points = this.usageChartPoints(metric);
+      return `24,188 ${points} 736,188`;
+    },
+    usageChartLabels() {
+      return (this.usageData.daily || []).map((row) => ({
+        id: row.id || row.createdAt || row.date,
+        label: this.usageDateLabel(row.createdAt || row.date),
+      }));
+    },
+    usageDateLabel(value) {
+      if (!value) return "—";
+      const date = new Date(value);
+      return Number.isNaN(date.getTime())
+        ? String(value)
+        : date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    },
+    usageCost(value) {
+      return `$${this.usageNumber(value).toFixed(4)}`;
     },
     async openSettingsTab(tab) {
       this.settingsTab = tab;

@@ -25,6 +25,7 @@ from .api.routers.resource_catalog import (
     create_router as create_resource_catalog_router,
 )
 from .api.routers.shares import create_router as create_share_router
+from .api.routers.usage import create_router as create_usage_router
 from .autopilots import AutopilotScheduler
 from .core.application import create_app, create_context
 
@@ -145,6 +146,7 @@ app.include_router(
         lambda chat: _has_session_file(chat),
     )
 )
+app.include_router(create_usage_router(settings, store))
 
 static_dir = Path(__file__).parent.parent / "static"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
