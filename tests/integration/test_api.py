@@ -296,6 +296,14 @@ def test_market_mcp_server_add_and_delete_are_admin_only(client, monkeypatch):
     assert calls["remove"] == ("mcp.json", "aihot")
 
 
+def test_mcp_market_cards_use_the_shared_author_label():
+    html = Path("static/index.html").read_text(encoding="utf-8")
+
+    assert "marketResourceAuthor('mcp_servers', item)" in html
+    assert 'data-lucide="user"' in html
+    assert '<span class="market-card-author">MCP server</span>' not in html
+
+
 def test_admin_user_domain_views_are_scoped_to_admin_records(client):
     created = client.post(
         "/api/users", json={"username": f"scoped-{uuid4().hex[:8]}"}

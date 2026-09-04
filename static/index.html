@@ -847,7 +847,10 @@
                     </div>
                     <p class="market-description" x-text="item.description || 'MCP server'"></p>
                     <div class="card-actions market-card-footer">
-                      <span class="market-card-author">MCP server</span>
+                      <span class="market-card-author"
+                        ><i data-lucide="user" aria-hidden="true"></i
+                        ><span x-text="marketResourceAuthor('mcp_servers', item)"></span
+                      ></span>
                       <button
                         type="button"
                         class="trash-btn market-uninstall-action"
@@ -2728,6 +2731,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260905-mcp-management-thought-default-open"></script>
+    <script src="/static/app.js?v=20260905-mcp-card-author"></script>
   </body>
 </html>
