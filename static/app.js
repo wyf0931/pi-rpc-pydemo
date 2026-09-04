@@ -2550,9 +2550,10 @@ function platform() {
         .filter(Number.isFinite);
       const seconds =
         times.length > 1 ? Math.max(1, Math.round((Math.max(...times) - Math.min(...times)) / 1000)) : null;
-      const label = seconds === null ? "Thought" : `Thought for ${seconds}s`;
+      const label = message._streaming ? "Thinking" : seconds === null ? "Thought" : `Thought for ${seconds}s`;
       const reasoningKey = `${messageKey || "message"}:reasoning`;
-      const checked = this.reasoningOpen[reasoningKey] ? " checked" : "";
+      const hasPreference = Object.prototype.hasOwnProperty.call(this.reasoningOpen, reasoningKey);
+      const checked = (hasPreference ? this.reasoningOpen[reasoningKey] : true) ? " checked" : "";
       return `<div class="collapse reasoning-collapse"><input type="checkbox" data-reasoning-key="${this.escape(reasoningKey)}" onchange="window.omaPlatform.setReasoningOpen(this)"${checked} /><div class="collapse-title process-label"><i data-lucide="sparkle" aria-hidden="true"></i><span>${label}</span><i class="reasoning-chevron" data-lucide="chevron-down" aria-hidden="true"></i></div><div class="collapse-content"><ul class="timeline timeline-compact timeline-snap-icon timeline-vertical reasoning-timeline">${content}</ul></div></div>`;
     },
     renderProcessToolCall(name, args) {
