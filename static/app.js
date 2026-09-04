@@ -1903,7 +1903,7 @@ function platform() {
       if (role === "toolResult") return this.mode === "development" ? this.renderToolResult(message) : "";
       if (role === "assistant") {
         const text = this.partsText(parts);
-        const reasoning = this.renderReasoning(message._reasoningParts || [], message._key);
+        const reasoning = this.renderReasoning(message._reasoningParts || [], message._key, message._streaming);
         if (message._streaming && !text)
           return reasoning || '<span class="loading loading-dots loading-xs" aria-label="Waiting for response"></span>';
         return (
@@ -2602,7 +2602,7 @@ function platform() {
       this.filesOpen = false;
       this.linkDrawerOpen = false;
     },
-    renderReasoning(parts, messageKey) {
+    renderReasoning(parts, messageKey, isStreaming = false) {
       const entries = [];
       for (const part of parts) {
         if (part.type === "toolCall" && part.name === "web_fetch") {
@@ -2647,7 +2647,7 @@ function platform() {
         .filter(Number.isFinite);
       const seconds =
         times.length > 1 ? Math.max(1, Math.round((Math.max(...times) - Math.min(...times)) / 1000)) : null;
-      const label = message._streaming ? "Thinking" : seconds === null ? "Thought" : `Thought for ${seconds}s`;
+      const label = isStreaming ? "Thinking" : seconds === null ? "Thought" : `Thought for ${seconds}s`;
       const reasoningKey = `${messageKey || "message"}:reasoning`;
       const hasPreference = Object.prototype.hasOwnProperty.call(this.reasoningOpen, reasoningKey);
       const checked = (hasPreference ? this.reasoningOpen[reasoningKey] : true) ? " checked" : "";
