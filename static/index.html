@@ -22,7 +22,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260904-usage-statistics" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260905-usage-session-alignment" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -2082,7 +2082,7 @@
               <table class="table usage-table">
                 <thead>
                   <tr>
-                    <th>Session</th>
+                    <th class="usage-session-column">Session</th>
                     <th>Agent</th>
                     <th>Created</th>
                     <th>Input</th>
@@ -2094,7 +2094,7 @@
                 <tbody>
                   <template x-for="row in usageData.sessions" :key="row.id">
                     <tr>
-                      <td>
+                      <td class="usage-session-column">
                         <b class="usage-session-title" x-text="row.title"></b
                         ><small x-show="authUser?.role === 'admin'" x-text="row.username"></small>
                       </td>

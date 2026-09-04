@@ -16,6 +16,9 @@ def test_usage_statistics_has_a_single_sidebar_entry_and_dialog():
     assert "usageData.sessions" in html
     assert "usageData.users" in html
     assert "usageData.agents" in html
+    assert "x-show=\"authUser?.role === 'admin'\"" in html
+    assert "usageTab === 'users' && authUser?.role === 'admin'" in html
+    assert "usageTab === 'agents' && authUser?.role === 'admin'" in html
     usage_markup = html.split('class="modal modal-middle usage-dialog"', 1)[1].split(
         "</dialog>", 1
     )[0]

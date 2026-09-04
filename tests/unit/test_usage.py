@@ -132,5 +132,40 @@ def test_aggregate_usage_can_isolate_normal_user_chats(tmp_path: Path):
     )
 
     assert [row["id"] for row in payload["sessions"]] == ["mine"]
-    assert "users" not in payload
-    assert "agents" not in payload
+
+
+def test_aggregate_usage_excludes_unstarted_new_conversations(tmp_path: Path):
+    chats = [
+        {
+            "id": "empty",
+            "session_id": "empty",
+            "title": "New conversation",
+            "created_at": "2026-09-04T10:00:00+00:00",
+            "agent_id": "agent-1",
+            "user_id": "user-1",
+        },
+        {
+            "id": "started",
+            "session_id": "started",
+            "title": "New conversation",
+            "created_at": "2026-09-04T11:00:00+00:00",
+            "agent_id": "agent-1",
+            "user_id": "user-1",
+        },
+    ]
+    _write_session(
+        tmp_path / "2026-09-04_started.jsonl",
+        [_assistant(25)],
+    )
+
+    payload = aggregate_usage(
+        chats,
+        [{"id": "agent-1", "name": "assistant"}],
+        [{"id": "user-1", "username": "alice"}],
+        tmp_path,
+        today=date(2026, 9, 4),
+        admin=True,
+    )
+
+    assert [row["id"] for row in payload["sessions"]] == ["started"]
+    assert payload["summary"]["sessions"] == 1

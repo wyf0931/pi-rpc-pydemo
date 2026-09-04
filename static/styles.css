@@ -3990,6 +3990,14 @@ pre,
  min-width: 190px;
  white-space: normal;
 }
+.usage-table .usage-session-column {
+ width: 220px;
+ max-width: 220px;
+ min-width: 0;
+}
+.usage-table td.usage-session-column {
+ overflow: hidden;
+}
 .usage-session-title {
  display: block;
  overflow: hidden;
