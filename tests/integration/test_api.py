@@ -151,9 +151,9 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260905-thought-render-runtime" in Path(
-        "static/index.html"
-    ).read_text(encoding="utf-8")
+    assert "app.js?v=20260905-agent-save-list" in Path("static/index.html").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_agent_tools_use_product_capability_groups_with_safe_defaults():
@@ -178,6 +178,15 @@ def test_agent_tools_use_product_capability_groups_with_safe_defaults():
     assert "color: var(--ink)" in styles
     assert 'class="modal modal-middle agent-dialog"' in html
     assert 'class="modal-box agent-dialog-box"' in html
+
+
+def test_agent_save_refreshes_list_without_opening_detail_dialog():
+    script = Path("static/app.js").read_text(encoding="utf-8")
+
+    assert "await this.refreshAgents();" in script
+    assert "this.createDialog = false;" in script
+    assert "this.dialog = null;" in script
+    assert "this.dialog = refreshedAgent;" not in script
 
 
 def test_new_chat_is_removed_when_pi_cannot_start(client, temporary_agent, monkeypatch):

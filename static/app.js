@@ -2235,11 +2235,10 @@ function platform() {
               method: "POST",
               body: JSON.stringify(payload),
             });
-        const savedAgent = !editing && avatarFile ? await this.uploadAvatarFile(agent.id, avatarFile) : agent;
+        if (!editing && avatarFile) await this.uploadAvatarFile(agent.id, avatarFile);
         await this.refreshAgents();
-        const refreshedAgent = this.agents.find((item) => item.id === savedAgent.id) || savedAgent;
         this.createDialog = false;
-        this.dialog = refreshedAgent;
+        this.dialog = null;
         this.editingAgent = null;
         this.page = "agents";
         this.showToast(editing ? "Agent updated" : "Agent created");
