@@ -286,10 +286,9 @@ The Agent form discovers resources without executing them:
 
 Enable only resources you trust. Extensions and MCP servers execute code or connect to external systems.
 
-Marketplace skill installs are copied into the configured agent-neutral
-`PI_AGENTS_HOME/skills` directory as well as the Pi target managed by the
-skills CLI. No symlinks are created, so the shared catalog remains portable
-across agent runtimes.
+Marketplace skill installs retain the existing Pi skills CLI target; the
+agent-neutral `.agents/skills` directory is additionally discovered for skills
+installed by other tools.
 
 ### Built-in tools
 

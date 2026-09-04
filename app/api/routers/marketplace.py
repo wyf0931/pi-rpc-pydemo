@@ -99,7 +99,7 @@ def create_router(
             )
             if any(item["name"] == skill for item in catalog["skills"]):
                 raise HTTPException(409, f"Skill {skill} is already installed")
-            await install_skill(source, skill, settings.pi_agents_home / "skills")
+            await install_skill(source, skill)
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from exc
         except TimeoutError as exc:
@@ -138,7 +138,7 @@ def create_router(
         source = payload.source.strip() if payload.source else None
         skill = payload.skill.strip()
         try:
-            await uninstall_skill(source, skill, settings.pi_agents_home / "skills")
+            await uninstall_skill(source, skill)
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from exc
         except TimeoutError as exc:
