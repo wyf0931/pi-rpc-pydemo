@@ -1,6 +1,5 @@
 {
   "venvPath": ".",
   "venv": ".venv",
-  "pythonPath": ".venv/bin/python",
   "include": ["app", "tests"]
 }
