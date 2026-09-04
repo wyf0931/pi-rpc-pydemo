@@ -136,6 +136,17 @@ def test_library_file_name_does_not_add_hover_underline():
     assert ".library-file-name:hover b" not in styles
 
 
+def test_thought_blocks_open_by_default_and_label_streaming_state():
+    script = Path("static/app.js").read_text(encoding="utf-8")
+
+    assert 'message._streaming ? "Thinking"' in script
+    assert (
+        "Object.prototype.hasOwnProperty.call(this.reasoningOpen, reasoningKey)"
+        in script
+    )
+    assert "hasPreference ? this.reasoningOpen[reasoningKey] : true" in script
+
+
 def test_new_chat_is_removed_when_pi_cannot_start(client, temporary_agent, monkeypatch):
     import app.main as main_module
     from app.pi_rpc import PiRpcError
