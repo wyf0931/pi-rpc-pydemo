@@ -152,10 +152,10 @@ docker compose up --build
 | `${PI_PLATFORM_DATA_DIR:-./data}` | `/app/data` | Platform metadata + Pi session transcripts |
 | `${PI_CWD:-./workspace}` | `${PI_DOCKER_CWD:-/workspace}` | Agent working directory |
 | `${PI_LOG_DIR:-./logs}` | `/app/logs` | Rotating JSONL application logs with request IDs |
-| `~/.pi/agent` | `/home/node/.pi/agent` | Extensions, skills, MCP config, model catalog, provider auth |
+| `${PI_HOST_HOME:-~/.pi/agent}` | `/home/node/.pi/agent` | Extensions, skills, MCP config, model catalog, provider auth |
 
 Compose reads `.env` for `PI_PROVIDER`, `PI_MODEL`, the resource defaults, `PI_PLATFORM_DATA_DIR`,
-`PI_CWD`, `PI_LOG_DIR`, and optional `PI_DOCKER_CWD`; container-internal paths are fixed in `docker-compose.yml`. This means a local
+`PI_CWD`, `PI_LOG_DIR`, `PI_HOST_HOME`, and optional `PI_DOCKER_CWD`; container-internal paths are fixed in `docker-compose.yml`. This means a local
 `.env` with `PI_PLATFORM_DATA_DIR=data` shares the repository's existing metadata and Pi
 sessions with Docker. No reverse proxy or extra services — FastAPI serves the API and UI
 directly, and `init: true` reaps the short-lived Pi subprocesses the app spawns. When the
@@ -200,10 +200,8 @@ persistent state outside the releases:
 /opt/apps/oma-studio/
 ├── .env.ops                          stable env + secrets (shared by releases)
 ├── bin/deploy.sh                     server-side deploy script (synced from repo)
-├── bin/docker-compose.override.yml   loopback-only port + PI_HOME mount
 ├── releases/<UTCts>-<sha>/           git clone of the deployed commit
 │   ├── .env -> ../../.env.ops
-│   └── docker-compose.override.yml -> ../../bin/docker-compose.override.yml
 ├── current -> releases/<latest healthy release>
 └── shared/                           oma/{data,workspace}, pi-home/agent, logs
 ```
@@ -241,7 +239,7 @@ PI_PLATFORM_DATA_DIR=/absolute/path/to/.oma-studio/data
 PI_SESSION_DIR=/absolute/path/to/.oma-studio/data/pi-sessions
 PI_LOG_DIR=/absolute/path/to/.oma-studio/logs
 PI_CWD=/absolute/path/to/.oma-studio/workspace
-PI_HOME=~/.pi/agent
+PI_HOST_HOME=/absolute/path/to/.oma-studio/pi-home/agent
 PI_PROVIDER=deepseek
 PI_MODE=production
 JINA_API_KEY=
