@@ -22,7 +22,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260905-agent-tools-inline" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260905-agent-tools-details" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -2497,6 +2497,7 @@
                   />
                   <span class="tool-group-copy">
                     <b x-text="group.label"></b>
+                    <small class="tool-group-tools" x-text="group.tools.join(' · ')"></small>
                   </span>
                 </label>
               </template>
