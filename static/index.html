@@ -600,7 +600,7 @@
             ><article
               class="file-markdown prose max-w-none"
               :class="{'prose-invert': theme === 'dark'}"
-              x-html="renderMarkdown(fileViewer.content)"
+              x-html="renderFilePreview()"
             ></article
           ></template>
         </section>
@@ -2768,6 +2768,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260905-agent-save-list"></script>
+    <script src="/static/app.js?v=20260905-file-previews"></script>
   </body>
 </html>

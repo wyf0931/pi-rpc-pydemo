@@ -2043,6 +2043,102 @@ function platform() {
         return this.escape(source).replace(/\n/g, "<br>");
       }
     },
+    parseCsv(source) {
+      const text = String(source || "").replace(/^\uFEFF/, "");
+      const rows = [];
+      let row = [];
+      let field = "";
+      let quoted = false;
+      const finishRow = () => {
+        if (!row.length && !field) return;
+        row.push(field);
+        rows.push(row);
+        row = [];
+        field = "";
+      };
+
+      for (let index = 0; index < text.length; index += 1) {
+        const character = text[index];
+        if (quoted) {
+          if (character === '"') {
+            if (text[index + 1] === '"') {
+              field += '"';
+              index += 1;
+            } else {
+              quoted = false;
+            }
+          } else {
+            field += character;
+          }
+        } else if (character === '"' && !field) {
+          quoted = true;
+        } else if (character === ",") {
+          row.push(field);
+          field = "";
+        } else if (character === "\n") {
+          finishRow();
+        } else if (character !== "\r") {
+          field += character;
+        }
+      }
+      finishRow();
+      return rows;
+    },
+    fileExtension(path) {
+      return (
+        String(path || "")
+          .split("?")[0]
+          .split(".")
+          .pop()
+          ?.toLowerCase() || ""
+      );
+    },
+    isCsvFile(path) {
+      return this.fileExtension(path) === "csv";
+    },
+    isCodeFile(path) {
+      return [
+        "bash",
+        "css",
+        "html",
+        "js",
+        "json",
+        "jsonl",
+        "jsx",
+        "py",
+        "sh",
+        "ts",
+        "tsx",
+        "txt",
+        "yaml",
+        "yml",
+      ].includes(this.fileExtension(path));
+    },
+    renderCsv(source) {
+      const rows = this.parseCsv(source);
+      if (!rows.length) return '<p class="opacity-60">Empty CSV file</p>';
+      const columnCount = Math.max(...rows.map((row) => row.length));
+      const cells = (row, tag) =>
+        Array.from({ length: columnCount }, (_, index) => `<${tag}>${this.escape(row[index] ?? "")}</${tag}>`).join("");
+      const header = `<thead><tr>${cells(rows[0], "th")}</tr></thead>`;
+      const body = rows
+        .slice(1)
+        .map((row) => `<tr>${cells(row, "td")}</tr>`)
+        .join("");
+      return `<div class="overflow-x-auto w-full"><table class="table table-zebra csv-table">${header}<tbody>${body}</tbody></table></div>`;
+    },
+    renderCodeFile(source, extension) {
+      const language = this.normalizeCodeLanguage(extension);
+      const highlighted = this.highlightCode(String(source || ""), language);
+      return `<div class="mockup-code overflow-x-auto w-full"><pre><code class="language-${this.escape(language)}">${highlighted}</code></pre></div>`;
+    },
+    renderFilePreview() {
+      const path = this.fileViewer?.path || "";
+      const content = this.fileViewer?.content || "";
+      if (this.isCsvFile(path)) return this.renderCsv(content);
+      if (this.isCodeFile(path)) return this.renderCodeFile(content, this.fileExtension(path));
+      return this.renderMarkdown(content);
+    },
     toolArgs(part) {
       if (part.arguments && typeof part.arguments === "object") return part.arguments;
       try {
