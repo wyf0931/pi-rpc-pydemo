@@ -730,25 +730,9 @@ body {
 .add-card small {
  font-size: 11px;
 }
-.agent-dialog {
- position: fixed;
- inset: 0;
- width: 100%;
- height: 100%;
- max-width: none;
- max-height: none;
- margin: 0;
- padding: 0;
- background: #0005;
- border: 0;
-}
-.dialog-box {
- background: var(--color-base-100);
- border: 1px solid var(--line);
- border-radius: 10px;
+.agent-dialog-box {
  max-width: 560px;
  width: calc(100% - 34px);
- margin: 10vh auto;
  padding: 27px;
  box-shadow: 0 24px 80px #0003;
 }
@@ -1338,7 +1322,7 @@ body {
  color: var(--muted);
  font: 11px var(--font-sans);
 }
-.agent-dialog .dialog-box {
+.agent-dialog-box {
  max-width: 760px;
 }
 .tool-check {
@@ -1393,7 +1377,7 @@ body {
  color: var(--muted);
  font-size: 13px;
 }
-.agent-dialog .dialog-box {
+.agent-dialog-box {
  max-height: 90vh;
  overflow-y: auto;
 }

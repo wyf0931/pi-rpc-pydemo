@@ -22,7 +22,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260905-thought-render-fix" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260905-agent-dialog-centered" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -2266,9 +2266,15 @@
         </div>
       </div>
     </dialog>
-    <dialog class="agent-dialog" :open="!!dialog" x-show="dialog" x-cloak @click.self="dialog = null">
+    <dialog
+      class="modal modal-middle agent-dialog"
+      :open="!!dialog"
+      x-show="dialog"
+      x-cloak
+      @click.self="dialog = null"
+    >
       <template x-if="dialog"
-        ><div class="dialog-box">
+        ><div class="modal-box agent-dialog-box">
           <div class="dialog-head">
             <div>
               <div class="eyebrow">Agent details</div>
@@ -2370,8 +2376,14 @@
         </div>
       </div>
     </dialog>
-    <dialog class="agent-dialog" :open="createDialog" x-show="createDialog" x-cloak @click.self="createDialog = false">
-      <div class="dialog-box">
+    <dialog
+      class="modal modal-middle agent-dialog"
+      :open="createDialog"
+      x-show="createDialog"
+      x-cloak
+      @click.self="createDialog = false"
+    >
+      <div class="modal-box agent-dialog-box">
         <div class="dialog-head">
           <div>
             <h2 x-text="editingAgent ? 'Edit Agent' : 'New Agent'"></h2>
