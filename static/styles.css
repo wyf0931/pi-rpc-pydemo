@@ -3755,6 +3755,330 @@ pre,
  height: 18px;
  stroke-width: 2;
 }
+.usage-modal-box {
+ width: min(1080px, calc(100vw - 48px));
+ max-width: none;
+ height: min(780px, calc(100vh - 48px));
+ max-height: none;
+ display: flex;
+ flex-direction: column;
+ gap: 0;
+ padding: 0;
+ overflow: hidden;
+}
+.usage-header {
+ display: flex;
+ align-items: flex-start;
+ justify-content: space-between;
+ gap: 24px;
+ padding: 28px 32px 22px;
+ border-bottom: 1px solid var(--line);
+}
+.usage-header h2 {
+ margin: 8px 0 0;
+ font-size: 26px;
+ letter-spacing: -0.05em;
+}
+.usage-header p {
+ margin: 6px 0 0;
+ color: var(--muted);
+ font-size: 13px;
+}
+.usage-toolbar {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ gap: 18px;
+ padding: 18px 32px 0;
+}
+.usage-range-tabs {
+ background: var(--color-base-200);
+ border-radius: var(--radius-box);
+ padding: 4px;
+}
+.usage-range-tabs .btn {
+ min-height: 32px;
+ height: 32px;
+ border: 0;
+ font-size: 12px;
+ font-weight: 500;
+}
+.usage-scope,
+.usage-count {
+ color: var(--muted);
+ font-size: 12px;
+}
+.usage-tabs {
+ align-self: flex-start;
+ margin: 18px 32px 0;
+ background: transparent;
+ gap: 5px;
+}
+.usage-tabs .tab {
+ min-height: 34px;
+ height: 34px;
+ padding: 0 15px;
+ border-radius: var(--radius-field);
+ color: var(--muted);
+ font-size: 13px;
+}
+.usage-tabs .tab-active {
+ background: var(--color-base-200);
+ color: var(--color-base-content);
+ font-weight: 600;
+}
+.usage-body {
+ min-height: 0;
+ flex: 1 1 auto;
+ overflow-y: auto;
+ padding: 22px 32px 32px;
+}
+.usage-loading {
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ gap: 10px;
+ min-height: 320px;
+ color: var(--muted);
+ font-size: 13px;
+}
+.usage-error {
+ margin-bottom: 16px;
+ font-size: 13px;
+}
+.usage-panel {
+ display: flex;
+ flex-direction: column;
+ gap: 20px;
+}
+.usage-summary-grid {
+ display: grid;
+ grid-template-columns: repeat(5, minmax(0, 1fr));
+ gap: 10px;
+}
+.usage-stat-card {
+ min-width: 0;
+ padding: 17px 16px;
+ border: 1px solid var(--line);
+ border-radius: var(--radius-box);
+ background: var(--color-base-200);
+}
+.usage-stat-card .stat-title {
+ color: var(--muted);
+ font-size: 11px;
+ font-weight: 500;
+}
+.usage-stat-card .stat-value {
+ margin-top: 6px;
+ color: var(--color-base-content);
+ font-size: 22px;
+ line-height: 1.1;
+ letter-spacing: -0.04em;
+}
+.usage-stat-card .stat-desc {
+ margin-top: 6px;
+ color: var(--muted);
+ font-size: 11px;
+ white-space: nowrap;
+ overflow: hidden;
+ text-overflow: ellipsis;
+}
+.usage-cost-card {
+ border-color: color-mix(in srgb, var(--color-primary) 35%, var(--line));
+ background: color-mix(in srgb, var(--color-primary) 7%, var(--color-base-100));
+}
+.usage-chart-card {
+ padding: 22px 24px 16px;
+ border: 1px solid var(--line);
+ border-radius: var(--radius-box);
+ background: var(--color-base-100);
+ box-shadow: none;
+}
+.usage-chart-heading,
+.usage-section-heading {
+ display: flex;
+ align-items: flex-start;
+ justify-content: space-between;
+ gap: 18px;
+}
+.usage-chart-heading h3,
+.usage-section-heading h3 {
+ margin: 0;
+ font-size: 15px;
+ font-weight: 650;
+ letter-spacing: -0.02em;
+}
+.usage-chart-heading p,
+.usage-section-heading p {
+ margin: 5px 0 0;
+ color: var(--muted);
+ font-size: 12px;
+}
+.usage-chart-total {
+ color: var(--color-primary);
+ font: 600 15px var(--font-mono);
+}
+.usage-chart {
+ height: 220px;
+ margin-top: 16px;
+}
+.usage-chart svg {
+ display: block;
+ width: 100%;
+ height: 100%;
+ overflow: visible;
+}
+.usage-grid-line {
+ stroke: var(--line);
+ stroke-dasharray: 3 6;
+ stroke-width: 1;
+}
+.usage-chart-area {
+ fill: url(#usage-chart-fill);
+}
+.usage-chart-line {
+ fill: none;
+ stroke: var(--color-primary);
+ stroke-linecap: round;
+ stroke-linejoin: round;
+ stroke-width: 3;
+ vector-effect: non-scaling-stroke;
+}
+.usage-chart-dot {
+ fill: var(--color-base-100);
+ stroke: var(--color-primary);
+ stroke-width: 2;
+ vector-effect: non-scaling-stroke;
+}
+.usage-chart-labels {
+ display: flex;
+ justify-content: space-between;
+ gap: 8px;
+ min-height: 18px;
+ margin-top: 2px;
+ color: var(--muted);
+ font: 10px var(--font-mono);
+}
+.usage-chart-labels span {
+ min-width: 0;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ white-space: nowrap;
+}
+.usage-table-wrap {
+ border: 1px solid var(--line);
+ border-radius: var(--radius-box);
+ background: var(--color-base-100);
+}
+.usage-table {
+ min-width: 780px;
+}
+.usage-table th {
+ color: var(--muted);
+ font-size: 10px;
+ font-weight: 600;
+ letter-spacing: 0.06em;
+ text-transform: uppercase;
+ white-space: nowrap;
+}
+.usage-table td {
+ color: var(--color-base-content);
+ font-size: 12px;
+ white-space: nowrap;
+}
+.usage-table td:first-child {
+ min-width: 190px;
+ white-space: normal;
+}
+.usage-session-title {
+ display: block;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ white-space: nowrap;
+ font-size: 13px;
+ font-weight: 600;
+}
+.usage-table td:first-child small {
+ display: block;
+ margin-top: 4px;
+ color: var(--muted);
+ font-size: 10px;
+}
+.usage-empty {
+ padding: 40px 20px;
+ color: var(--muted);
+ font-size: 13px;
+ text-align: center;
+}
+@media (max-width: 800px) {
+ .usage-modal-box {
+  width: calc(100vw - 20px);
+  height: calc(100vh - 20px);
+ }
+ .usage-header,
+ .usage-toolbar {
+  padding-left: 20px;
+  padding-right: 20px;
+ }
+ .usage-tabs {
+  margin-left: 20px;
+  margin-right: 20px;
+  overflow-x: auto;
+ }
+ .usage-body {
+  padding: 18px 20px 24px;
+ }
+ .usage-summary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+ }
+ .usage-cost-card {
+  grid-column: span 2;
+ }
+}
+@media (max-width: 520px) {
+ .usage-header {
+  padding-top: 22px;
+ }
+ .usage-header h2 {
+  font-size: 22px;
+ }
+ .usage-toolbar {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 10px;
+ }
+ .usage-range-tabs {
+  max-width: 100%;
+  overflow-x: auto;
+ }
+ .usage-range-tabs .btn {
+  padding-left: 10px;
+  padding-right: 10px;
+  white-space: nowrap;
+ }
+ .usage-scope {
+  padding-left: 4px;
+ }
+ .usage-summary-grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+ }
+ .usage-stat-card {
+  padding: 14px 12px;
+ }
+ .usage-stat-card .stat-value {
+  font-size: 18px;
+ }
+ .usage-chart-card {
+  padding: 18px 14px 12px;
+ }
+ .usage-chart {
+  height: 170px;
+ }
+ .usage-chart-labels span:nth-child(even) {
+  display: none;
+ }
+}
 .menu-icon .lucide {
  width: 19px;
  height: 19px;

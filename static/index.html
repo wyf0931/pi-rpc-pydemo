@@ -22,7 +22,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260904-agent-filter-height-42" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260904-usage-statistics" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -180,6 +180,15 @@
             </div>
           </div>
           <div class="sidebar-footer">
+            <button
+              type="button"
+              class="theme-toggle usage-trigger"
+              title="Usage statistics"
+              aria-label="Usage statistics"
+              @click="openUsage()"
+            >
+              <i data-lucide="chart-pie" aria-hidden="true"></i>
+            </button>
             <button
               type="button"
               class="theme-toggle settings-trigger"
@@ -1905,6 +1914,282 @@
         </div>
       </div>
     </dialog>
+    <dialog
+      class="modal modal-middle usage-dialog"
+      :open="usageOpen"
+      x-show="usageOpen"
+      x-cloak
+      @click.self="usageOpen = false"
+    >
+      <div class="modal-box usage-modal-box">
+        <div class="usage-header">
+          <div>
+            <div class="eyebrow">Workspace analytics</div>
+            <h2>Usage statistics</h2>
+            <p>Track agent activity, tokens, and estimated cost from your chat history.</p>
+          </div>
+          <button type="button" class="icon-btn" @click="usageOpen = false" aria-label="Close usage statistics">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="usage-toolbar">
+          <div class="join usage-range-tabs" role="tablist" aria-label="Usage date range">
+            <button
+              type="button"
+              class="join-item btn btn-sm"
+              :class="usageRange === '1' ? 'btn-primary' : 'btn-ghost'"
+              @click="setUsageRange('1')"
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              class="join-item btn btn-sm"
+              :class="usageRange === '7' ? 'btn-primary' : 'btn-ghost'"
+              @click="setUsageRange('7')"
+            >
+              Last 7 days
+            </button>
+            <button
+              type="button"
+              class="join-item btn btn-sm"
+              :class="usageRange === '30' ? 'btn-primary' : 'btn-ghost'"
+              @click="setUsageRange('30')"
+            >
+              Last 30 days
+            </button>
+          </div>
+          <span
+            class="usage-scope"
+            x-text="authUser?.role === 'admin' ? 'All workspace activity' : 'Your activity'"
+          ></span>
+        </div>
+        <div class="tabs tabs-boxed usage-tabs" role="tablist" aria-label="Usage sections">
+          <button
+            type="button"
+            class="tab"
+            :class="{ 'tab-active': usageTab === 'overview' }"
+            @click="usageTab = 'overview'"
+          >
+            Overview
+          </button>
+          <button
+            type="button"
+            class="tab"
+            :class="{ 'tab-active': usageTab === 'sessions' }"
+            @click="usageTab = 'sessions'"
+          >
+            Sessions
+          </button>
+          <button
+            type="button"
+            class="tab"
+            x-show="authUser?.role === 'admin'"
+            x-cloak
+            :class="{ 'tab-active': usageTab === 'users' }"
+            @click="usageTab = 'users'"
+          >
+            Users
+          </button>
+          <button
+            type="button"
+            class="tab"
+            x-show="authUser?.role === 'admin'"
+            x-cloak
+            :class="{ 'tab-active': usageTab === 'agents' }"
+            @click="usageTab = 'agents'"
+          >
+            Agents
+          </button>
+        </div>
+        <div class="usage-body">
+          <div class="usage-loading" x-show="usageLoading" x-cloak role="status" aria-live="polite">
+            <span class="loading loading-spinner loading-sm"></span>
+            <span>Loading usage data…</span>
+          </div>
+          <div class="alert alert-error usage-error" x-show="usageError" x-text="usageError" x-cloak></div>
+          <section class="usage-panel" x-show="usageTab === 'overview' && !usageLoading" x-cloak>
+            <div class="usage-summary-grid">
+              <div class="stat usage-stat-card">
+                <div class="stat-title">Sessions</div>
+                <div class="stat-value" x-text="usageData.summary.sessions"></div>
+                <div class="stat-desc">Chat conversations</div>
+              </div>
+              <div class="stat usage-stat-card">
+                <div class="stat-title">Input tokens</div>
+                <div class="stat-value" x-text="formatCompactNumber(usageData.summary.input)"></div>
+                <div class="stat-desc">Prompt context</div>
+              </div>
+              <div class="stat usage-stat-card">
+                <div class="stat-title">Output tokens</div>
+                <div class="stat-value" x-text="formatCompactNumber(usageData.summary.output)"></div>
+                <div class="stat-desc">Generated responses</div>
+              </div>
+              <div class="stat usage-stat-card">
+                <div class="stat-title">Cached tokens</div>
+                <div class="stat-value" x-text="formatCompactNumber(usageData.summary.cacheRead)"></div>
+                <div class="stat-desc">Cache reads</div>
+              </div>
+              <div class="stat usage-stat-card usage-cost-card">
+                <div class="stat-title">Estimated cost</div>
+                <div class="stat-value" x-text="usageCost(usageData.summary.cost)"></div>
+                <div
+                  class="stat-desc"
+                  x-text="(usageData.summary.tools || usageData.summary.search + usageData.summary.fetch) + ' tool calls'"
+                ></div>
+              </div>
+            </div>
+            <div class="usage-chart-card card">
+              <div class="usage-chart-heading">
+                <div>
+                  <h3>Usage trend</h3>
+                  <p>Daily estimated cost over the selected period.</p>
+                </div>
+                <span class="usage-chart-total" x-text="usageCost(usageData.summary.cost)"></span>
+              </div>
+              <div class="usage-chart" role="img" aria-label="Daily usage cost trend">
+                <svg viewBox="0 0 760 220" preserveAspectRatio="none" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="usage-chart-fill" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0" stop-color="var(--color-primary)" stop-opacity=".18"></stop>
+                      <stop offset="1" stop-color="var(--color-primary)" stop-opacity="0"></stop>
+                    </linearGradient>
+                  </defs>
+                  <line x1="24" y1="18" x2="736" y2="18" class="usage-grid-line"></line>
+                  <line x1="24" y1="103" x2="736" y2="103" class="usage-grid-line"></line>
+                  <line x1="24" y1="188" x2="736" y2="188" class="usage-grid-line"></line>
+                  <polygon :points="usageChartAreaPoints()" class="usage-chart-area"></polygon>
+                  <polyline :points="usageChartPoints()" class="usage-chart-line"></polyline>
+                </svg>
+              </div>
+              <div class="usage-chart-labels">
+                <span x-show="!usageData.daily.length">No usage recorded for this period.</span>
+                <template x-for="label in usageChartLabels()" :key="label.id">
+                  <span x-text="label.label"></span>
+                </template>
+              </div>
+            </div>
+          </section>
+          <section class="usage-panel" x-show="usageTab === 'sessions' && !usageLoading" x-cloak>
+            <div class="usage-section-heading">
+              <div>
+                <h3>Session details</h3>
+                <p>Usage attributed to each chat session by creation date.</p>
+              </div>
+              <span class="usage-count" x-text="usageData.sessions.length + ' sessions'"></span>
+            </div>
+            <div class="usage-table-wrap overflow-x-auto">
+              <table class="table usage-table">
+                <thead>
+                  <tr>
+                    <th>Session</th>
+                    <th>Agent</th>
+                    <th>Created</th>
+                    <th>Input</th>
+                    <th>Output</th>
+                    <th>Cached</th>
+                    <th>Cost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="row in usageData.sessions" :key="row.id">
+                    <tr>
+                      <td>
+                        <b class="usage-session-title" x-text="row.title"></b
+                        ><small x-show="authUser?.role === 'admin'" x-text="row.username"></small>
+                      </td>
+                      <td x-text="row.agent"></td>
+                      <td x-text="usageDateLabel(row.createdAt)"></td>
+                      <td x-text="formatCompactNumber(row.input)"></td>
+                      <td x-text="formatCompactNumber(row.output)"></td>
+                      <td x-text="formatCompactNumber(row.cacheRead)"></td>
+                      <td x-text="usageCost(row.cost)"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+              <div class="usage-empty" x-show="!usageData.sessions.length">No sessions in this period.</div>
+            </div>
+          </section>
+          <section
+            class="usage-panel"
+            x-show="usageTab === 'users' && authUser?.role === 'admin' && !usageLoading"
+            x-cloak
+          >
+            <div class="usage-section-heading">
+              <div>
+                <h3>Usage by user</h3>
+                <p>Workspace activity grouped by account.</p>
+              </div>
+            </div>
+            <div class="usage-table-wrap overflow-x-auto">
+              <table class="table usage-table usage-aggregation-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Sessions</th>
+                    <th>Input</th>
+                    <th>Output</th>
+                    <th>Cached</th>
+                    <th>Cost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="row in usageData.users" :key="row.id"
+                    ><tr>
+                      <td><b x-text="row.username"></b></td>
+                      <td x-text="row.sessions"></td>
+                      <td x-text="formatCompactNumber(row.input)"></td>
+                      <td x-text="formatCompactNumber(row.output)"></td>
+                      <td x-text="formatCompactNumber(row.cacheRead)"></td>
+                      <td x-text="usageCost(row.cost)"></td></tr
+                  ></template>
+                </tbody>
+              </table>
+              <div class="usage-empty" x-show="!usageData.users.length">No user usage in this period.</div>
+            </div>
+          </section>
+          <section
+            class="usage-panel"
+            x-show="usageTab === 'agents' && authUser?.role === 'admin' && !usageLoading"
+            x-cloak
+          >
+            <div class="usage-section-heading">
+              <div>
+                <h3>Usage by agent</h3>
+                <p>Workspace activity grouped by agent.</p>
+              </div>
+            </div>
+            <div class="usage-table-wrap overflow-x-auto">
+              <table class="table usage-table usage-aggregation-table">
+                <thead>
+                  <tr>
+                    <th>Agent</th>
+                    <th>Sessions</th>
+                    <th>Input</th>
+                    <th>Output</th>
+                    <th>Cached</th>
+                    <th>Cost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="row in usageData.agents" :key="row.id"
+                    ><tr>
+                      <td><b x-text="row.agent"></b></td>
+                      <td x-text="row.sessions"></td>
+                      <td x-text="formatCompactNumber(row.input)"></td>
+                      <td x-text="formatCompactNumber(row.output)"></td>
+                      <td x-text="formatCompactNumber(row.cacheRead)"></td>
+                      <td x-text="usageCost(row.cost)"></td></tr
+                  ></template>
+                </tbody>
+              </table>
+              <div class="usage-empty" x-show="!usageData.agents.length">No agent usage in this period.</div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </dialog>
     <dialog class="agent-dialog" :open="!!dialog" x-show="dialog" x-cloak @click.self="dialog = null">
       <template x-if="dialog"
         ><div class="dialog-box">
@@ -2370,6 +2655,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260904-settings-theme-preference"></script>
+    <script src="/static/app.js?v=20260904-usage-statistics"></script>
   </body>
 </html>
