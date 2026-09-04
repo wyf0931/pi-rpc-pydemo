@@ -766,6 +766,49 @@ def title_for(content: str) -> str:
     return " ".join(content.split())[:48] or "New conversation"
 
 
+SKILL_BLOCK_RE = re.compile(
+    r'^<skill name="(?P<name>[^"]+)" location="(?P<location>[^"]+)">\n'
+    r"[\s\S]*?\n</skill>(?:\n\n(?P<user_message>[\s\S]+))?$"
+)
+
+
+def _text_message_content(message: dict) -> str | None:
+    content = message.get("content")
+    if isinstance(content, str):
+        return content
+    if not isinstance(content, list):
+        return None
+    parts: list[str] = []
+    for part in content:
+        if not isinstance(part, dict) or not isinstance(part.get("text"), str):
+            return None
+        parts.append(part["text"])
+    if not parts:
+        return None
+    return "".join(parts)
+
+
+def _compact_skill_invocation(message: dict) -> dict | None:
+    if message.get("role") != "user":
+        return None
+    text = _text_message_content(message)
+    match = SKILL_BLOCK_RE.fullmatch(text) if text is not None else None
+    if not match:
+        return None
+    name = match.group("name")
+    user_message = (match.group("user_message") or "").strip()
+    command = f"/skill:{name}"
+    display_content = command + (f" {user_message}" if user_message else "")
+    message["display_content"] = display_content
+    message["_skill_invocation"] = {
+        "name": name,
+        "command": command,
+        "user_message": user_message,
+    }
+    message["content"] = [{"type": "text", "text": display_content}]
+    return message["_skill_invocation"]
+
+
 def visible_messages(messages: list[dict], mode: str = "production") -> list[dict]:
     """Attach web activity results to calls while hiding raw process results."""
     results = {
@@ -797,6 +840,7 @@ def visible_messages(messages: list[dict], mode: str = "production") -> list[dic
                         arguments["_webResult"] = result
                 if message.get("timestamp") is not None:
                     part["_timestamp"] = message["timestamp"]
+        _compact_skill_invocation(message)
         if mode != "development" and message.get("role") == "toolResult":
             continue
         visible.append(message)
