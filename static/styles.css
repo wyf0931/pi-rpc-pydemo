@@ -3590,6 +3590,8 @@ pre,
  max-width: none;
  height: min(764px, calc(100vh - 32px));
  min-height: 0;
+ display: flex;
+ flex-direction: column;
  padding: 0;
  overflow: hidden;
 }
@@ -3608,7 +3610,8 @@ pre,
 .settings-layout {
  display: grid;
  grid-template-columns: 190px minmax(0, 1fr);
- min-height: 470px;
+ flex: 1 1 auto;
+ min-height: 0;
 }
 .settings-menu {
  padding: 18px 12px;
@@ -3636,6 +3639,7 @@ pre,
 }
 .settings-content {
  padding: 30px 34px;
+ overflow-y: auto;
 }
 .settings-title {
  padding-bottom: 24px;

@@ -141,6 +141,8 @@ def test_user_management_is_available_only_from_the_admin_settings_tab():
     assert "usersOpen" not in script
     assert "async openSettingsTab(tab)" in script
     assert "height: min(764px, calc(100vh - 32px))" in styles
+    assert "display: flex" in styles
+    assert "flex: 1 1 auto" in styles
 
 
 def test_request_id_is_propagated_and_generated(client):
