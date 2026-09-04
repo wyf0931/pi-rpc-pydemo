@@ -31,7 +31,7 @@ def test_agent_provider_and_model_override_global_defaults():
     assert command[command.index("--thinking") + 1] == "low"
 
 
-def test_platform_web_tools_load_the_first_party_extension():
+def test_platform_tools_load_the_first_party_extension():
     settings = SimpleNamespace(
         pi_cli_path="pi",
         pi_session_dir="sessions",
@@ -55,6 +55,29 @@ def test_platform_web_tools_load_the_first_party_extension():
 
     assert "--extension" in command
     assert command[command.index("--tools") + 1] == "read,web_fetch,web_search"
+
+
+def test_publish_artifact_loads_the_first_party_extension():
+    settings = SimpleNamespace(
+        pi_cli_path="pi",
+        pi_session_dir="sessions",
+        pi_provider=None,
+        pi_model=None,
+        pi_thinking_level="low",
+    )
+    runtime = PiRuntimeManager(settings, store=None)
+    command = runtime._command(
+        {
+            "instruction": "Publish generated files.",
+            "tools": ["read", "publish_artifact"],
+            "extensions": [],
+            "skills": [],
+        },
+        "chat-1",
+        create=True,
+    )
+
+    assert "oma-web-tools.ts" in " ".join(command)
 
 
 def test_container_maps_host_pi_home_resource_paths():

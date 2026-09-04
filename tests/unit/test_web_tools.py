@@ -12,3 +12,5 @@ def test_web_search_targets_baidu_qianfan_and_uses_search_v2_payload():
     assert 'messages: [{ role: "user", content: query }]' in source
     assert 'search_source: "baidu_search_v2"' in source
     assert 'resource_type_filter: [{ type: "web", top_k:' in source
+    assert 'name: "publish_artifact"' in source
+    assert "Published artifact:" in source

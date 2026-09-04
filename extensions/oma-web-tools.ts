@@ -1,5 +1,7 @@
 import { Type } from "@earendil-works/pi-ai";
 import { defineTool, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { realpathSync, statSync } from "node:fs";
+import { relative, resolve } from "node:path";
 
 const DEFAULT_SEARCH_BASE_URL = "https://qianfan.baidubce.com";
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -64,9 +66,38 @@ const webSearchTool = defineTool({
   },
 });
 
+const publishArtifactTool = defineTool({
+  name: "publish_artifact",
+  label: "Publish Artifact",
+  description: "Publish an existing workspace file to the Chat Files and Library views.",
+  promptSnippet: "publish_artifact: publish a generated workspace file so the user can download it.",
+  parameters: Type.Object({
+    path: Type.String({ description: "A file path relative to the current workspace." }),
+  }),
+  async execute(_toolCallId, params) {
+    const root = realpathSync(process.cwd());
+    const resolved = realpathSync(resolve(root, params.path.trim()));
+    const workspacePath = relative(root, resolved);
+    if (!workspacePath || workspacePath.startsWith("..") || workspacePath.includes(".." + "/")) {
+      throw new Error("Artifact path must resolve inside the workspace");
+    }
+    const stat = statSync(resolved);
+    if (!stat.isFile()) throw new Error("Artifact path must refer to a regular file");
+    return {
+      content: [{ type: "text", text: `Published artifact: ${workspacePath}` }],
+      details: {
+        path: workspacePath,
+        name: resolved.split("/").pop() || workspacePath,
+        size: stat.size,
+      },
+    };
+  },
+});
+
 export default function (pi: ExtensionAPI) {
   pi.registerTool(webFetchTool);
   pi.registerTool(webSearchTool);
+  pi.registerTool(publishArtifactTool);
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit): Promise<{ text: string; json: unknown }> {

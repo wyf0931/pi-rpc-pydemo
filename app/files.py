@@ -28,6 +28,7 @@ def discover_chat_files(messages: list[dict], workspace: Path) -> list[dict]:
             if part.get("type") != "toolCall" or part.get("name") not in {
                 "write",
                 "edit",
+                "publish_artifact",
             }:
                 continue
             arguments = _tool_arguments(part)

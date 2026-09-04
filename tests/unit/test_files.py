@@ -45,6 +45,25 @@ def test_discovers_only_workspace_files_written_by_chat(tmp_path: Path):
     assert delete_chat_files(messages, tmp_path, {"research/report.md"}) == []
 
 
+def test_discovers_files_explicitly_published_by_chat(tmp_path: Path):
+    report = tmp_path / "anthropic_news.csv"
+    report.write_text("title,link\n", encoding="utf-8")
+    messages = [
+        {
+            "role": "assistant",
+            "content": [
+                {
+                    "type": "toolCall",
+                    "name": "publish_artifact",
+                    "arguments": {"path": "anthropic_news.csv"},
+                }
+            ],
+        }
+    ]
+
+    assert discover_chat_files(messages, tmp_path)[0]["path"] == "anthropic_news.csv"
+
+
 def test_discovers_files_from_session_jsonl_without_starting_pi(tmp_path: Path):
     report = tmp_path / "report.md"
     report.write_text("# Report", encoding="utf-8")

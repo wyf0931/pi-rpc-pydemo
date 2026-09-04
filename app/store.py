@@ -11,7 +11,7 @@ from .auth import hash_password, new_session_token, session_digest
 
 DEFAULT_TOOLS = ["read", "write", "edit", "bash"]
 BUILTIN_TOOLS = DEFAULT_TOOLS + ["grep", "find", "ls"]
-PLATFORM_TOOLS = ["web_fetch", "web_search"]
+PLATFORM_TOOLS = ["web_fetch", "web_search", "publish_artifact"]
 SUPPORTED_TOOLS = BUILTIN_TOOLS + PLATFORM_TOOLS
 
 
