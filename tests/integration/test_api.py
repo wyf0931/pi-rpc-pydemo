@@ -171,6 +171,8 @@ def test_agent_tools_use_product_capability_groups_with_safe_defaults():
     assert "dialogToolGroupState(group)" in html
     assert "Choose what this Agent can access." not in html
     assert "align-items: center" in styles
+    assert 'class="modal modal-middle agent-dialog"' in html
+    assert 'class="modal-box agent-dialog-box"' in html
 
 
 def test_new_chat_is_removed_when_pi_cannot_start(client, temporary_agent, monkeypatch):
