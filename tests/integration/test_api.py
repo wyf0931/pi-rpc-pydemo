@@ -174,6 +174,8 @@ def test_agent_tools_use_product_capability_groups_with_safe_defaults():
     assert ".form-field .tool-group" in styles
     assert "tool-group-tools" in html
     assert ".tool-group-tools" in styles
+    assert html.count('class="checkbox checkbox-sm"') >= 4
+    assert "color: var(--ink)" in styles
     assert 'class="modal modal-middle agent-dialog"' in html
     assert 'class="modal-box agent-dialog-box"' in html
 
