@@ -101,7 +101,9 @@ def create_router(
         )
         if any(tool not in SUPPORTED_TOOLS for tool in tools):
             raise HTTPException(400, "Unsupported tool")
-        catalog = discover_resources(settings.pi_home, settings.pi_cwd)
+        catalog = discover_resources(
+            settings.pi_home, settings.pi_cwd, settings.pi_agents_home
+        )
         allowed_extensions = {item["path"] for item in catalog["extensions"]}
         allowed_skills = {item["path"] for item in catalog["skills"]}
         if any(path not in allowed_extensions for path in payload.extensions or []):
@@ -221,7 +223,9 @@ def create_router(
             tool not in SUPPORTED_TOOLS for tool in payload.tools
         ):
             raise HTTPException(400, "Unsupported tool")
-        catalog = discover_resources(settings.pi_home, settings.pi_cwd)
+        catalog = discover_resources(
+            settings.pi_home, settings.pi_cwd, settings.pi_agents_home
+        )
         if payload.extensions is not None and any(
             path not in {item["path"] for item in catalog["extensions"]}
             for path in payload.extensions

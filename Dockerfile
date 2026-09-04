@@ -51,6 +51,7 @@ USER node
 ENV HOME=/home/node \
     PI_CLI_PATH=pi \
     PI_HOME=/home/node/.pi/agent \
+    PI_AGENTS_HOME=/home/node/.agents \
     PI_PLATFORM_DATA_DIR=/app/data \
     PI_SESSION_DIR=/app/data/pi-sessions \
     PI_LOG_DIR=/app/logs \

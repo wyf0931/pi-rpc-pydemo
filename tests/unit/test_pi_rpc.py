@@ -88,6 +88,7 @@ def test_container_maps_host_pi_home_resource_paths():
         pi_model=None,
         pi_thinking_level="low",
         pi_home="/home/node/.pi/agent",
+        pi_agents_home="/home/node/.agents",
     )
     runtime = PiRuntimeManager(settings, store=None)
     command = runtime._command(
@@ -105,6 +106,17 @@ def test_container_maps_host_pi_home_resource_paths():
 
     assert "/home/node/.pi/agent/npm/node_modules/pi-mcp-adapter/index.ts" in command
     assert "/home/node/.pi/agent/skills/human-writing" in command
+    command = runtime._command(
+        {
+            "instruction": "Use the selected skill.",
+            "tools": ["read"],
+            "extensions": [],
+            "skills": ["/Users/scott/.agents/skills/shared-skill"],
+        },
+        "chat-1",
+        create=False,
+    )
+    assert "/home/node/.agents/skills/shared-skill" in command
 
 
 def test_stream_prompt_emits_assistant_message_boundaries():

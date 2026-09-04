@@ -592,8 +592,8 @@ def test_market_skill_preview(client, monkeypatch):
 def test_market_skill_install(client, monkeypatch):
     called = {}
 
-    async def fake_install(source, skill):
-        called.update(source=source, skill=skill)
+    async def fake_install(source, skill, skills_dir):
+        called.update(source=source, skill=skill, skills_dir=skills_dir)
 
     monkeypatch.setattr("app.api.routers.marketplace.install_skill", fake_install)
     response = client.post(
@@ -601,7 +601,9 @@ def test_market_skill_install(client, monkeypatch):
         json={"source": "acme/skills", "skill": "python"},
     )
     assert response.status_code == 200
-    assert called == {"source": "acme/skills", "skill": "python"}
+    assert called["source"] == "acme/skills"
+    assert called["skill"] == "python"
+    assert called["skills_dir"].name == "skills"
 
 
 def test_market_skill_install_rejects_already_installed(client, monkeypatch):
@@ -727,8 +729,8 @@ def test_market_local_extension_uninstall(client, monkeypatch):
 def test_market_skill_uninstall(client, monkeypatch):
     called = {}
 
-    async def fake_uninstall(source, skill):
-        called.update(source=source, skill=skill)
+    async def fake_uninstall(source, skill, skills_dir):
+        called.update(source=source, skill=skill, skills_dir=skills_dir)
 
     monkeypatch.setattr("app.api.routers.marketplace.uninstall_skill", fake_uninstall)
     response = client.post(
@@ -736,14 +738,16 @@ def test_market_skill_uninstall(client, monkeypatch):
         json={"source": "acme/skills", "skill": "python"},
     )
     assert response.status_code == 200
-    assert called == {"source": "acme/skills", "skill": "python"}
+    assert called["source"] == "acme/skills"
+    assert called["skill"] == "python"
+    assert called["skills_dir"].name == "skills"
 
 
 def test_market_skill_uninstall_without_source(client, monkeypatch):
     called = {}
 
-    async def fake_uninstall(source, skill):
-        called.update(source=source, skill=skill)
+    async def fake_uninstall(source, skill, skills_dir):
+        called.update(source=source, skill=skill, skills_dir=skills_dir)
 
     monkeypatch.setattr("app.api.routers.marketplace.uninstall_skill", fake_uninstall)
     response = client.post(
@@ -751,7 +755,9 @@ def test_market_skill_uninstall_without_source(client, monkeypatch):
         json={"skill": "local-skill"},
     )
     assert response.status_code == 200
-    assert called == {"source": None, "skill": "local-skill"}
+    assert called["source"] is None
+    assert called["skill"] == "local-skill"
+    assert called["skills_dir"].name == "skills"
 
 
 def test_create_agent_and_missing_chat(client, temporary_agent):

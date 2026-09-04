@@ -50,22 +50,25 @@ def _skill_metadata(path: Path, source: str | None = None) -> dict:
     }
 
 
-def _skill_sources(pi_home: Path) -> dict[str, str]:
-    lock_path = pi_home.parents[1] / ".agents" / ".skill-lock.json"
-    if not lock_path.is_file():
-        return {}
-    try:
-        raw = json.loads(lock_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return {}
+def _skill_sources(pi_home: Path, agents_home: Path) -> dict[str, str]:
     sources: dict[str, str] = {}
-    for name, entry in (raw.get("skills") or {}).items():
-        if not isinstance(entry, dict) or not isinstance(entry.get("source"), str):
+    for lock_path in (
+        agents_home / ".skill-lock.json",
+        pi_home.parents[1] / ".agents" / ".skill-lock.json",
+    ):
+        if not lock_path.is_file():
             continue
-        sources[name] = entry["source"]
-        skill_path = entry.get("skillPath")
-        if isinstance(skill_path, str):
-            sources[Path(skill_path).parent.name] = entry["source"]
+        try:
+            raw = json.loads(lock_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        for name, entry in (raw.get("skills") or {}).items():
+            if not isinstance(entry, dict) or not isinstance(entry.get("source"), str):
+                continue
+            sources[name] = entry["source"]
+            skill_path = entry.get("skillPath")
+            if isinstance(skill_path, str):
+                sources[Path(skill_path).parent.name] = entry["source"]
     return sources
 
 
@@ -136,15 +139,23 @@ def discover_models(pi_home: Path) -> list[dict]:
     return providers
 
 
-def discover_resources(pi_home: Path, cwd: Path) -> dict:
+def discover_resources(
+    pi_home: Path, cwd: Path, agents_home: Path | None = None
+) -> dict:
+    agents_home = agents_home or Path.home() / ".agents"
     extension_roots = [pi_home / "extensions", cwd / ".pi" / "extensions"]
-    skill_roots = [pi_home / "skills", cwd / ".pi" / "skills"]
+    skill_roots = [
+        pi_home / "skills",
+        agents_home / "skills",
+        cwd / ".pi" / "skills",
+        cwd / ".agents" / "skills",
+    ]
     extensions: list[dict] = []
     skills: list[dict] = []
     mcp_servers: list[dict] = []
     seen_extensions: set[str] = set()
     seen_skills: set[str] = set()
-    skill_sources = _skill_sources(pi_home)
+    skill_sources = _skill_sources(pi_home, agents_home)
 
     for root in extension_roots:
         if not root.is_dir():

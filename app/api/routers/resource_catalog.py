@@ -6,7 +6,9 @@ from ...store import SUPPORTED_TOOLS
 
 
 def catalog_response(settings: Settings) -> dict:
-    catalog = discover_resources(settings.pi_home, settings.pi_cwd)
+    catalog = discover_resources(
+        settings.pi_home, settings.pi_cwd, settings.pi_agents_home
+    )
     catalog["default_provider"] = settings.pi_provider
     catalog["default_model"] = settings.pi_model
     catalog["default_tools"] = list(settings.pi_default_tools)

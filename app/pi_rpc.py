@@ -313,11 +313,14 @@ class PiRuntimeManager:
         return command
 
     def _resource_path(self, value: str) -> str:
-        """Map absolute host Pi-home paths to the mounted container Pi home."""
-        marker = "/.pi/agent"
-        if marker in value:
-            suffix = value.split(marker, 1)[1].lstrip("/")
-            return str(Path(self.settings.pi_home) / suffix)
+        """Map host Pi and agent-neutral paths to their container mounts."""
+        for marker, root in (
+            ("/.pi/agent", self.settings.pi_home),
+            ("/.agents", self.settings.pi_agents_home),
+        ):
+            if marker in value:
+                suffix = value.split(marker, 1)[1].lstrip("/")
+                return str(Path(root) / suffix)
         return value
 
     def _environment(self) -> dict[str, str]:
@@ -341,9 +344,9 @@ class PiRuntimeManager:
             for path in agent.get("extensions", [])
         ):
             return None, []
-        discovered = discover_resources(self.settings.pi_home, self.settings.pi_cwd)[
-            "mcp_servers"
-        ]
+        discovered = discover_resources(
+            self.settings.pi_home, self.settings.pi_cwd, self.settings.pi_agents_home
+        )["mcp_servers"]
         selected = set(agent.get("mcp_servers") or [])
         if not discovered:
             return None, []

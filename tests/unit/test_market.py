@@ -128,6 +128,23 @@ def test_install_skill_uses_copy_and_pi_target(monkeypatch):
     ]
 
 
+def test_install_skill_targets_agent_neutral_directory(monkeypatch, tmp_path):
+    calls = []
+    source_dir = tmp_path / ".pi" / "agent" / "skills" / "skill-name"
+    source_dir.mkdir(parents=True)
+    (source_dir / "SKILL.md").write_text("# Skill\n", encoding="utf-8")
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+    async def fake_run(command, timeout, skills_dir=None):
+        calls.append((command, timeout, skills_dir))
+        return ""
+
+    monkeypatch.setattr("app.market._run_skills_cli", fake_run)
+    asyncio.run(install_skill("owner/repo", "skill-name", tmp_path / "skills"))
+    assert calls[0][2] == tmp_path / "skills"
+    assert (tmp_path / "skills" / "skill-name" / "SKILL.md").is_file()
+
+
 @pytest.mark.parametrize(
     ("value", "expected"),
     [

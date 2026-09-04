@@ -115,7 +115,9 @@ def parse_skill_preview(output: str) -> list[dict[str, str]]:
     return results
 
 
-async def _run_skills_cli(command: list[str], timeout: float) -> str:
+async def _run_skills_cli(
+    command: list[str], timeout: float, skills_dir: Path | None = None
+) -> str:
     environment = os.environ.copy()
     environment["DISABLE_TELEMETRY"] = "1"
     environment.setdefault(
@@ -169,23 +171,42 @@ async def preview_skills(source: str) -> list[dict[str, str]]:
     return parse_skill_preview(output)
 
 
-async def install_skill(source: str, skill: str) -> None:
+async def install_skill(
+    source: str, skill: str, skills_dir: Path | None = None
+) -> None:
     validate_skill_source(source, skill)
-    await _run_skills_cli(
-        ["add", source, "--skill", skill, "-g", "-a", "pi", "-y", "--copy"],
-        timeout=120,
-    )
+    command = ["add", source, "--skill", skill, "-g", "-a", "pi", "-y", "--copy"]
+    if skills_dir:
+        await _run_skills_cli(command, timeout=120, skills_dir=skills_dir)
+        source_dir = Path.home() / ".pi" / "agent" / "skills" / skill
+        target_dir = skills_dir / skill
+        if not source_dir.is_dir():
+            raise RuntimeError(f"Installed skill was not found: {source_dir}")
+        skills_dir.mkdir(parents=True, exist_ok=True)
+        if target_dir.exists():
+            shutil.rmtree(target_dir)
+        shutil.copytree(source_dir, target_dir)
+    else:
+        await _run_skills_cli(command, timeout=120)
 
 
-async def uninstall_skill(source: str | None, skill: str) -> None:
+async def uninstall_skill(
+    source: str | None, skill: str, skills_dir: Path | None = None
+) -> None:
     if source:
         validate_skill_source(source, skill)
     elif not SKILL_NAME_RE.fullmatch(skill):
         raise ValueError("Skill name contains unsupported characters")
-    await _run_skills_cli(
-        ["remove", skill, "-g", "-a", "pi", "-y"],
-        timeout=120,
-    )
+    command = ["remove", skill, "-g", "-a", "pi", "-y"]
+    if skills_dir:
+        await _run_skills_cli(command, timeout=120, skills_dir=skills_dir)
+        target_dir = skills_dir / skill
+        if target_dir.is_symlink() or target_dir.is_file():
+            target_dir.unlink()
+        elif target_dir.is_dir():
+            shutil.rmtree(target_dir)
+    else:
+        await _run_skills_cli(command, timeout=120)
 
 
 def normalize_npm_package(value: str) -> str:

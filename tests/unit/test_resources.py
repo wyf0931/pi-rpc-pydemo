@@ -97,6 +97,18 @@ def test_storage_paths_expand_home(tmp_path: Path, monkeypatch):
     assert settings.pi_cwd == home / ".oma-studio" / "workspace"
 
 
+def test_agent_neutral_skills_path_uses_host_setting(tmp_path: Path, monkeypatch):
+    agents_home = tmp_path / ".agents"
+    (tmp_path / ".env").write_text(
+        f"PI_HOST_AGENTS_HOME={agents_home}\n", encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("PI_AGENTS_HOME", raising=False)
+    monkeypatch.delenv("PI_HOST_AGENTS_HOME", raising=False)
+
+    assert get_settings().pi_agents_home == agents_home
+
+
 def test_skill_discovery_includes_skills_cli_source(tmp_path: Path):
     pi_home = tmp_path / ".pi" / "agent"
     skill_dir = pi_home / "skills" / "human-writing"
@@ -124,6 +136,20 @@ def test_skill_discovery_includes_skills_cli_source(tmp_path: Path):
     skills = discover_resources(pi_home, tmp_path / "workspace")["skills"]
     assert skills[0]["source"] == "owner/writing-skills"
     assert skills[0]["author"] == "owner"
+
+
+def test_skill_discovery_includes_agent_neutral_skills(tmp_path: Path):
+    pi_home = tmp_path / ".pi" / "agent"
+    agents_home = tmp_path / ".agents"
+    skill_dir = agents_home / "skills" / "shared-skill"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(
+        "---\nname: shared-skill\ndescription: Shared helper\n---\n",
+        encoding="utf-8",
+    )
+
+    skills = discover_resources(pi_home, tmp_path / "workspace", agents_home)["skills"]
+    assert skills[0]["path"] == str(skill_dir)
 
 
 def test_resource_metadata_includes_package_author(tmp_path: Path):

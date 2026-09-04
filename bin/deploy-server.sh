@@ -22,6 +22,15 @@ set -a
 set +a
 PORT="${OMA_PORT:-8000}"
 
+if [[ -z "${PI_HOST_AGENTS_HOME:-}" ]]; then
+  echo "PI_HOST_AGENTS_HOME is required in $ROOT/.env.ops" >&2
+  exit 1
+fi
+if [[ "$PI_HOST_AGENTS_HOME" != /* || ! -d "$PI_HOST_AGENTS_HOME" ]]; then
+  echo "PI_HOST_AGENTS_HOME must be an existing absolute host directory: $PI_HOST_AGENTS_HOME" >&2
+  exit 1
+fi
+
 # Pin an exact commit when the caller passes a full SHA (CI path); fall back
 # to branch-head resolution for manual runs.
 if [[ "$REF" =~ ^[0-9a-f]{40}$ ]]; then

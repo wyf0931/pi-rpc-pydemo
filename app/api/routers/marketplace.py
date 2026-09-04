@@ -94,10 +94,12 @@ def create_router(
         )
         try:
             validate_skill_source(source, skill)
-            catalog = discover_resources(settings.pi_home, settings.pi_cwd)
+            catalog = discover_resources(
+                settings.pi_home, settings.pi_cwd, settings.pi_agents_home
+            )
             if any(item["name"] == skill for item in catalog["skills"]):
                 raise HTTPException(409, f"Skill {skill} is already installed")
-            await install_skill(source, skill)
+            await install_skill(source, skill, settings.pi_agents_home / "skills")
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from exc
         except TimeoutError as exc:
@@ -136,7 +138,7 @@ def create_router(
         source = payload.source.strip() if payload.source else None
         skill = payload.skill.strip()
         try:
-            await uninstall_skill(source, skill)
+            await uninstall_skill(source, skill, settings.pi_agents_home / "skills")
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from exc
         except TimeoutError as exc:
@@ -151,7 +153,9 @@ def create_router(
         try:
             package = normalize_npm_package(payload.package)
             package_name = npm_package_name(package)
-            catalog = discover_resources(settings.pi_home, settings.pi_cwd)
+            catalog = discover_resources(
+                settings.pi_home, settings.pi_cwd, settings.pi_agents_home
+            )
             if any(
                 item["name"] == package_name or item.get("source") == package
                 for item in catalog["extensions"]
@@ -176,7 +180,9 @@ def create_router(
                 package = normalize_npm_package(payload.package)
                 await uninstall_extension(package)
             elif payload.path:
-                catalog = discover_resources(settings.pi_home, settings.pi_cwd)
+                catalog = discover_resources(
+                    settings.pi_home, settings.pi_cwd, settings.pi_agents_home
+                )
                 discovered = next(
                     (
                         item

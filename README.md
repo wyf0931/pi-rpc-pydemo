@@ -153,9 +153,10 @@ docker compose up --build
 | `${PI_CWD:-./workspace}` | `${PI_DOCKER_CWD:-/workspace}` | Agent working directory |
 | `${PI_LOG_DIR:-./logs}` | `/app/logs` | Rotating JSONL application logs with request IDs |
 | `${PI_HOST_HOME:-~/.pi/agent}` | `/home/node/.pi/agent` | Extensions, skills, MCP config, model catalog, provider auth |
+| `${PI_HOST_AGENTS_HOME:-~/.agents}` | `/home/node/.agents` | Agent-neutral shared skills |
 
 Compose reads `.env` for `PI_PROVIDER`, `PI_MODEL`, the resource defaults, `PI_PLATFORM_DATA_DIR`,
-`PI_CWD`, `PI_LOG_DIR`, `PI_HOST_HOME`, and optional `PI_DOCKER_CWD`; container-internal paths are fixed in `docker-compose.yml`. This means a local
+`PI_CWD`, `PI_LOG_DIR`, `PI_HOST_HOME`, `PI_HOST_AGENTS_HOME`, and optional `PI_DOCKER_CWD`; container-internal paths are fixed in `docker-compose.yml`. This means a local
 `.env` with `PI_PLATFORM_DATA_DIR=data` shares the repository's existing metadata and Pi
 sessions with Docker. No reverse proxy or extra services — FastAPI serves the API and UI
 directly, and `init: true` reaps the short-lived Pi subprocesses the app spawns. When the
@@ -255,6 +256,7 @@ PI_SESSION_DIR=/absolute/path/to/.oma-studio/data/pi-sessions
 PI_LOG_DIR=/absolute/path/to/.oma-studio/logs
 PI_CWD=/absolute/path/to/.oma-studio/workspace
 PI_HOST_HOME=/absolute/path/to/.oma-studio/pi-home/agent
+PI_HOST_AGENTS_HOME=/absolute/path/to/.oma-studio/.agents
 PI_PROVIDER=deepseek
 PI_MODE=production
 JINA_API_KEY=
@@ -279,10 +281,15 @@ The Agent dialog presents a Provider select and a filtered Model select. Only na
 The Agent form discovers resources without executing them:
 
 - Extensions from `~/.pi/agent/extensions` and managed Pi npm packages.
-- Skills from `~/.pi/agent/skills`.
+- Skills from `~/.pi/agent/skills`, the agent-neutral `~/.agents/skills` directory, and project-local `.pi/skills` / `.agents/skills` directories. In Docker, configure the host source with `PI_HOST_AGENTS_HOME`.
 - MCP servers from standard `mcp.json` locations and the project `.mcp.json`.
 
 Enable only resources you trust. Extensions and MCP servers execute code or connect to external systems.
+
+Marketplace skill installs are copied into the configured agent-neutral
+`PI_AGENTS_HOME/skills` directory as well as the Pi target managed by the
+skills CLI. No symlinks are created, so the shared catalog remains portable
+across agent runtimes.
 
 ### Built-in tools
 
