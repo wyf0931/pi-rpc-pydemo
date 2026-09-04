@@ -139,12 +139,18 @@ def test_library_file_name_does_not_add_hover_underline():
 def test_thought_blocks_open_by_default_and_label_streaming_state():
     script = Path("static/app.js").read_text(encoding="utf-8")
 
-    assert 'message._streaming ? "Thinking"' in script
+    assert 'const label = isStreaming ? "Thinking"' in script
     assert (
         "Object.prototype.hasOwnProperty.call(this.reasoningOpen, reasoningKey)"
         in script
     )
     assert "hasPreference ? this.reasoningOpen[reasoningKey] : true" in script
+    assert (
+        "renderReasoning(message._reasoningParts || [], message._key, message._streaming)"
+        in script
+    )
+    assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
+    assert 'const label = isStreaming ? "Thinking"' in script
 
 
 def test_agent_tools_use_product_capability_groups_with_safe_defaults():
