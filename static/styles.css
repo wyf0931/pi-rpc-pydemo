@@ -1251,7 +1251,7 @@ body {
 }
 .tool-group {
  display: flex;
- align-items: flex-start;
+ align-items: center;
  gap: 10px;
  padding: 12px;
  border: 1px solid var(--line);
@@ -1259,9 +1259,8 @@ body {
  background: var(--color-base-200);
  cursor: pointer;
 }
-.tool-group:hover,
-.tool-group-partial {
- border-color: color-mix(in srgb, var(--color-primary) 55%, var(--line));
+.tool-group:hover {
+ border-color: var(--line);
 }
 .tool-group-copy {
  display: flex;
@@ -1273,18 +1272,6 @@ body {
  color: var(--ink);
  font-size: 13px;
  font-weight: 600;
-}
-.tool-group-copy small,
-.tool-group-copy em {
- color: var(--muted);
- font-size: 11px;
- font-style: normal;
- line-height: 1.4;
-}
-.tool-group-copy em {
- color: var(--color-primary);
- font-family: var(--font-mono);
- font-size: 10px;
 }
 .agent-detail-tools {
  display: flex;

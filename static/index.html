@@ -2473,13 +2473,9 @@
           </div>
           <div class="form-field">
             <label>Built-in tools</label>
-            <p class="field-hint">Choose what this Agent can access.</p>
             <div class="tool-group-grid">
               <template x-for="group in toolGroups" :key="group.id">
-                <label
-                  class="tool-group card card-border"
-                  :class="{'tool-group-partial': toolGroupState(group) === 'partial'}"
-                >
+                <label class="tool-group card card-border" :title="group.description">
                   <input
                     type="checkbox"
                     class="checkbox checkbox-sm"
@@ -2489,8 +2485,6 @@
                   />
                   <span class="tool-group-copy">
                     <b x-text="group.label"></b>
-                    <small x-text="group.description"></small>
-                    <em x-text="toolGroupTools(group).join(', ')"></em>
                   </span>
                 </label>
               </template>
