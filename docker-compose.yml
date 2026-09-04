@@ -28,6 +28,7 @@ services:
       # Container-internal paths always override host .env values.
       PI_CLI_PATH: pi
       PI_HOME: /home/node/.pi/agent
+      PI_AGENTS_HOME: /home/node/.agents
       PI_PLATFORM_DATA_DIR: /app/data
       PI_SESSION_DIR: /app/data/pi-sessions
       PI_LOG_DIR: /app/logs
@@ -52,6 +53,8 @@ services:
       - ${PI_LOG_DIR:-./logs}:/app/logs
       # Pi home: extensions, skills, mcp.json, models.json, provider auth.
       - ${PI_HOST_HOME:-~/.pi/agent}:/home/node/.pi/agent
+      # Agent-neutral shared skills directory.
+      - ${PI_HOST_AGENTS_HOME:-~/.agents}:/home/node/.agents
     healthcheck:
       test:
         - CMD-SHELL

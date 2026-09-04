@@ -33,6 +33,7 @@ class Settings:
     pi_model: str | None
     pi_tools: str | None
     pi_home: Path
+    pi_agents_home: Path
     pi_default_tools: tuple[str, ...]
     pi_default_extensions: tuple[str, ...]
     pi_default_skills: tuple[str, ...]
@@ -82,6 +83,13 @@ def get_settings() -> Settings:
         pi_home=Path(
             value("PI_HOME", str(Path.home() / ".pi" / "agent"))
             or str(Path.home() / ".pi" / "agent")
+        ).expanduser(),
+        pi_agents_home=Path(
+            value(
+                "PI_AGENTS_HOME",
+                value("PI_HOST_AGENTS_HOME", str(Path.home() / ".agents")),
+            )
+            or str(Path.home() / ".agents")
         ).expanduser(),
         pi_default_tools=_csv(value("PI_DEFAULT_TOOLS")),
         pi_default_extensions=_csv(value("PI_DEFAULT_EXTENSIONS")),
