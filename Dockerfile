@@ -4,7 +4,7 @@
 # State (platform data, sessions, workspace, Pi home) stays on the host
 # through bind mounts — nothing is baked into the image.
 
-FROM node:24-bookworm-slim
+FROM node:24.20.0-bookworm-slim
 
 # Process-layer tools. fd ships as fd-find on Debian. curl and jq are useful
 # for ordinary HTTP/API debugging from the Agent's bash tool; structured web
@@ -20,7 +20,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
 # Pi CLI — the app layer spawns it via PI_CLI_PATH (multi-process: one
 # short-lived pi process per chat operation)
-RUN npm install -g --ignore-scripts @earendil-works/pi-coding-agent
+RUN npm install -g --ignore-scripts @earendil-works/pi-coding-agent@0.84.4
 
 WORKDIR /app
 

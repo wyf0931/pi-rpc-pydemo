@@ -166,7 +166,9 @@ calls to it via Node 24 proxy support.
 The image includes `curl` and `jq` for ordinary HTTP and JSON debugging from an
 Agent's `bash` tool. Prefer the structured `web_fetch` and `web_search` tools for
 web research; `curl_cffi` is not bundled because it is a specialized TLS
-impersonation client rather than a drop-in replacement for standard `curl`.
+impersonation client rather than a drop-in replacement for standard `curl`. The
+image pins Node.js `24.20.0` and Pi `0.84.4`; upgrade either explicitly in the
+Dockerfile and verify the resulting image before deploying.
 
 Application logs are written as rotating JSONL to `PI_LOG_DIR` and also emitted to stdout. Each HTTP
 request receives an `X-Request-ID` response header; use that value to search the mounted log file after
