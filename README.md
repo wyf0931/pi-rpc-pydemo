@@ -61,7 +61,7 @@ OMA Studio explores a practical separation of concerns:
 - Autopilots for scheduled Agent instructions, manual runs, run history, and linked Chat sessions.
 - Agent definitions with instruction, Provider, Model, built-in tool allowlist, extensions, skills, and MCP servers.
 - Marketplace discovery of Pi resources, plus skills.sh search and skill installation.
-- Light and Dark themes with a DaisyUI `swap swap-rotate` control.
+- System, Light, and Dark themes managed from Settings → General; new visitors follow their system preference by default.
 - JSONL request tracing with `X-Request-ID` correlation and persistent Docker-mounted logs.
 - A small operational CLI: `bin/ops.sh start|stop|restart|status|logs` (Docker Compose mode).
 
