@@ -873,15 +873,6 @@
                   <div class="agent-card-bottom-actions">
                     <button
                       type="button"
-                      class="trash-btn agent-publish-btn"
-                      @click.stop="publishAgent(agent)"
-                      aria-label="Share agent"
-                      title="Share agent"
-                    >
-                      <i data-lucide="rss" aria-hidden="true"></i>
-                    </button>
-                    <button
-                      type="button"
                       class="trash-btn"
                       x-show="!agent.protected"
                       @click.stop="deleteAgent(agent)"
@@ -889,6 +880,24 @@
                       aria-label="Delete agent"
                     >
                       <i data-lucide="trash-2" aria-hidden="true"></i>
+                    </button>
+                    <button
+                      type="button"
+                      class="trash-btn agent-publish-btn agent-edit-btn"
+                      @click.stop="editAgent(agent)"
+                      aria-label="Edit agent"
+                      title="Edit agent"
+                    >
+                      <i data-lucide="square-pen" aria-hidden="true"></i>
+                    </button>
+                    <button
+                      type="button"
+                      class="trash-btn agent-publish-btn"
+                      @click.stop="publishAgent(agent)"
+                      aria-label="Share agent"
+                      title="Share agent"
+                    >
+                      <i data-lucide="rss" aria-hidden="true"></i>
                     </button>
                   </div>
                 </div></div
@@ -2403,9 +2412,7 @@
           </div>
           <div class="dialog-actions">
             <button class="btn btn-sm btn-ghost" @click="dialog = null">
-              Close</button
-            ><button class="btn btn-sm btn-primary" @click="editAgent(dialog)">
-              Edit
+              Close
             </button>
           </div>
         </div></template

@@ -121,6 +121,14 @@ def test_health_and_agents(client):
     assert any(agent["name"] == "assistant" for agent in agents)
 
 
+def test_agent_edit_entry_is_card_action_only():
+    html = Path("static/index.html").read_text(encoding="utf-8")
+
+    assert 'class="trash-btn agent-publish-btn agent-edit-btn"' in html
+    assert '@click.stop="editAgent(agent)"' in html
+    assert '@click="editAgent(dialog)"' not in html
+
+
 def test_request_id_is_propagated_and_generated(client):
     supplied = client.get("/api/health", headers={"X-Request-ID": "debug-123"})
     generated = client.get("/api/health")
