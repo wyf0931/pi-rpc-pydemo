@@ -22,7 +22,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260904-settings-users-full-layout" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260904-new-chat-aura" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -241,99 +241,103 @@
               <h1>Stay hungry. Stay foolish.</h1>
               <p class="chat-empty-subtitle">What should we do?</p>
               <div class="start-grid">
-                <div class="start-card rounded-box">
-                  <div class="skill-command-editor">
-                    <div
-                      class="skill-command-highlight"
-                      x-ref="skillCommandHighlight"
-                      aria-hidden="true"
-                      x-html="skillCommandHighlightHtml()"
-                    ></div>
-                    <textarea
-                      id="new-chat-message"
-                      name="message"
-                      rows="3"
-                      class="textarea textarea-bordered start-input"
-                      x-model="draft"
-                      @input="resizeStartInput($event); updateSkillCommandState()"
-                      @scroll="syncSkillCommandScroll($event)"
-                      @keydown="handleSkillCommandKeydown($event)"
-                      @keydown.enter.meta.prevent="sendFirst()"
-                      placeholder="What would you like to explore?"
-                    ></textarea>
-                  </div>
-                  <div
-                    class="skill-command-palette"
-                    x-show="skillCommandVisible()"
-                    x-cloak
-                    role="listbox"
-                    aria-label="Available skills"
-                  >
-                    <template x-for="(skill, index) in skillCommandItems()" :key="skill.id">
-                      <button
-                        type="button"
-                        class="skill-command-option"
-                        :class="{'selected': index === skillCommandIndex}"
-                        role="option"
-                        :aria-selected="index === skillCommandIndex"
-                        @mousedown.prevent="chooseSkillCommand(skill)"
-                      >
-                        <span class="skill-command-name" x-text="'/skill:' + skill.name"></span>
-                        <span class="skill-command-description" x-text="skill.description || 'Run this skill'"></span>
-                      </button>
-                    </template>
-                    <div class="skill-command-empty" x-show="!skillCommandItems().length">
-                      No enabled skills for this Agent
+                <div class="aura aura-rainbow aura-lg">
+                  <div class="start-card rounded-box">
+                    <div class="skill-command-editor">
+                      <div
+                        class="skill-command-highlight"
+                        x-ref="skillCommandHighlight"
+                        aria-hidden="true"
+                        x-html="skillCommandHighlightHtml()"
+                      ></div>
+                      <textarea
+                        id="new-chat-message"
+                        name="message"
+                        rows="3"
+                        class="textarea textarea-bordered start-input"
+                        x-model="draft"
+                        @input="resizeStartInput($event); updateSkillCommandState()"
+                        @scroll="syncSkillCommandScroll($event)"
+                        @keydown="handleSkillCommandKeydown($event)"
+                        @keydown.enter.meta.prevent="sendFirst()"
+                        placeholder="What would you like to explore?"
+                      ></textarea>
                     </div>
-                  </div>
-                  <div class="start-composer-foot">
-                    <div class="agent-picker" @click.outside="agentPickerOpen = false">
-                      <button
-                        type="button"
-                        class="agent-picker-button"
-                        @click="agentPickerOpen = !agentPickerOpen"
-                        aria-haspopup="listbox"
-                        :aria-expanded="agentPickerOpen"
-                      >
-                        <template x-if="avatarUrl(agents.find((agent) => agent.id === selectedAgentId))"
-                          ><img
-                            class="agent-avatar agent-avatar-image"
-                            :src="avatarUrl(agents.find((agent) => agent.id === selectedAgentId))"
-                            alt="" /></template
-                        ><template x-if="!avatarUrl(agents.find((agent) => agent.id === selectedAgentId))"
-                          ><span class="agent-avatar" x-text="initials(agentName(selectedAgentId))"></span></template
-                        ><span x-text="agentName(selectedAgentId)"></span
-                        ><i class="picker-chevron" data-lucide="chevron-down" aria-hidden="true"></i>
-                      </button>
-                      <div class="agent-picker-menu" x-show="agentPickerOpen" x-cloak role="listbox">
-                        <template x-for="agent in agents" :key="agent.id"
-                          ><button
-                            type="button"
-                            role="option"
-                            class="agent-picker-option"
-                            :aria-selected="selectedAgentId === agent.id"
-                            @click="chooseAgent(agent.id)"
-                          >
-                            <template x-if="avatarUrl(agent)"
-                              ><img
-                                class="agent-avatar agent-avatar-image"
-                                :src="avatarUrl(agent)"
-                                :alt="agent.name + ' avatar'" /></template
-                            ><template x-if="!avatarUrl(agent)"
-                              ><span class="agent-avatar" x-text="initials(agent.name)"></span></template
-                            ><span><b x-text="agent.name"></b><small x-text="agent.instruction"></small></span></button
-                        ></template>
+                    <div
+                      class="skill-command-palette"
+                      x-show="skillCommandVisible()"
+                      x-cloak
+                      role="listbox"
+                      aria-label="Available skills"
+                    >
+                      <template x-for="(skill, index) in skillCommandItems()" :key="skill.id">
+                        <button
+                          type="button"
+                          class="skill-command-option"
+                          :class="{'selected': index === skillCommandIndex}"
+                          role="option"
+                          :aria-selected="index === skillCommandIndex"
+                          @mousedown.prevent="chooseSkillCommand(skill)"
+                        >
+                          <span class="skill-command-name" x-text="'/skill:' + skill.name"></span>
+                          <span class="skill-command-description" x-text="skill.description || 'Run this skill'"></span>
+                        </button>
+                      </template>
+                      <div class="skill-command-empty" x-show="!skillCommandItems().length">
+                        No enabled skills for this Agent
                       </div>
                     </div>
-                    <button
-                      class="icon-send"
-                      @click="sendFirst()"
-                      :disabled="!draft.trim() || !selectedAgentId || loading"
-                      title="Start chat"
-                      aria-label="Start chat"
-                    >
-                      <i data-lucide="arrow-up" aria-hidden="true"></i>
-                    </button>
+                    <div class="start-composer-foot">
+                      <div class="agent-picker" @click.outside="agentPickerOpen = false">
+                        <button
+                          type="button"
+                          class="agent-picker-button"
+                          @click="agentPickerOpen = !agentPickerOpen"
+                          aria-haspopup="listbox"
+                          :aria-expanded="agentPickerOpen"
+                        >
+                          <template x-if="avatarUrl(agents.find((agent) => agent.id === selectedAgentId))"
+                            ><img
+                              class="agent-avatar agent-avatar-image"
+                              :src="avatarUrl(agents.find((agent) => agent.id === selectedAgentId))"
+                              alt="" /></template
+                          ><template x-if="!avatarUrl(agents.find((agent) => agent.id === selectedAgentId))"
+                            ><span class="agent-avatar" x-text="initials(agentName(selectedAgentId))"></span></template
+                          ><span x-text="agentName(selectedAgentId)"></span
+                          ><i class="picker-chevron" data-lucide="chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="agent-picker-menu" x-show="agentPickerOpen" x-cloak role="listbox">
+                          <template x-for="agent in agents" :key="agent.id"
+                            ><button
+                              type="button"
+                              role="option"
+                              class="agent-picker-option"
+                              :aria-selected="selectedAgentId === agent.id"
+                              @click="chooseAgent(agent.id)"
+                            >
+                              <template x-if="avatarUrl(agent)"
+                                ><img
+                                  class="agent-avatar agent-avatar-image"
+                                  :src="avatarUrl(agent)"
+                                  :alt="agent.name + ' avatar'" /></template
+                              ><template x-if="!avatarUrl(agent)"
+                                ><span class="agent-avatar" x-text="initials(agent.name)"></span></template
+                              ><span
+                                ><b x-text="agent.name"></b><small x-text="agent.instruction"></small
+                              ></span></button
+                          ></template>
+                        </div>
+                      </div>
+                      <button
+                        class="icon-send"
+                        @click="sendFirst()"
+                        :disabled="!draft.trim() || !selectedAgentId || loading"
+                        title="Start chat"
+                        aria-label="Start chat"
+                      >
+                        <i data-lucide="arrow-up" aria-hidden="true"></i>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
