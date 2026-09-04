@@ -1,21 +1,46 @@
 import asyncio
+import json
 from pathlib import Path
 
 import pytest
 
 from app.market import (
+    add_mcp_servers,
     github_source_owner,
     install_extension,
     install_skill,
     normalize_npm_package,
     npm_package_name,
+    parse_mcp_config,
     parse_skill_preview,
     parse_skill_search,
+    remove_mcp_server,
     uninstall_extension,
     uninstall_local_extension,
     uninstall_skill,
     validate_skill_source,
 )
+
+
+def test_parse_mcp_config_extracts_servers_and_rejects_invalid_entries():
+    servers = parse_mcp_config(
+        '{"mcpServers":{"aihot":{"type":"http","url":"https://example.com/mcp"}}}'
+    )
+    assert servers["aihot"]["type"] == "http"
+    with pytest.raises(ValueError, match="mcpServers"):
+        parse_mcp_config('{"servers": {}}')
+    with pytest.raises(ValueError, match="url, command, or socket"):
+        parse_mcp_config('{"mcpServers":{"broken":{}}}')
+
+
+def test_mcp_config_add_and_remove_preserve_other_servers(tmp_path):
+    path = tmp_path / "mcp.json"
+    add_mcp_servers(path, {"aihot": {"type": "http", "url": "https://example.com/mcp"}})
+    add_mcp_servers(path, {"local": {"command": "node", "args": ["server.js"]}})
+    remove_mcp_server(path, "aihot")
+    assert json.loads(path.read_text(encoding="utf-8")) == {
+        "mcpServers": {"local": {"command": "node", "args": ["server.js"]}}
+    }
 
 
 def test_parse_skill_search_pairs_results_with_urls():

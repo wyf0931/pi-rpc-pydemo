@@ -755,6 +755,15 @@
             >
               <i data-lucide="plus" aria-hidden="true"></i> Install
             </button>
+            <button
+              type="button"
+              class="btn btn-soft btn-primary"
+              x-show="authUser?.role === 'admin' && marketTab === 'mcp_servers'"
+              x-cloak
+              @click="openMarketMcpAdd()"
+            >
+              <i data-lucide="plus" aria-hidden="true"></i> Add
+            </button>
           </div>
           <div class="market-content" x-show="marketTab === 'skills'">
             <div class="market-grid" x-show="marketCatalogItems('skills').length">
@@ -837,6 +846,19 @@
                       <span class="badge badge-soft badge-info badge-sm">Available</span>
                     </div>
                     <p class="market-description" x-text="item.description || 'MCP server'"></p>
+                    <div class="card-actions market-card-footer">
+                      <span class="market-card-author">MCP server</span>
+                      <button
+                        type="button"
+                        class="trash-btn market-uninstall-action"
+                        x-show="authUser?.role === 'admin'"
+                        @click.stop="marketUninstallTarget = {kind: 'mcp_servers', item}"
+                        :aria-label="'Delete ' + item.name"
+                        title="Delete MCP server"
+                      >
+                        <i data-lucide="trash-2" aria-hidden="true"></i>
+                      </button>
+                    </div>
                   </div>
                 </article>
               </template>
@@ -1066,6 +1088,53 @@
         </dialog>
         <dialog
           class="modal modal-middle"
+          :open="marketMcpAddOpen"
+          x-show="marketMcpAddOpen"
+          x-cloak
+          @click.self="closeMarketMcpAdd()"
+        >
+          <div class="modal-box market-install-dialog">
+            <div class="dialog-head">
+              <div>
+                <h2>Add MCP server</h2>
+                <p>Paste an mcpServers JSON configuration. Server names are detected automatically.</p>
+              </div>
+              <button
+                type="button"
+                class="icon-btn"
+                @click="closeMarketMcpAdd()"
+                aria-label="Close add MCP server dialog"
+              >
+                <i data-lucide="x" aria-hidden="true"></i>
+              </button>
+            </div>
+            <form @submit.prevent="addMarketMcpServers()">
+              <label class="form-field">
+                <span>Server configuration</span>
+                <textarea
+                  class="textarea textarea-bordered mcp-config-input"
+                  x-model="marketMcpConfig"
+                  required
+                  maxlength="200000"
+                  spellcheck="false"
+                  aria-label="MCP server JSON configuration"
+                ></textarea>
+              </label>
+              <p class="market-command-preview">
+                Detected: <span x-text="marketMcpNames().join(', ') || 'No valid server names yet'"></span>
+              </p>
+              <div class="dialog-actions">
+                <button type="button" class="btn btn-ghost" @click="closeMarketMcpAdd()">Cancel</button>
+                <button type="submit" class="btn btn-primary" :disabled="marketMcpAction || !marketMcpNames().length">
+                  <span x-show="!marketMcpAction">Add</span>
+                  <span x-show="marketMcpAction" class="loading loading-spinner loading-sm"></span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </dialog>
+        <dialog
+          class="modal modal-middle"
           :open="!!marketUninstallTarget"
           x-show="marketUninstallTarget"
           x-cloak
@@ -1082,13 +1151,17 @@
               </button>
             </div>
             <p class="confirm-copy">
-              This will remove the installed
-              <span x-text="marketUninstallTarget?.kind === 'extensions' ? 'extension' : 'skill'"></span>
-              from Pi.
+              <span
+                x-text="marketUninstallTarget?.kind === 'mcp_servers'
+                  ? 'This will remove the MCP server from the shared Pi configuration.'
+                  : 'This will remove the installed ' + (marketUninstallTarget?.kind === 'extensions' ? 'extension' : 'skill') + ' from Pi.'"
+              ></span>
             </p>
             <div class="dialog-actions">
               <button type="button" class="btn btn-ghost" @click="marketUninstallTarget = null">Cancel</button>
-              <button type="button" class="btn btn-error" @click="confirmMarketUninstall()">Uninstall</button>
+              <button type="button" class="btn btn-error" @click="confirmMarketUninstall()">
+                <span x-text="marketUninstallTarget?.kind === 'mcp_servers' ? 'Delete' : 'Uninstall'"></span>
+              </button>
             </div>
           </div>
         </dialog>
@@ -2655,6 +2728,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260904-usage-statistics"></script>
+    <script src="/static/app.js?v=20260905-mcp-management"></script>
   </body>
 </html>

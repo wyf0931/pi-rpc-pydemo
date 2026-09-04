@@ -107,6 +107,10 @@ function platform() {
     marketInstallingAgent: false,
     marketCatalogSearch: "",
     marketInstallOpen: false,
+    marketMcpAddOpen: false,
+    marketMcpConfig:
+      '{\n  "mcpServers": {\n    "server-name": {\n      "type": "http",\n      "url": "https://example.com/mcp"\n    }\n  }\n}',
+    marketMcpAction: false,
     marketSearch: "",
     marketOwner: "",
     marketSearchResults: [],
@@ -563,6 +567,38 @@ function platform() {
       this.marketInstallOpen = false;
       this.marketSearchError = "";
     },
+    openMarketMcpAdd() {
+      this.marketMcpConfig =
+        '{\n  "mcpServers": {\n    "server-name": {\n      "type": "http",\n      "url": "https://example.com/mcp"\n    }\n  }\n}';
+      this.marketMcpAddOpen = true;
+    },
+    closeMarketMcpAdd() {
+      if (!this.marketMcpAction) this.marketMcpAddOpen = false;
+    },
+    marketMcpNames() {
+      try {
+        const servers = JSON.parse(this.marketMcpConfig)?.mcpServers;
+        return servers && typeof servers === "object" && !Array.isArray(servers) ? Object.keys(servers) : [];
+      } catch {
+        return [];
+      }
+    },
+    async addMarketMcpServers() {
+      this.marketMcpAction = true;
+      try {
+        const data = await this.api("/api/market/mcp-servers", {
+          method: "POST",
+          body: JSON.stringify({ config: this.marketMcpConfig }),
+        });
+        this.resources = data.resources;
+        this.marketMcpAddOpen = false;
+        this.showToast(`MCP server${data.servers.length === 1 ? "" : "s"} added`);
+      } catch (error) {
+        this.showError(error);
+      } finally {
+        this.marketMcpAction = false;
+      }
+    },
     marketSkillInstalled(result) {
       return this.resources.skills.some(
         (item) => item.name === result.skill && (!result.repo || item.source === result.repo || !item.source),
@@ -629,6 +665,17 @@ function platform() {
       const target = this.marketUninstallTarget;
       if (!target) return;
       const { kind, item } = target;
+      if (kind === "mcp_servers") {
+        try {
+          const data = await this.api(`/api/market/mcp-servers/${encodeURIComponent(item.name)}`, { method: "DELETE" });
+          this.resources = data.resources;
+          this.marketUninstallTarget = null;
+          this.showToast(`MCP server ${item.name} deleted`);
+        } catch (error) {
+          this.showError(error);
+        }
+        return;
+      }
       const path = kind === "extensions" ? "/api/market/extensions/uninstall" : "/api/market/skills/uninstall";
       const packageSource = this.marketResourceSource(kind, item);
       const payload =

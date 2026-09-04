@@ -360,6 +360,8 @@ This MVP is a single FastAPI application with a static frontend. The main endpoi
 | `POST /api/market/skills/uninstall` | Uninstall a selected skill globally from Pi |
 | `POST /api/market/extensions/install` | Install an npm package extension globally for Pi |
 | `POST /api/market/extensions/uninstall` | Uninstall an npm package extension from Pi |
+| `POST /api/market/mcp-servers` | Add shared MCP servers from an `mcpServers` JSON object (admin only) |
+| `DELETE /api/market/mcp-servers/{name}` | Delete one shared MCP server by name (admin only) |
 | `GET /api/chats` | List chat metadata |
 | `POST /api/chats` | Create a chat record and external Pi session ID |
 | `PATCH /api/chats/{id}` | Update chat metadata such as the session title |
