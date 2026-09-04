@@ -2,11 +2,14 @@
   "name": "pi-agent-platform-ui",
   "private": true,
   "scripts": {
-    "build:css": "tailwindcss -i frontend/input.css -o static/typography.css --minify"
+    "build:css": "tailwindcss -i frontend/input.css -o static/typography.css --minify",
+    "format": "prettier --write static/app.js static/index.html",
+    "format:check": "prettier --check static/app.js static/index.html"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.12",
     "@tailwindcss/typography": "^0.5.20",
+    "prettier": "^3.9.6",
     "tailwindcss": "^4.1.12"
   }
 }

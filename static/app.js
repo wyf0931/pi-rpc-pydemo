@@ -4,9 +4,7 @@ function platform() {
     settingsTab: "general",
     language: localStorage.getItem("oma-language") || "en",
     timezone: localStorage.getItem("oma-timezone") || "Asia/Shanghai",
-    themePreference: ["system", "light", "dark"].includes(
-      localStorage.getItem("oma-theme-preference"),
-    )
+    themePreference: ["system", "light", "dark"].includes(localStorage.getItem("oma-theme-preference"))
       ? localStorage.getItem("oma-theme-preference")
       : "system",
     runError: "",
@@ -147,9 +145,7 @@ function platform() {
     newAgentExtensions: [],
     newAgentSkills: [],
     newAgentMcpServers: [],
-    mode: ["development", "production"].includes(
-      new URLSearchParams(location.search).get("mode"),
-    )
+    mode: ["development", "production"].includes(new URLSearchParams(location.search).get("mode"))
       ? new URLSearchParams(location.search).get("mode")
       : "production",
     resources: {
@@ -173,9 +169,7 @@ function platform() {
       { name: "find", description: "Find files by glob" },
       { name: "ls", description: "List directory contents" },
     ],
-    theme: ["light", "dark"].includes(localStorage.getItem("pi-theme"))
-      ? localStorage.getItem("pi-theme")
-      : "light",
+    theme: ["light", "dark"].includes(localStorage.getItem("pi-theme")) ? localStorage.getItem("pi-theme") : "light",
     appReady: false,
     async init() {
       window.omaPlatform = this;
@@ -200,15 +194,9 @@ function platform() {
           await this.routeFromUrl();
           return;
         }
-        await Promise.all([
-          this.loadAgents(),
-          this.loadChats(),
-          this.loadHealth(),
-          this.loadResources(),
-        ]);
+        await Promise.all([this.loadAgents(), this.loadChats(), this.loadHealth(), this.loadResources()]);
         if (this.agents.length) this.selectedAgentId = this.agents[0].id;
-        if (!new URLSearchParams(location.search).has("mode"))
-          this.mode = this.resources.mode || "production";
+        if (!new URLSearchParams(location.search).has("mode")) this.mode = this.resources.mode || "production";
         setInterval(() => this.loadHealth(), 5000);
         await this.routeFromUrl();
       } catch (e) {
@@ -231,8 +219,7 @@ function platform() {
             (node) =>
               node.nodeType === Node.ELEMENT_NODE &&
               node.tagName?.toLowerCase() !== "svg" &&
-              (node.matches?.("[data-lucide]") ||
-                node.querySelector?.("[data-lucide]")),
+              (node.matches?.("[data-lucide]") || node.querySelector?.("[data-lucide]")),
           ),
         );
         if (hasIcons) this.renderIcons();
@@ -243,10 +230,7 @@ function platform() {
       observer.observe(document.body, { childList: true, subtree: true });
     },
     async api(path, options = {}) {
-      const requestPath =
-        path.includes("/messages") && !path.includes("?")
-          ? `${path}?mode=${this.mode}`
-          : path;
+      const requestPath = path.includes("/messages") && !path.includes("?") ? `${path}?mode=${this.mode}` : path;
       const requestId = crypto.randomUUID();
       const headers = new Headers(options.headers || {});
       headers.set("Content-Type", "application/json");
@@ -271,9 +255,7 @@ function platform() {
         throw this.errorFromResponse(response, responseId, data);
       }
       if (data === null) {
-        const error = new Error(
-          `Server returned a non-JSON response (request_id: ${responseId})`,
-        );
+        const error = new Error(`Server returned a non-JSON response (request_id: ${responseId})`);
         error.requestId = responseId;
         throw error;
       }
@@ -304,12 +286,7 @@ function platform() {
         });
         this.loginPassword = "";
         this.appReady = false;
-        await Promise.all([
-          this.loadAgents(),
-          this.loadChats(),
-          this.loadHealth(),
-          this.loadResources(),
-        ]);
+        await Promise.all([this.loadAgents(), this.loadChats(), this.loadHealth(), this.loadResources()]);
         if (this.agents.length) this.selectedAgentId = this.agents[0].id;
         this.appReady = true;
         await this.routeFromUrl();
@@ -478,9 +455,7 @@ function platform() {
     searchChatResults() {
       const query = this.chatSearchQuery.trim().toLowerCase();
       const matches = this.chats.filter((chat) => {
-        const matchesAgent =
-          !this.chatSearchAgentFilter ||
-          chat.agent_id === this.chatSearchAgentFilter;
+        const matchesAgent = !this.chatSearchAgentFilter || chat.agent_id === this.chatSearchAgentFilter;
         const matchesQuery =
           !query ||
           chat.title.toLowerCase().includes(query) ||
@@ -499,8 +474,7 @@ function platform() {
     },
     async loadHealth() {
       try {
-        this.activeProcesses =
-          (await this.api("/api/health")).active_processes || 0;
+        this.activeProcesses = (await this.api("/api/health")).active_processes || 0;
       } catch {}
     },
     async loadResources() {
@@ -529,20 +503,14 @@ function platform() {
       const query = this.marketCatalogSearch.trim().toLowerCase();
       if (!query) return this.marketAgents;
       return this.marketAgents.filter((item) =>
-        `${item.name || ""} ${item.instruction || ""} ${item.author || ""}`
-          .toLowerCase()
-          .includes(query),
+        `${item.name || ""} ${item.instruction || ""} ${item.author || ""}`.toLowerCase().includes(query),
       );
     },
     marketCatalogItems(kind) {
       const items = this.resources[kind] || [];
       const query = this.marketCatalogSearch.trim().toLowerCase();
       if (!query) return items;
-      return items.filter((item) =>
-        `${item.name || ""} ${item.description || ""}`
-          .toLowerCase()
-          .includes(query),
-      );
+      return items.filter((item) => `${item.name || ""} ${item.description || ""}`.toLowerCase().includes(query));
     },
     async searchMarketSkills() {
       const query = this.marketSearch.trim();
@@ -555,17 +523,12 @@ function platform() {
       this.marketSearchError = "";
       try {
         const githubSource = this.marketSkillGitHubSource(query);
-        const data = await this.api(
-          githubSource ? "/api/market/skills/preview" : "/api/market/skills/search",
-          {
+        const data = await this.api(githubSource ? "/api/market/skills/preview" : "/api/market/skills/search", {
           method: "POST",
-            body: JSON.stringify(
-              githubSource
-                ? { source: githubSource }
-                : { query, owner: this.marketOwner.trim() || null },
-            ),
-          },
-        );
+          body: JSON.stringify(
+            githubSource ? { source: githubSource } : { query, owner: this.marketOwner.trim() || null },
+          ),
+        });
         this.marketSearchResults = data.results || [];
       } catch (error) {
         this.marketSearchResults = [];
@@ -576,7 +539,9 @@ function platform() {
     },
     marketSkillGitHubSource(value) {
       const source = value.trim().replace(/\/$/, "");
-      return /^(?:[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+|https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?(?:\/tree\/[^/]+(?:\/.*)?)?|git@github\.com:[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?|ssh:\/\/git@github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?)$/i.test(source)
+      return /^(?:[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+|https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?(?:\/tree\/[^/]+(?:\/.*)?)?|git@github\.com:[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?|ssh:\/\/git@github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?)$/i.test(
+        source,
+      )
         ? source
         : "";
     },
@@ -595,9 +560,7 @@ function platform() {
     },
     marketSkillInstalled(result) {
       return this.resources.skills.some(
-        (item) =>
-          item.name === result.skill &&
-          (!result.repo || item.source === result.repo || !item.source),
+        (item) => item.name === result.skill && (!result.repo || item.source === result.repo || !item.source),
       );
     },
     async installMarketSkill(result) {
@@ -643,18 +606,14 @@ function platform() {
     },
     marketResourceSource(kind, item) {
       if (item?.source) return item.source;
-      if (kind === "extensions" && item?.path?.includes("/npm/node_modules/"))
-        return `npm:${item.name}`;
+      if (kind === "extensions" && item?.path?.includes("/npm/node_modules/")) return `npm:${item.name}`;
       if (kind === "extensions" && item?.path) return item.path;
       if (kind === "skills" && item?.name) return item.name;
       return "";
     },
     marketResourceAuthor(kind, item) {
       const author = typeof item?.author === "string" ? item.author.trim() : "";
-      const sourceAuthor =
-        kind === "skills" && item?.source
-          ? item.source.split("/", 1)[0].trim()
-          : "";
+      const sourceAuthor = kind === "skills" && item?.source ? item.source.split("/", 1)[0].trim() : "";
       return (author || sourceAuthor || "admin").slice(0, 10);
     },
     openMarketUninstall(kind, item) {
@@ -665,10 +624,7 @@ function platform() {
       const target = this.marketUninstallTarget;
       if (!target) return;
       const { kind, item } = target;
-      const path =
-        kind === "extensions"
-          ? "/api/market/extensions/uninstall"
-          : "/api/market/skills/uninstall";
+      const path = kind === "extensions" ? "/api/market/extensions/uninstall" : "/api/market/skills/uninstall";
       const packageSource = this.marketResourceSource(kind, item);
       const payload =
         kind === "extensions"
@@ -686,9 +642,7 @@ function platform() {
         });
         await this.refreshResources();
         this.marketUninstallTarget = null;
-        this.showToast(
-          `${kind === "extensions" ? "Extension" : "Skill"} ${item.name} uninstalled`,
-        );
+        this.showToast(`${kind === "extensions" ? "Extension" : "Skill"} ${item.name} uninstalled`);
       } catch (error) {
         this.showError(error);
       }
@@ -712,9 +666,7 @@ function platform() {
     async loadSharedFiles() {
       this.filesLoading = true;
       try {
-        this.files = (
-          await this.api(`/api/share/${this.sharedToken}/files`)
-        ).files;
+        this.files = (await this.api(`/api/share/${this.sharedToken}/files`)).files;
       } catch (e) {
         this.showError(e);
       } finally {
@@ -724,9 +676,7 @@ function platform() {
     async loadChatFiles() {
       this.filesLoading = true;
       try {
-        this.files = (
-          await this.api(`/api/chats/${this.activeChat.id}/files`)
-        ).files;
+        this.files = (await this.api(`/api/chats/${this.activeChat.id}/files`)).files;
       } catch (e) {
         this.showError(e);
       } finally {
@@ -741,10 +691,8 @@ function platform() {
           page: String(this.libraryPage),
           page_size: "20",
         });
-        if (this.librarySearch.trim())
-          params.set("search", this.librarySearch.trim());
-        if (this.libraryAgentFilter)
-          params.set("agent_id", this.libraryAgentFilter);
+        if (this.librarySearch.trim()) params.set("search", this.librarySearch.trim());
+        if (this.libraryAgentFilter) params.set("agent_id", this.libraryAgentFilter);
         const data = await this.api(`/api/library/files?${params}`);
         this.libraryFiles = data.files;
         this.libraryPages = data.pages;
@@ -817,12 +765,8 @@ function platform() {
       }
       try {
         const data = share
-          ? await this.api(
-              `/api/share/${encodeURIComponent(share)}/files/content?path=${encodeURIComponent(path)}`,
-            )
-          : await this.api(
-              `/api/chats/${encodeURIComponent(chatId)}/files/content?path=${encodeURIComponent(path)}`,
-            );
+          ? await this.api(`/api/share/${encodeURIComponent(share)}/files/content?path=${encodeURIComponent(path)}`)
+          : await this.api(`/api/chats/${encodeURIComponent(chatId)}/files/content?path=${encodeURIComponent(path)}`);
         this.fileViewer = {
           chatId: chatId || `share:${share}`,
           path,
@@ -870,15 +814,11 @@ function platform() {
     },
     modeQuery() {
       const value = new URLSearchParams(location.search).get("mode");
-      return ["development", "production"].includes(value)
-        ? `?mode=${value}`
-        : "";
+      return ["development", "production"].includes(value) ? `?mode=${value}` : "";
     },
     syncModeFromUrl() {
       const value = new URLSearchParams(location.search).get("mode");
-      this.mode = ["development", "production"].includes(value)
-        ? value
-        : this.resources.mode || "production";
+      this.mode = ["development", "production"].includes(value) ? value : this.resources.mode || "production";
     },
     go(page) {
       this.page = page;
@@ -887,13 +827,13 @@ function platform() {
           ? "/agents"
           : page === "market"
             ? "/market"
-          : page === "library"
-            ? "/library"
-            : page === "autopilots"
-              ? "/autopilots"
-              : this.activeChat
-                ? `/chat/${this.activeChat.id}`
-                : "/chat";
+            : page === "library"
+              ? "/library"
+              : page === "autopilots"
+                ? "/autopilots"
+                : this.activeChat
+                  ? `/chat/${this.activeChat.id}`
+                  : "/chat";
       history.pushState({}, "", path + this.modeQuery());
       if (page === "library") this.loadLibrary(1);
       if (page === "autopilots") this.loadAutopilots();
@@ -948,10 +888,8 @@ function platform() {
           .slice()
           .sort((a, b) => Number(a) - Number(b))
           .join(",")}`;
-      if (this.cronFrequency === "monthly")
-        return `${m} ${h} ${this.cronDayOfMonth} * *`;
-      if (this.cronFrequency === "yearly")
-        return `${m} ${h} ${this.cronDayOfMonth} ${this.cronMonth} *`;
+      if (this.cronFrequency === "monthly") return `${m} ${h} ${this.cronDayOfMonth} * *`;
+      if (this.cronFrequency === "yearly") return `${m} ${h} ${this.cronDayOfMonth} ${this.cronMonth} *`;
       return `${m} ${h} * * *`;
     },
     applyCronBuilder() {
@@ -962,13 +900,9 @@ function platform() {
       this.autopilotLoading = true;
       try {
         const params = new URLSearchParams();
-        if (this.autopilotSearch.trim())
-          params.set("search", this.autopilotSearch.trim());
-        if (this.autopilotAgentFilter)
-          params.set("agent_id", this.autopilotAgentFilter);
-        this.autopilots = (
-          await this.api(`/api/autopilots?${params}`)
-        ).autopilots;
+        if (this.autopilotSearch.trim()) params.set("search", this.autopilotSearch.trim());
+        if (this.autopilotAgentFilter) params.set("agent_id", this.autopilotAgentFilter);
+        this.autopilots = (await this.api(`/api/autopilots?${params}`)).autopilots;
       } catch (e) {
         this.showError(e);
       } finally {
@@ -996,12 +930,7 @@ function platform() {
       this.autopilotDialog = true;
     },
     async saveAutopilot() {
-      if (
-        !this.autopilotName.trim() ||
-        !this.autopilotInstruction.trim() ||
-        !this.autopilotAgentId
-      )
-        return;
+      if (!this.autopilotName.trim() || !this.autopilotInstruction.trim() || !this.autopilotAgentId) return;
       this.autopilotSaving = true;
       try {
         const payload = {
@@ -1069,9 +998,7 @@ function platform() {
       this.autopilotRuns = [];
       this.autopilotRunsItem = item;
       try {
-        this.autopilotRuns = (
-          await this.api(`/api/autopilots/${item.id}/runs`)
-        ).runs;
+        this.autopilotRuns = (await this.api(`/api/autopilots/${item.id}/runs`)).runs;
       } catch (e) {
         this.showError(e);
       }
@@ -1087,26 +1014,15 @@ function platform() {
       this.showError(new Error(`${name} is reserved for the next iteration.`));
     },
     applyThemePreference(value) {
-      this.themePreference = ["system", "light", "dark"].includes(value)
-        ? value
-        : "system";
-      const prefersDark = window.matchMedia?.(
-        "(prefers-color-scheme: dark)",
-      ).matches;
-      this.theme =
-        this.themePreference === "system"
-          ? prefersDark
-            ? "dark"
-            : "light"
-          : this.themePreference;
+      this.themePreference = ["system", "light", "dark"].includes(value) ? value : "system";
+      const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+      this.theme = this.themePreference === "system" ? (prefersDark ? "dark" : "light") : this.themePreference;
       document.documentElement.dataset.theme = this.theme;
       localStorage.setItem("oma-theme-preference", this.themePreference);
       localStorage.setItem("pi-theme", this.theme);
     },
     setTheme(_value) {
-      this.applyThemePreference(
-        localStorage.getItem("oma-theme-preference") || "system",
-      );
+      this.applyThemePreference(localStorage.getItem("oma-theme-preference") || "system");
     },
     toggleTheme() {
       this.applyThemePreference(this.theme === "dark" ? "light" : "dark");
@@ -1147,22 +1063,18 @@ function platform() {
       this.activeChat = chat;
       this.files = [];
       this.filesOpen = false;
-      if (updateUrl)
-        history.pushState({}, "", `/chat/${chat.id}` + this.modeQuery());
+      if (updateUrl) history.pushState({}, "", `/chat/${chat.id}` + this.modeQuery());
       this.messages = [];
       this.messagesLoading = true;
       try {
-        const data = await this.api(
-          `/api/chats/${chat.id}/messages?mode=${this.mode}`,
-        );
+        const data = await this.api(`/api/chats/${chat.id}/messages?mode=${this.mode}`);
         this.messages = this.normalizeMessages(data.messages);
       } catch (e) {
         this.showError(e);
       } finally {
         this.messagesLoading = false;
       }
-      if (chat.status === "running" && !this.loading)
-        void this.watchChat(chat.id);
+      if (chat.status === "running" && !this.loading) void this.watchChat(chat.id);
     },
     async routeFromUrl() {
       this.syncModeFromUrl();
@@ -1183,9 +1095,7 @@ function platform() {
       }
       this.page = "chat";
       if (match) {
-        const chat = this.chats.find(
-          (item) => item.id === decodeURIComponent(match[1]),
-        );
+        const chat = this.chats.find((item) => item.id === decodeURIComponent(match[1]));
         if (chat) await this.openChat(chat, false);
         else {
           this.activeChat = null;
@@ -1211,18 +1121,14 @@ function platform() {
         history.pushState({}, "", `/chat/${chat.id}`);
         await this.sendMessage();
         if (this.activeChat?.title === "New conversation") {
-          this.chats = this.chats.filter(
-            (item) => item.id !== this.activeChat.id,
-          );
+          this.chats = this.chats.filter((item) => item.id !== this.activeChat.id);
           this.activeChat = null;
           this.messages = [];
           history.pushState({}, "", "/chat" + this.modeQuery());
         }
       } catch (e) {
         if (this.activeChat?.title === "New conversation")
-          this.chats = this.chats.filter(
-            (item) => item.id !== this.activeChat.id,
-          );
+          this.chats = this.chats.filter((item) => item.id !== this.activeChat.id);
         this.activeChat = null;
         this.messages = [];
         this.showError(e);
@@ -1244,9 +1150,7 @@ function platform() {
       const enabled = agent.skills || [];
       return this.resources.skills
         .filter((skill) =>
-          enabled.some(
-            (path) => this.normalizeResourcePath(path) === this.normalizeResourcePath(skill.path),
-          ),
+          enabled.some((path) => this.normalizeResourcePath(path) === this.normalizeResourcePath(skill.path)),
         )
         .filter((skill) => skill.name.toLowerCase().includes(match.query))
         .slice(0, 8);
@@ -1269,8 +1173,7 @@ function platform() {
         this.skillCommandIndex = (this.skillCommandIndex + 1) % items.length;
       } else if (event.key === "ArrowUp" && items.length) {
         event.preventDefault();
-        this.skillCommandIndex =
-          (this.skillCommandIndex - 1 + items.length) % items.length;
+        this.skillCommandIndex = (this.skillCommandIndex - 1 + items.length) % items.length;
       } else if ((event.key === "Enter" || event.key === "Tab") && items.length) {
         event.preventDefault();
         this.chooseSkillCommand(items[this.skillCommandIndex]);
@@ -1290,9 +1193,7 @@ function platform() {
       const skill = this.resources.skills.find(
         (item) =>
           item.name.toLowerCase() === command[1].toLowerCase() &&
-          enabled.some(
-            (path) => this.normalizeResourcePath(path) === this.normalizeResourcePath(item.path),
-          ),
+          enabled.some((path) => this.normalizeResourcePath(path) === this.normalizeResourcePath(item.path)),
       );
       if (!skill) return this.escape(this.draft);
       return `<span class="skill-command-highlight-token">${this.escape(command[0])}</span>${this.escape(this.draft.slice(command[0].length))}`;
@@ -1333,8 +1234,7 @@ function platform() {
           body: JSON.stringify({ content }),
         });
         if (!response.ok) {
-          const responseId =
-            response.headers.get("X-Request-ID") || requestId;
+          const responseId = response.headers.get("X-Request-ID") || requestId;
           const contentType = response.headers.get("content-type") || "";
           let data = null;
           if (contentType.includes("json")) {
@@ -1356,9 +1256,7 @@ function platform() {
           const frames = buffer.split("\n\n");
           buffer = frames.pop();
           for (const frame of frames) {
-            const line = frame
-              .split("\n")
-              .find((value) => value.startsWith("data: "));
+            const line = frame.split("\n").find((value) => value.startsWith("data: "));
             if (!line) continue;
             const event = JSON.parse(line.slice(6));
             if (event.type === "complete") {
@@ -1366,9 +1264,7 @@ function platform() {
               const i = this.messages.length - 1;
               const normalized = this.normalizeMessages(event.messages || []);
               const hasFinal = normalized.some(
-                (message) =>
-                  message.role === "assistant" &&
-                  this.partsText(message.content),
+                (message) => message.role === "assistant" && this.partsText(message.content),
               );
               if (!hasFinal && event.assistant)
                 normalized.push({
@@ -1401,8 +1297,7 @@ function platform() {
     markStreamingAssistantMessageEnd() {
       const i = this.messages.length - 1;
       const current = this.messages[i];
-      if (current?.role === "assistant")
-        this.messages[i] = { ...current, _thinkingBoundary: true };
+      if (current?.role === "assistant") this.messages[i] = { ...current, _thinkingBoundary: true };
     },
     updateStreamingAssistant(value, append) {
       const i = this.messages.length - 1;
@@ -1433,14 +1328,10 @@ function platform() {
       };
     },
     handleTurnEvent(event) {
-      if (event.type === "delta")
-        this.updateStreamingAssistant(event.delta, true);
-      else if (event.type === "thinking_delta")
-        this.updateStreamingThinking(event.delta);
-      else if (event.type === "assistant_message_end")
-        this.markStreamingAssistantMessageEnd();
-      else if (event.type === "final")
-        this.updateStreamingAssistant(event.text, false);
+      if (event.type === "delta") this.updateStreamingAssistant(event.delta, true);
+      else if (event.type === "thinking_delta") this.updateStreamingThinking(event.delta);
+      else if (event.type === "assistant_message_end") this.markStreamingAssistantMessageEnd();
+      else if (event.type === "final") this.updateStreamingAssistant(event.text, false);
       else if (event.type === "tool") {
         const i = this.messages.length - 1;
         this.messages[i] = {
@@ -1455,9 +1346,7 @@ function platform() {
       try {
         const chat = await this.api(`/api/chats/${chatId}`);
         if (this.activeChat?.id === chatId) this.activeChat = chat;
-        const data = await this.api(
-          `/api/chats/${chatId}/messages?mode=${this.mode}`,
-        );
+        const data = await this.api(`/api/chats/${chatId}/messages?mode=${this.mode}`);
         if (this.activeChat?.id !== chatId) {
           this.watchingChat = null;
           return;
@@ -1516,9 +1405,7 @@ function platform() {
     async finishWatch(chatId) {
       if (this.activeChat?.id !== chatId) return;
       try {
-        const data = await this.api(
-          `/api/chats/${chatId}/messages?mode=${this.mode}`,
-        );
+        const data = await this.api(`/api/chats/${chatId}/messages?mode=${this.mode}`);
         this.setMessagesIfChanged(data.messages);
         const chat = await this.api(`/api/chats/${chatId}`);
         if (this.activeChat?.id === chatId) {
@@ -1541,11 +1428,9 @@ function platform() {
         try {
           const chat = await this.api(`/api/chats/${chatId}`);
           if (chat.status !== "running") {
-            const data = await this.api(
-              `/api/chats/${chatId}/messages?mode=${this.mode}`,
-            );
+            const data = await this.api(`/api/chats/${chatId}/messages?mode=${this.mode}`);
             if (this.activeChat?.id === chatId) {
-        this.setMessagesIfChanged(data.messages);
+              this.setMessagesIfChanged(data.messages);
               this.activeChat = chat;
               const found = this.chats.find((c) => c.id === chatId);
               if (found) Object.assign(found, chat);
@@ -1554,9 +1439,7 @@ function platform() {
             this.stopPolling();
             return;
           }
-          const data = await this.api(
-            `/api/chats/${chatId}/messages?mode=${this.mode}`,
-          );
+          const data = await this.api(`/api/chats/${chatId}/messages?mode=${this.mode}`);
           if (this.activeChat?.id === chatId) {
             const normalized = this.setMessagesIfChanged(data.messages);
             const last = normalized[normalized.length - 1];
@@ -1587,10 +1470,7 @@ function platform() {
       if (key) this.reasoningOpen[key] = input.checked;
     },
     stableMessageKey(message, index) {
-      return (
-        message.id ||
-        `${message.role || "message"}:${message.timestamp || ""}:${index}`
-      );
+      return message.id || `${message.role || "message"}:${message.timestamp || ""}:${index}`;
     },
     messagesFingerprint(messages) {
       return messages
@@ -1607,11 +1487,7 @@ function platform() {
     },
     setMessagesIfChanged(rawMessages) {
       const normalized = this.normalizeMessages(rawMessages);
-      if (
-        this.messagesFingerprint(normalized) !==
-        this.messagesFingerprint(this.messages)
-      )
-        this.messages = normalized;
+      if (this.messagesFingerprint(normalized) !== this.messagesFingerprint(this.messages)) this.messages = normalized;
       return normalized;
     },
     isActionableAssistant(message) {
@@ -1625,10 +1501,7 @@ function platform() {
           this.partsText(item.content).trim() &&
           this.messageVisible(item),
       );
-      return (
-        candidates.length > 0 &&
-        candidates[candidates.length - 1]._key === message._key
-      );
+      return candidates.length > 0 && candidates[candidates.length - 1]._key === message._key;
     },
     copyMessage(message) {
       const text = this.partsText(message.content);
@@ -1730,18 +1603,13 @@ function platform() {
       let assistantGroup = null;
       const flushAssistant = () => {
         if (assistantGroup) {
-          if (
-            assistantGroup._reasoningParts.length ||
-            assistantGroup.content.length ||
-            assistantGroup._streaming
-          )
+          if (assistantGroup._reasoningParts.length || assistantGroup.content.length || assistantGroup._streaming)
             archived.push(assistantGroup);
           assistantGroup = null;
         }
       };
       for (const [index, message] of messages.entries()) {
-        if (message.role === "toolResult" && this.mode !== "development")
-          continue;
+        if (message.role === "toolResult" && this.mode !== "development") continue;
         if (message.role === "user") {
           flushAssistant();
           archived.push({
@@ -1768,8 +1636,7 @@ function platform() {
               _streaming: false,
             };
           const hasToolCall =
-            (message.content || []).some((part) => part.type === "toolCall") ||
-            message.stopReason === "toolUse";
+            (message.content || []).some((part) => part.type === "toolCall") || message.stopReason === "toolUse";
           const usage = message.usage || {};
           sessionUsage.input += Number(usage.input) || 0;
           sessionUsage.output += Number(usage.output) || 0;
@@ -1782,17 +1649,13 @@ function platform() {
           }
           const isFinal =
             !hasToolCall &&
-            ["stop", "length", "aborted", "error"].includes(
-              message.stopReason,
-            ) &&
+            ["stop", "length", "aborted", "error"].includes(message.stopReason) &&
             (message.content || []).some((part) => part.type === "text");
           for (const part of message.content || []) {
-            if (part.type === "thinking" || !isFinal || part.type !== "text")
-              assistantGroup._reasoningParts.push(part);
+            if (part.type === "thinking" || !isFinal || part.type !== "text") assistantGroup._reasoningParts.push(part);
             else assistantGroup.content.push(part);
           }
-          assistantGroup._streaming =
-            assistantGroup._streaming || message._streaming;
+          assistantGroup._streaming = assistantGroup._streaming || message._streaming;
           continue;
         }
         flushAssistant();
@@ -1806,30 +1669,15 @@ function platform() {
       const role = message.role || "message";
       const parts = message.content || [];
       if (role === "user") return this.renderUserMessage(message, parts);
-      if (role === "toolResult")
-        return this.mode === "development"
-          ? this.renderToolResult(message)
-          : "";
+      if (role === "toolResult") return this.mode === "development" ? this.renderToolResult(message) : "";
       if (role === "assistant") {
         const text = this.partsText(parts);
-        const reasoning = this.renderReasoning(
-          message._reasoningParts || [],
-          message._key,
-        );
+        const reasoning = this.renderReasoning(message._reasoningParts || [], message._key);
         if (message._streaming && !text)
-          return (
-            reasoning ||
-            '<span class="loading loading-dots loading-xs" aria-label="Waiting for response"></span>'
-          );
+          return reasoning || '<span class="loading loading-dots loading-xs" aria-label="Waiting for response"></span>';
         return (
           reasoning +
-          parts
-            .map((part) =>
-              part.type === "text"
-                ? this.renderFinalMarkdown(part)
-                : this.renderPart(part),
-            )
-            .join("")
+          parts.map((part) => (part.type === "text" ? this.renderFinalMarkdown(part) : this.renderPart(part))).join("")
         );
       }
       const fallback = this.partsText(parts);
@@ -1838,8 +1686,7 @@ function platform() {
     renderUserMessage(message, parts) {
       const text = message.display_content || this.partsText(parts);
       const command = message._skill_invocation?.command;
-      if (!command || !text.startsWith(command))
-        return this.escape(text).replace(/\n/g, "<br>");
+      if (!command || !text.startsWith(command)) return this.escape(text).replace(/\n/g, "<br>");
       return `<span class="skill-invocation-command">${this.escape(command)}</span>${this.escape(text.slice(command.length)).replace(/\n/g, "<br>")}`;
     },
     renderReasoningPart(part) {
@@ -1851,17 +1698,10 @@ function platform() {
     },
     messageVisible(message) {
       if (message.role === "toolResult") return this.mode === "development";
-      if (this.mode !== "production" || message.role !== "assistant")
-        return true;
+      if (this.mode !== "production" || message.role !== "assistant") return true;
       if (message._streaming) return true;
-      return [
-        ...(message._reasoningParts || []),
-        ...(message.content || []),
-      ].some(
-        (part) =>
-          part.type === "text" ||
-          part.type === "thinking" ||
-          this.productionToolAllowlist.includes(part.name),
+      return [...(message._reasoningParts || []), ...(message.content || [])].some(
+        (part) => part.type === "text" || part.type === "thinking" || this.productionToolAllowlist.includes(part.name),
       );
     },
     partsText(parts) {
@@ -1871,8 +1711,7 @@ function platform() {
         .join("");
     },
     renderPart(part) {
-      if (part.type === "text")
-        return `<div class="markdown-part">${this.renderMarkdown(part.text || "")}</div>`;
+      if (part.type === "text") return `<div class="markdown-part">${this.renderMarkdown(part.text || "")}</div>`;
       if (part.type === "thinking") {
         const value = part.thinking || "";
         return `<details class="process-disclosure"><summary><span class="process-label">Thinking</span></summary><div class="process-detail">${this.escape(value).replace(/\n/g, "<br>")}</div></details>`;
@@ -1880,11 +1719,7 @@ function platform() {
       if (part.type === "toolCall") {
         const name = part.name || "unknown";
         const args = this.toolArgs(part);
-        if (
-          this.mode === "production" &&
-          !this.productionToolAllowlist.includes(name)
-        )
-          return "";
+        if (this.mode === "production" && !this.productionToolAllowlist.includes(name)) return "";
         const process = this.renderProcessToolCall(name, args);
         if (process !== null) return process;
         const compact = `<span class="tool-kicker">Tool call</span><b>${this.escape(name)}</b>`;
@@ -1906,9 +1741,7 @@ function platform() {
       try {
         const normalized = this.normalizeCodeLanguage(language);
         if (window.hljs?.getLanguage(normalized))
-          return DOMPurify.sanitize(
-            window.hljs.highlight(source, { language: normalized }).value,
-          );
+          return DOMPurify.sanitize(window.hljs.highlight(source, { language: normalized }).value);
       } catch {}
       return this.escape(source);
     },
@@ -1928,36 +1761,24 @@ function platform() {
         md: "markdown",
         jsonc: "json",
       };
-      const value = String(language || "").trim().toLowerCase();
+      const value = String(language || "")
+        .trim()
+        .toLowerCase();
       return aliases[value] || value;
     },
     renderMarkdown(source) {
       try {
-        const doc = new DOMParser().parseFromString(
-          DOMPurify.sanitize(marked.parse(source)),
-          "text/html",
-        );
+        const doc = new DOMParser().parseFromString(DOMPurify.sanitize(marked.parse(source)), "text/html");
         const root = doc.body;
-        root
-          .querySelectorAll("table")
-          .forEach((el) => (el.className = "table table-zebra"));
-        root
-          .querySelectorAll("ul")
-          .forEach((el) => (el.className = "list-disc pl-6 space-y-1"));
-        root
-          .querySelectorAll("ol")
-          .forEach((el) => (el.className = "list-decimal pl-6 space-y-1"));
+        root.querySelectorAll("table").forEach((el) => (el.className = "table table-zebra"));
+        root.querySelectorAll("ul").forEach((el) => (el.className = "list-disc pl-6 space-y-1"));
+        root.querySelectorAll("ol").forEach((el) => (el.className = "list-decimal pl-6 space-y-1"));
         root
           .querySelectorAll("blockquote")
-          .forEach(
-            (el) =>
-              (el.className = "border-l-4 border-primary pl-4 opacity-80"),
-          );
+          .forEach((el) => (el.className = "border-l-4 border-primary pl-4 opacity-80"));
         root.querySelectorAll("pre").forEach((el) => {
           const code = el.querySelector("code");
-          const languageClass = [...(code?.classList || [])].find((name) =>
-            name.startsWith("language-"),
-          );
+          const languageClass = [...(code?.classList || [])].find((name) => name.startsWith("language-"));
           const language = languageClass?.slice("language-".length) || "";
           if (this.normalizeCodeLanguage(language) === "mermaid") {
             const diagram = doc.createElement("div");
@@ -1965,8 +1786,7 @@ function platform() {
             diagram.textContent = code.textContent || "";
             el.replaceWith(diagram);
           } else {
-            el.className =
-              "bg-base-200 text-base-content rounded-box p-4 w-full overflow-x-auto my-3";
+            el.className = "bg-base-200 text-base-content rounded-box p-4 w-full overflow-x-auto my-3";
             if (code) {
               const source = code.textContent || "";
               let highlighted = this.highlightCode(source, language);
@@ -1979,9 +1799,9 @@ function platform() {
                   "typescript",
                   "yaml",
                 ]);
-                if (detected.language && detected.relevance >= 2)
-                  highlighted = DOMPurify.sanitize(detected.value);
+                if (detected.language && detected.relevance >= 2) highlighted = DOMPurify.sanitize(detected.value);
               }
+              // pi-lens-ignore: slop
               code.innerHTML = highlighted;
               code.classList.add("hljs");
             }
@@ -1993,8 +1813,7 @@ function platform() {
       }
     },
     toolArgs(part) {
-      if (part.arguments && typeof part.arguments === "object")
-        return part.arguments;
+      if (part.arguments && typeof part.arguments === "object") return part.arguments;
       try {
         return JSON.parse(part.arguments || "{}");
       } catch {
@@ -2021,47 +1840,26 @@ function platform() {
       return index >= 0 ? normalized.slice(index) : normalized;
     },
     resourcePath(kind, path) {
-      const catalog =
-        kind === "extensions"
-          ? this.resources.extensions
-          : this.resources.skills;
+      const catalog = kind === "extensions" ? this.resources.extensions : this.resources.skills;
       const normalized = this.normalizeResourcePath(path);
-      return (
-        catalog.find(
-          (item) => this.normalizeResourcePath(item.path) === normalized,
-        )?.path || ""
-      );
+      return catalog.find((item) => this.normalizeResourcePath(item.path) === normalized)?.path || "";
     },
     resourceNames(paths, kind) {
       if (!paths?.length) return "None";
-      const catalog =
-        kind === "extensions"
-          ? this.resources.extensions
-          : this.resources.skills;
+      const catalog = kind === "extensions" ? this.resources.extensions : this.resources.skills;
       return paths
         .map(
           (path) =>
-            catalog.find(
-              (item) =>
-                this.normalizeResourcePath(item.path) ===
-                this.normalizeResourcePath(path),
-            )?.name || path.split(/[\\/]/).pop(),
+            catalog.find((item) => this.normalizeResourcePath(item.path) === this.normalizeResourcePath(path))?.name ||
+            path.split(/[\\/]/).pop(),
         )
         .join(", ");
     },
     providerName(id) {
-      return (
-        this.resources.providers.find((item) => item.id === id)?.name ||
-        id ||
-        ""
-      );
+      return this.resources.providers.find((item) => item.id === id)?.name || id || "";
     },
     modelName(providerId, modelId) {
-      return (
-        this.modelsFor(providerId).find((item) => item.id === modelId)?.name ||
-        modelId ||
-        ""
-      );
+      return this.modelsFor(providerId).find((item) => item.id === modelId)?.name || modelId || "";
     },
     chooseAgent(id) {
       this.selectedAgentId = id;
@@ -2108,9 +1906,7 @@ function platform() {
       return configured
         .map((value) =>
           kind === "mcp_servers"
-            ? this.resources[kind].find((item) =>
-                [item.id, item.name, item.path].includes(value),
-              )?.[valueKey]
+            ? this.resources[kind].find((item) => [item.id, item.name, item.path].includes(value))?.[valueKey]
             : this.resourcePath(kind, value),
         )
         .filter(Boolean);
@@ -2121,10 +1917,7 @@ function platform() {
       this.newAgentInstruction = "";
       this.newAgentAvatarFile = null;
       this.newAgentAvatarPreview = "";
-      this.newAgentProvider =
-        this.resources.default_provider ||
-        this.resources.providers[0]?.id ||
-        "";
+      this.newAgentProvider = this.resources.default_provider || this.resources.providers[0]?.id || "";
       this.newAgentModel = this.defaultModelFor(this.newAgentProvider);
       this.newAgentThinkingLevel = this.defaultThinkingLevel();
       this.newAgentTools = (this.resources.default_tools || []).filter((name) =>
@@ -2136,15 +1929,11 @@ function platform() {
       this.createDialog = true;
     },
     modelsFor(providerId = this.newAgentProvider) {
-      return (
-        this.resources.providers.find((item) => item.id === providerId)
-          ?.models || []
-      );
+      return this.resources.providers.find((item) => item.id === providerId)?.models || [];
     },
     thinkingLevelsFor() {
       return (
-        this.modelsFor().find((item) => item.id === this.newAgentModel)
-          ?.thinking_levels || [
+        this.modelsFor().find((item) => item.id === this.newAgentModel)?.thinking_levels || [
           "off",
           "minimal",
           "low",
@@ -2213,13 +2002,9 @@ function platform() {
               method: "POST",
               body: JSON.stringify(payload),
             });
-        const savedAgent =
-          !editing && avatarFile
-            ? await this.uploadAvatarFile(agent.id, avatarFile)
-            : agent;
+        const savedAgent = !editing && avatarFile ? await this.uploadAvatarFile(agent.id, avatarFile) : agent;
         await this.refreshAgents();
-        const refreshedAgent =
-          this.agents.find((item) => item.id === savedAgent.id) || savedAgent;
+        const refreshedAgent = this.agents.find((item) => item.id === savedAgent.id) || savedAgent;
         this.createDialog = false;
         this.dialog = refreshedAgent;
         this.editingAgent = null;
@@ -2241,23 +2026,18 @@ function platform() {
       return `/api/agents/${encodeURIComponent(agent.id)}/avatar?v=${encodeURIComponent(agent.updated_at || agent.avatar_path)}`;
     },
     marketAgentAvatarUrl(agent) {
-      return agent?.id
-        ? `/api/market/agents/${encodeURIComponent(agent.id)}/avatar`
-        : "";
+      return agent?.id ? `/api/market/agents/${encodeURIComponent(agent.id)}/avatar` : "";
     },
     async uploadAvatarFile(agentId, file) {
       const requestId = crypto.randomUUID();
-      const response = await fetch(
-        `/api/agents/${encodeURIComponent(agentId)}/avatar`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": file.type,
-            "X-Request-ID": requestId,
-          },
-          body: file,
+      const response = await fetch(`/api/agents/${encodeURIComponent(agentId)}/avatar`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type,
+          "X-Request-ID": requestId,
         },
-      );
+        body: file,
+      });
       const responseId = response.headers.get("X-Request-ID") || requestId;
       const contentType = response.headers.get("content-type") || "";
       let data = null;
@@ -2303,14 +2083,8 @@ function platform() {
     },
     toggleResource(kind, path) {
       const key =
-        kind === "extensions"
-          ? "newAgentExtensions"
-          : kind === "skills"
-            ? "newAgentSkills"
-            : "newAgentMcpServers";
-      this[key] = this[key].includes(path)
-        ? this[key].filter((item) => item !== path)
-        : [...this[key], path];
+        kind === "extensions" ? "newAgentExtensions" : kind === "skills" ? "newAgentSkills" : "newAgentMcpServers";
+      this[key] = this[key].includes(path) ? this[key].filter((item) => item !== path) : [...this[key], path];
     },
     deleteAgent(agent) {
       if (!agent.protected) this.confirmTarget = agent;
@@ -2393,21 +2167,14 @@ function platform() {
       this.newAgentAvatarFile = null;
       this.newAgentAvatarPreview = "";
       this.newAgentProvider =
-        agent.provider ||
-        this.resources.default_provider ||
-        this.resources.providers[0]?.id ||
-        "";
-      this.newAgentModel =
-        agent.model || this.defaultModelFor(this.newAgentProvider);
-      this.newAgentThinkingLevel =
-        agent.thinking_level || this.defaultThinkingLevel();
+        agent.provider || this.resources.default_provider || this.resources.providers[0]?.id || "";
+      this.newAgentModel = agent.model || this.defaultModelFor(this.newAgentProvider);
+      this.newAgentThinkingLevel = agent.thinking_level || this.defaultThinkingLevel();
       this.newAgentTools = [...(agent.tools || [])];
       this.newAgentExtensions = (agent.extensions || [])
         .map((path) => this.resourcePath("extensions", path))
         .filter(Boolean);
-      this.newAgentSkills = (agent.skills || [])
-        .map((path) => this.resourcePath("skills", path))
-        .filter(Boolean);
+      this.newAgentSkills = (agent.skills || []).map((path) => this.resourcePath("skills", path)).filter(Boolean);
       this.newAgentMcpServers = [...(agent.mcp_servers || [])];
       this.dialog = null;
       this.createDialog = true;
@@ -2446,9 +2213,7 @@ function platform() {
       }
       this.page = "chat";
       if (match) {
-        const chat = this.chats.find(
-          (item) => item.id === decodeURIComponent(match[1]),
-        );
+        const chat = this.chats.find((item) => item.id === decodeURIComponent(match[1]));
         if (chat) await this.openChat(chat, false);
         else {
           this.activeChat = null;
@@ -2466,10 +2231,7 @@ function platform() {
       const result = args._webResult || args.webResult;
       if (!result) return null;
       const text = this.partsText(result.content || []);
-      const items =
-        name === "web_search"
-          ? this.parseSearchResults(text)
-          : this.parseFetchResult(text, result, args);
+      const items = name === "web_search" ? this.parseSearchResults(text) : this.parseFetchResult(text, result, args);
       if (!items.length)
         return this.processLine(
           name === "web_search" ? "Search" : "Read",
@@ -2481,14 +2243,8 @@ function platform() {
       window.omaPlatform = this;
       const key = crypto.randomUUID();
       this.webActivities[key] = { kind: name, items };
-      const label =
-        name === "web_search"
-          ? `Search found ${items.length} pages`
-          : `Read ${items.length} pages`;
-      const viewAll =
-        items.length > 5
-          ? '<span class="web-activity-more">View all</span>'
-          : "";
+      const label = name === "web_search" ? `Search found ${items.length} pages` : `Read ${items.length} pages`;
+      const viewAll = items.length > 5 ? '<span class="web-activity-more">View all</span>' : "";
       const pages =
         name === "web_fetch"
           ? `<span class="web-activity-pages">${items
@@ -2502,22 +2258,19 @@ function platform() {
       const sites =
         name === "web_search"
           ? `<span class="web-activity-sites">${items
-        .slice(0, 5)
-        .map((item) =>
-          item.favicon
-            ? `<img src="${this.escape(item.favicon)}" alt="" loading="lazy" onerror="this.hidden=true">`
-            : "",
-        )
-        .join(
-          "",
-        )}</span>`
+              .slice(0, 5)
+              .map((item) =>
+                item.favicon
+                  ? `<img src="${this.escape(item.favicon)}" alt="" loading="lazy" onerror="this.hidden=true">`
+                  : "",
+              )
+              .join("")}</span>`
           : "";
       return `<div role="button" tabindex="0" class="web-activity web-activity-${name}" data-web-activity-id="${key}" onclick="event.stopPropagation();window.omaPlatform.openWebActivity(this)" onkeydown="if(event.key === 'Enter' || event.key === ' ') window.omaPlatform.openWebActivity(this)"><span class="web-activity-label">${label}</span>${sites}${pages}${viewAll}<span class="web-activity-arrow"><i data-lucide="chevron-right" aria-hidden="true"></i></span></div>`;
     },
     parseSearchResults(text) {
       const items = [];
-      const pattern =
-        /(?:^|\n)\s*\d+\.\s+\*\*(.+?)\*\*\s*\n([\s\S]*?)\n(https?:\/\/\S+)/g;
+      const pattern = /(?:^|\n)\s*\d+\.\s+\*\*(.+?)\*\*\s*\n([\s\S]*?)\n(https?:\/\/\S+)/g;
       let match;
       while ((match = pattern.exec(text))) {
         const url = match[3].replace(/[)>.,]+$/, "");
@@ -2536,8 +2289,7 @@ function platform() {
       const titleLine = text.match(/^\s*Title:\s*(.+)$/im)?.[1]?.trim();
       const heading = text.match(/^#{1,3}\s+(.+)$/m)?.[1]?.trim();
       let title = titleLine || heading || "";
-      if (/^(?:url(?:\s+source)?:\s*)?https?:\/\//i.test(title))
-        title = heading || "";
+      if (/^(?:url(?:\s+source)?:\s*)?https?:\/\//i.test(title)) title = heading || "";
       try {
         title = title || new URL(url).hostname;
       } catch {
@@ -2547,9 +2299,7 @@ function platform() {
     },
     truncateLabel(value, limit = 20) {
       const characters = [...String(value || "")];
-      return characters.length > limit
-        ? `${characters.slice(0, limit).join("")}…`
-        : characters.join("");
+      return characters.length > limit ? `${characters.slice(0, limit).join("")}…` : characters.join("");
     },
     formatCompactNumber(value) {
       const number = Number(value) || 0;
@@ -2581,8 +2331,7 @@ function platform() {
     openWebActivity(button) {
       const activity = this.webActivities[button.dataset.webActivityId];
       if (!activity) return;
-      this.linkDrawerTitle =
-        activity.kind === "web_search" ? "Search results" : "Read pages";
+      this.linkDrawerTitle = activity.kind === "web_search" ? "Search results" : "Read pages";
       this.linkDrawerItems = activity.items || [];
       this.filesOpen = false;
       this.linkDrawerOpen = true;
@@ -2605,15 +2354,10 @@ function platform() {
           const args = this.toolArgs(part);
           const result = args._webResult || part.webResult;
           if (result) {
-            const fetchItems = this.parseFetchResult(
-              this.partsText(result.content || []),
-              result,
-              args,
-            );
+            const fetchItems = this.parseFetchResult(this.partsText(result.content || []), result, args);
             if (fetchItems.length) {
               const previous = entries[entries.length - 1];
-              if (previous?.kind === "web_fetch")
-                previous.items.push(...fetchItems);
+              if (previous?.kind === "web_fetch") previous.items.push(...fetchItems);
               else entries.push({ kind: "web_fetch", items: fetchItems });
               continue;
             }
@@ -2630,12 +2374,7 @@ function platform() {
           return html
             ? {
                 html,
-                marker:
-                  toolName === "web_search"
-                    ? "globe"
-                    : toolName === "web_fetch"
-                      ? "globe"
-                      : "dot",
+                marker: toolName === "web_search" ? "globe" : toolName === "web_fetch" ? "globe" : "dot",
               }
             : null;
         })
@@ -2649,48 +2388,28 @@ function platform() {
       if (!content) return "";
       const times = parts
         .flatMap((part) => [part._timestamp, part.webResult?.timestamp])
-        .map((value) =>
-          typeof value === "number" ? value : Date.parse(String(value || "")),
-        )
+        .map((value) => (typeof value === "number" ? value : Date.parse(String(value || ""))))
         .filter(Number.isFinite);
       const seconds =
-        times.length > 1
-          ? Math.max(
-              1,
-              Math.round((Math.max(...times) - Math.min(...times)) / 1000),
-            )
-          : null;
+        times.length > 1 ? Math.max(1, Math.round((Math.max(...times) - Math.min(...times)) / 1000)) : null;
       const label = seconds === null ? "Thought" : `Thought for ${seconds}s`;
       const reasoningKey = `${messageKey || "message"}:reasoning`;
       const checked = this.reasoningOpen[reasoningKey] ? " checked" : "";
       return `<div class="collapse reasoning-collapse"><input type="checkbox" data-reasoning-key="${this.escape(reasoningKey)}" onchange="window.omaPlatform.setReasoningOpen(this)"${checked} /><div class="collapse-title process-label"><i data-lucide="sparkle" aria-hidden="true"></i><span>${label}</span><i class="reasoning-chevron" data-lucide="chevron-down" aria-hidden="true"></i></div><div class="collapse-content"><ul class="timeline timeline-compact timeline-snap-icon timeline-vertical reasoning-timeline">${content}</ul></div></div>`;
     },
     renderProcessToolCall(name, args) {
-      if (name === "web_search" || name === "web_fetch")
-        return this.renderWebActivity(name, args);
+      if (name === "web_search" || name === "web_fetch") return this.renderWebActivity(name, args);
       const renderers = {
         read: () => (args.path ? this.processLine("Read", args.path) : ""),
         write: () => (args.path ? this.processLine("Write", args.path) : ""),
         ls: () => (args.path ? this.processLine("List", args.path) : ""),
-        find: () =>
-          args.pattern && args.path
-            ? this.processLine("Find", `${args.pattern} in ${args.path}`)
-            : "",
-        grep: () =>
-          args.pattern && args.path
-            ? this.processLine("Grep", `${args.pattern} in ${args.path}`)
-            : "",
+        find: () => (args.pattern && args.path ? this.processLine("Find", `${args.pattern} in ${args.path}`) : ""),
+        grep: () => (args.pattern && args.path ? this.processLine("Grep", `${args.pattern} in ${args.path}`) : ""),
         edit: () => (args.path ? this.processLine("Edit", args.path) : ""),
         mcp: () => (args.tool ? this.processLine("Use", args.tool) : ""),
         bash: () =>
           args.command
-            ? this.processDisclosure(
-                "Run",
-                args.command,
-                this.highlightCode(args.command, "bash"),
-                "bash",
-                false,
-              )
+            ? this.processDisclosure("Run", args.command, this.highlightCode(args.command, "bash"), "bash", false)
             : "",
         mcpScript: () =>
           args.code
@@ -2707,13 +2426,7 @@ function platform() {
       const renderer = renderers[name];
       return renderer ? renderer() : null;
     },
-    productionToolAllowlist: [
-      "read",
-      "write",
-      "edit",
-      "web_search",
-      "web_fetch",
-    ],
+    productionToolAllowlist: ["read", "write", "edit", "web_search", "web_fetch"],
     showError(error) {
       this.toastMessage = "";
       this.error = error.message || String(error);

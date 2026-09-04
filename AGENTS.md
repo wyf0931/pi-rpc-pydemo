@@ -42,6 +42,11 @@ uv run uvicorn app.main:app --env-file .env --reload
 # Test (run before declaring any work done)
 uv run pytest -q
 
+# Frontend formatting (Prettier — required before publishing)
+npm install
+npm run format            # static/app.js + static/index.html
+npm run format:check      # merge-gate check
+
 # Frontend CSS (only when changing markdown presentation classes)
 npm install
 npm run build:css         # frontend/input.css -> static/typography.css (keep it committed)
@@ -131,7 +136,10 @@ data/           Legacy runtime data (pre-normalization archive, gitignored, supe
   coverage.
 - **Errors:** raise `HTTPException` with clear messages; map `PiRpcError` to 503.
 - **Style:** modern stdlib typing (`str | None`), dataclasses for settings, and
-  formatting consistent with the surrounding code. Ruff is configured in `pyproject.toml`.
+  formatting consistent with the surrounding code. Ruff is configured in
+  `pyproject.toml` (Python); Prettier is configured in `.prettierrc` for
+  `static/app.js` and `static/index.html` — run `npm run format` before
+  publishing frontend changes.
 - **Never commit:** `data/`, `logs/`, `.env`, `.run/`, `research/`, `.superpowers/`,
   `.playwright-cli/`, `node_modules/`, `.venv/` (all gitignored runtime/scratch).
 
@@ -178,6 +186,7 @@ Before publishing, the worker must run formatting first, then validation:
 ```bash
 uv run ruff format app tests
 uv run ruff check
+npm run format:check
 uvx pyright app tests
 uv run pytest -q
 git diff --check
@@ -199,6 +208,7 @@ git pull --ff-only origin main
 git merge --no-ff <issue-branch> -m "merge: <issue summary>"
 uv run ruff format --check app tests
 uv run ruff check
+npm run format:check
 uvx pyright app tests
 uv run pytest -q
 git push origin main
