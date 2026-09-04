@@ -1801,8 +1801,7 @@ function platform() {
     renderMessage(message) {
       const role = message.role || "message";
       const parts = message.content || [];
-      if (role === "user")
-        return this.escape(this.partsText(parts)).replace(/\n/g, "<br>");
+      if (role === "user") return this.renderUserMessage(message, parts);
       if (role === "toolResult")
         return this.mode === "development"
           ? this.renderToolResult(message)
@@ -1831,6 +1830,13 @@ function platform() {
       }
       const fallback = this.partsText(parts);
       return `<div class="system-message"><span>${this.escape(role)}</span>${fallback ? `<p>${this.escape(fallback).replace(/\n/g, "<br>")}</p>` : ""}</div>`;
+    },
+    renderUserMessage(message, parts) {
+      const text = message.display_content || this.partsText(parts);
+      const command = message._skill_invocation?.command;
+      if (!command || !text.startsWith(command))
+        return this.escape(text).replace(/\n/g, "<br>");
+      return `<span class="skill-invocation-command">${this.escape(command)}</span>${this.escape(text.slice(command.length)).replace(/\n/g, "<br>")}`;
     },
     renderReasoningPart(part) {
       if (part.type === "thinking")

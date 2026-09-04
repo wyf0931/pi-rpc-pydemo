@@ -72,6 +72,48 @@ def test_visible_messages_attaches_web_results_to_calls():
     assert "_webResult" in visible[0]["content"][0]["arguments"]
 
 
+def test_visible_messages_compacts_pi_skill_invocation():
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": (
+                        '<skill name="skill-creator" location="/private/skill/SKILL.md">\n'
+                        "References are relative to /private/skill.\n\n"
+                        "# Private skill instructions\nDo not show these instructions.\n"
+                        "</skill>\n\n"
+                        "给我介绍一下这个 skill 的主要功能特色"
+                    ),
+                }
+            ],
+        }
+    ]
+
+    visible = visible_messages(messages)
+    message = visible[0]
+
+    assert message["display_content"] == (
+        "/skill:skill-creator 给我介绍一下这个 skill 的主要功能特色"
+    )
+    assert message["content"] == [{"type": "text", "text": message["display_content"]}]
+    assert message["_skill_invocation"] == {
+        "name": "skill-creator",
+        "command": "/skill:skill-creator",
+        "user_message": "给我介绍一下这个 skill 的主要功能特色",
+    }
+    assert "location" not in message["_skill_invocation"]
+
+
+def test_visible_messages_keeps_non_skill_user_messages_unchanged():
+    message = {"role": "user", "content": [{"type": "text", "text": "hello"}]}
+
+    visible = visible_messages([message])
+
+    assert visible == [message]
+
+
 def test_health_and_agents(client):
     assert client.get("/api/health").json()["ok"] is True
     assert client.get("/api/health").json()["active_processes"] == 0
