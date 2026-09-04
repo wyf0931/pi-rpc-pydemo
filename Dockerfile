@@ -1,15 +1,17 @@
 # OMA Studio — one lightweight image, two system layers:
 #   app layer     : Python 3.11 + FastAPI + static UI (this repo)
-#   process layer : Pi coding agent (Node) + ripgrep / fd / git
+#   process layer : Pi coding agent (Node) + curl / jq / ripgrep / fd / git
 # State (platform data, sessions, workspace, Pi home) stays on the host
 # through bind mounts — nothing is baked into the image.
 
 FROM node:24-bookworm-slim
 
-# Process-layer tools. fd ships as fd-find on Debian.
+# Process-layer tools. fd ships as fd-find on Debian. curl and jq are useful
+# for ordinary HTTP/API debugging from the Agent's bash tool; structured web
+# research should still prefer the platform web_fetch/web_search tools.
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
-       bash ca-certificates git ripgrep fd-find python3 python3-venv \
+       bash ca-certificates curl git jq ripgrep fd-find python3 python3-venv \
   && ln -s /usr/bin/fdfind /usr/local/bin/fd \
   && rm -rf /var/lib/apt/lists/*
 
