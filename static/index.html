@@ -22,7 +22,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260905-agent-tools-resources" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260906-chat-viewport-composer" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -210,7 +210,7 @@
           aria-label="Close chat history"
         ></button>
 
-        <section class="content-panel" x-show="page === 'chat'" x-cloak>
+        <section class="content-panel" x-ref="chatContent" x-show="page === 'chat'" x-cloak>
           <aside class="files-drawer link-drawer" x-show="linkDrawerOpen" x-cloak x-transition aria-label="Web results">
             <div class="files-drawer-header">
               <div>
@@ -417,8 +417,11 @@
                 <textarea
                   id="conversation-message"
                   name="message"
+                  rows="1"
                   class="textarea textarea-bordered"
+                  x-ref="conversationInput"
                   x-model="draft"
+                  @input="resizeConversationInput($event)"
                   @keydown.enter.meta.prevent="sendMessage()"
                   :disabled="loading"
                   placeholder="Message this agent…"
@@ -2768,6 +2771,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260905-chat-isolation"></script>
+    <script src="/static/app.js?v=20260906-chat-viewport-composer"></script>
   </body>
 </html>

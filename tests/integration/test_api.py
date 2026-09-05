@@ -151,9 +151,26 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260905-chat-isolation" in Path("static/index.html").read_text(
-        encoding="utf-8"
-    )
+    assert "app.js?v=20260906-chat-viewport-composer" in Path(
+        "static/index.html"
+    ).read_text(encoding="utf-8")
+
+
+def test_chat_viewport_and_composer_use_latest_message_and_seven_line_contract():
+    html = Path("static/index.html").read_text(encoding="utf-8")
+    script = Path("static/app.js").read_text(encoding="utf-8")
+    styles = Path("static/styles.css").read_text(encoding="utf-8")
+
+    assert 'id="conversation-message"' in html
+    assert 'rows="1"' in html
+    assert '@input="resizeConversationInput($event)"' in html
+    assert 'x-ref="chatContent"' in html
+    assert "scrollMessagesToLatest()" in script
+    assert "const maxHeight = lineHeight * 7 + verticalPadding" in script
+    assert "chatContent.scrollTop = chatContent.scrollHeight" in script
+    assert "this.scrollMessagesToLatest();" in script
+    assert ".composer textarea" in styles
+    assert "max-height: calc(10.5em + 24px);" in styles
 
 
 def test_agent_tools_use_product_capability_groups_with_safe_defaults():
