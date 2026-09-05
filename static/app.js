@@ -64,6 +64,7 @@ function platform() {
     activeProcesses: 0,
     draft: "",
     loading: false,
+    chatViewToken: 0,
     watchingChat: null,
     streamSource: null,
     pollTimer: null,
@@ -277,6 +278,7 @@ function platform() {
       headers.set("X-Request-ID", requestId);
       const response = await fetch(requestPath, {
         ...options,
+        cache: "no-store",
         headers,
       });
       const responseId = response.headers.get("X-Request-ID") || requestId;
@@ -899,6 +901,10 @@ function platform() {
       this.mode = ["development", "production"].includes(value) ? value : this.resources.mode || "production";
     },
     go(page) {
+      if (page !== "chat") {
+        this.stopWatching();
+        this.chatViewToken += 1;
+      }
       this.page = page;
       const path =
         page === "agents"
@@ -1266,6 +1272,7 @@ function platform() {
     },
     newChat() {
       this.stopWatching();
+      this.chatViewToken += 1;
       this.resetShare();
       this.cancelEditingChatTitle();
       this.activeChat = null;
@@ -1283,6 +1290,7 @@ function platform() {
     },
     async openChat(chat, updateUrl = true) {
       this.stopWatching();
+      const viewToken = ++this.chatViewToken;
       this.resetShare();
       this.page = "chat";
       this.cancelEditingChatTitle();
@@ -1294,11 +1302,12 @@ function platform() {
       this.messagesLoading = true;
       try {
         const data = await this.api(`/api/chats/${chat.id}/messages?mode=${this.mode}`);
+        if (viewToken !== this.chatViewToken || this.activeChat?.id !== chat.id) return;
         this.messages = this.normalizeMessages(data.messages);
       } catch (e) {
-        this.showError(e);
+        if (viewToken === this.chatViewToken && this.activeChat?.id === chat.id) this.showError(e);
       } finally {
-        this.messagesLoading = false;
+        if (viewToken === this.chatViewToken && this.activeChat?.id === chat.id) this.messagesLoading = false;
       }
       if (chat.status === "running" && !this.loading) void this.watchChat(chat.id);
     },
@@ -1454,6 +1463,8 @@ function platform() {
       });
       this.loading = true;
       const chatId = this.activeChat.id;
+      const viewToken = this.chatViewToken;
+      const isCurrentView = () => viewToken === this.chatViewToken && this.activeChat?.id === chatId;
       try {
         const requestId = crypto.randomUUID();
         const response = await fetch(`/api/chats/${chatId}/messages`, {
@@ -1491,38 +1502,44 @@ function platform() {
             if (!line) continue;
             const event = JSON.parse(line.slice(6));
             if (event.type === "complete") {
-              this.activeChat = event.chat;
-              const i = this.messages.length - 1;
-              const normalized = this.normalizeMessages(event.messages || []);
-              const hasFinal = normalized.some(
-                (message) => message.role === "assistant" && this.partsText(message.content),
-              );
-              if (!hasFinal && event.assistant)
-                normalized.push({
-                  _key: crypto.randomUUID(),
-                  role: "assistant",
-                  content: [{ type: "text", text: event.assistant }],
-                  _reasoningParts: [],
-                  _streaming: false,
-                });
-              this.messages.splice(i, 1, ...normalized);
-              const found = this.chats.find((c) => c.id === this.activeChat.id);
-              if (found) Object.assign(found, this.activeChat);
+              const found = this.chats.find((c) => c.id === event.chat?.id);
+              if (found && event.chat) Object.assign(found, event.chat);
+              if (isCurrentView()) {
+                this.activeChat = event.chat;
+                const i = this.messages.length - 1;
+                const normalized = this.normalizeMessages(event.messages || []);
+                const hasFinal = normalized.some(
+                  (message) => message.role === "assistant" && this.partsText(message.content),
+                );
+                if (!hasFinal && event.assistant)
+                  normalized.push({
+                    _key: crypto.randomUUID(),
+                    role: "assistant",
+                    content: [{ type: "text", text: event.assistant }],
+                    _reasoningParts: [],
+                    _streaming: false,
+                  });
+                this.messages.splice(i, 1, ...normalized);
+              }
             } else if (event.type === "error") {
               throw new Error(event.error);
-            } else {
+            } else if (isCurrentView()) {
               this.handleTurnEvent(event);
             }
           }
         }
       } catch (e) {
-        this.showError(e);
-        this.loading = false;
-        if (chatId) void this.watchChat(chatId);
+        if (isCurrentView()) {
+          this.showError(e);
+          this.loading = false;
+          if (chatId) void this.watchChat(chatId);
+        }
         return;
       } finally {
-        this.loading = false;
-        this.messages = [...this.messages];
+        if (isCurrentView()) {
+          this.loading = false;
+          this.messages = [...this.messages];
+        }
       }
     },
     markStreamingAssistantMessageEnd() {
@@ -1573,15 +1590,14 @@ function platform() {
     },
     async watchChat(chatId) {
       if (!chatId || this.watchingChat === chatId) return;
+      const viewToken = this.chatViewToken;
       this.watchingChat = chatId;
       try {
         const chat = await this.api(`/api/chats/${chatId}`);
+        if (viewToken !== this.chatViewToken || this.activeChat?.id !== chatId) return;
         if (this.activeChat?.id === chatId) this.activeChat = chat;
         const data = await this.api(`/api/chats/${chatId}/messages?mode=${this.mode}`);
-        if (this.activeChat?.id !== chatId) {
-          this.watchingChat = null;
-          return;
-        }
+        if (viewToken !== this.chatViewToken || this.activeChat?.id !== chatId) return;
         const normalized = this.normalizeMessages(data.messages);
         this.messages = normalized;
         const last = normalized[normalized.length - 1];
@@ -1611,73 +1627,79 @@ function platform() {
           }
           if (event.type === "complete" || event.type === "error") {
             source.close();
-            this.streamSource = null;
-            this.watchingChat = null;
-            this.loading = false;
-            if (event.type === "error") this.showError(new Error(event.error));
-            void this.finishWatch(chatId);
+            if (viewToken === this.chatViewToken && this.activeChat?.id === chatId) {
+              this.streamSource = null;
+              this.watchingChat = null;
+              this.loading = false;
+              if (event.type === "error") this.showError(new Error(event.error));
+              void this.finishWatch(chatId, viewToken);
+            }
             return;
           }
-          if (this.activeChat?.id === chatId) this.handleTurnEvent(event);
+          if (viewToken === this.chatViewToken && this.activeChat?.id === chatId) this.handleTurnEvent(event);
         };
         source.onerror = () => {
           source.close();
-          this.streamSource = null;
-          if (this.watchingChat === chatId) {
+          if (viewToken === this.chatViewToken && this.activeChat?.id === chatId) {
+            this.streamSource = null;
             this.watchingChat = null;
-            this.startPolling(chatId);
+            this.startPolling(chatId, viewToken);
           }
         };
       } catch (e) {
-        this.watchingChat = null;
-        this.showError(e);
+        if (viewToken === this.chatViewToken && this.activeChat?.id === chatId) {
+          this.watchingChat = null;
+          this.showError(e);
+        }
       }
     },
-    async finishWatch(chatId) {
-      if (this.activeChat?.id !== chatId) return;
+    async finishWatch(chatId, viewToken = this.chatViewToken) {
+      if (viewToken !== this.chatViewToken || this.activeChat?.id !== chatId) return;
       try {
         const data = await this.api(`/api/chats/${chatId}/messages?mode=${this.mode}`);
+        if (viewToken !== this.chatViewToken || this.activeChat?.id !== chatId) return;
         this.setMessagesIfChanged(data.messages);
         const chat = await this.api(`/api/chats/${chatId}`);
-        if (this.activeChat?.id === chatId) {
-          this.activeChat = chat;
-          const found = this.chats.find((c) => c.id === chatId);
-          if (found) Object.assign(found, chat);
-        }
+        if (viewToken !== this.chatViewToken || this.activeChat?.id !== chatId) return;
+        this.activeChat = chat;
+        const found = this.chats.find((c) => c.id === chatId);
+        if (found) Object.assign(found, chat);
         this.loading = false;
       } catch (e) {
-        this.showError(e);
+        if (viewToken === this.chatViewToken && this.activeChat?.id === chatId) this.showError(e);
       }
     },
-    startPolling(chatId) {
+    startPolling(chatId, viewToken = this.chatViewToken) {
       this.stopPolling();
       this.pollTimer = setInterval(async () => {
-        if (this.activeChat?.id !== chatId) {
+        if (viewToken !== this.chatViewToken || this.activeChat?.id !== chatId) {
           this.stopPolling();
           return;
         }
         try {
           const chat = await this.api(`/api/chats/${chatId}`);
+          if (viewToken !== this.chatViewToken || this.activeChat?.id !== chatId) {
+            this.stopPolling();
+            return;
+          }
           if (chat.status !== "running") {
             const data = await this.api(`/api/chats/${chatId}/messages?mode=${this.mode}`);
-            if (this.activeChat?.id === chatId) {
-              this.setMessagesIfChanged(data.messages);
-              this.activeChat = chat;
-              const found = this.chats.find((c) => c.id === chatId);
-              if (found) Object.assign(found, chat);
-            }
+            if (viewToken !== this.chatViewToken || this.activeChat?.id !== chatId) return;
+            this.setMessagesIfChanged(data.messages);
+            this.activeChat = chat;
+            const found = this.chats.find((c) => c.id === chatId);
+            if (found) Object.assign(found, chat);
             this.loading = false;
             this.stopPolling();
             return;
           }
           const data = await this.api(`/api/chats/${chatId}/messages?mode=${this.mode}`);
-          if (this.activeChat?.id === chatId) {
-            const normalized = this.setMessagesIfChanged(data.messages);
-            const last = normalized[normalized.length - 1];
-            if (last?.role === "assistant" && !last._streaming) {
-              this.loading = false;
-              this.stopPolling();
-            }
+          if (viewToken !== this.chatViewToken || this.activeChat?.id !== chatId) return;
+          const normalized = this.setMessagesIfChanged(data.messages);
+          const last = normalized[normalized.length - 1];
+          if (last?.role === "assistant" && !last._streaming) {
+            this.loading = false;
+            this.stopPolling();
           }
         } catch {}
       }, 3000);
