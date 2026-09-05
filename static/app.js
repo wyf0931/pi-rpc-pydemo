@@ -892,6 +892,34 @@ function platform() {
       input.style.height = "auto";
       input.style.height = `${Math.min(input.scrollHeight, 320)}px`;
     },
+    resizeConversationInput(event) {
+      const input = event.target;
+      const styles = window.getComputedStyle(input);
+      const lineHeight = Number.parseFloat(styles.lineHeight) || 20;
+      const verticalPadding = Number.parseFloat(styles.paddingTop) + Number.parseFloat(styles.paddingBottom);
+      const maxHeight = lineHeight * 7 + verticalPadding;
+      input.style.height = "auto";
+      input.style.height = `${Math.min(input.scrollHeight, maxHeight)}px`;
+      input.style.overflowY = input.scrollHeight > maxHeight ? "auto" : "hidden";
+    },
+    resetConversationInput() {
+      this.$nextTick(() => {
+        const input = this.$refs.conversationInput;
+        if (!input) return;
+        input.style.height = "";
+        input.style.overflowY = "hidden";
+      });
+    },
+    scrollMessagesToLatest() {
+      this.$nextTick(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const chatContent = this.$refs.chatContent;
+            if (chatContent) chatContent.scrollTop = chatContent.scrollHeight;
+          });
+        });
+      });
+    },
     modeQuery() {
       const value = new URLSearchParams(location.search).get("mode");
       return ["development", "production"].includes(value) ? `?mode=${value}` : "";
@@ -1297,6 +1325,7 @@ function platform() {
       this.activeChat = chat;
       this.files = [];
       this.filesOpen = false;
+      this.resetConversationInput();
       if (updateUrl) history.pushState({}, "", `/chat/${chat.id}` + this.modeQuery());
       this.messages = [];
       this.messagesLoading = true;
@@ -1304,6 +1333,7 @@ function platform() {
         const data = await this.api(`/api/chats/${chat.id}/messages?mode=${this.mode}`);
         if (viewToken !== this.chatViewToken || this.activeChat?.id !== chat.id) return;
         this.messages = this.normalizeMessages(data.messages);
+        this.scrollMessagesToLatest();
       } catch (e) {
         if (viewToken === this.chatViewToken && this.activeChat?.id === chat.id) this.showError(e);
       } finally {
@@ -1448,6 +1478,7 @@ function platform() {
       const content = this.draft.trim();
       if (!content || !this.activeChat || this.loading) return;
       this.draft = "";
+      this.resetConversationInput();
       this.messages.push({
         _key: crypto.randomUUID(),
         role: "user",
@@ -1781,6 +1812,7 @@ function platform() {
           status: "ready",
         };
         this.messages = this.normalizeMessages(data.messages || []);
+        this.scrollMessagesToLatest();
         document.title = `${this.activeChat.title || "Shared conversation"} · OMA studio`;
       } catch (e) {
         this.activeChat = null;
