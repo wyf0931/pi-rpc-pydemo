@@ -151,7 +151,7 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260907-expired-session-redirect" in Path(
+    assert "app.js?v=20260907-lucide-first-login" in Path(
         "static/index.html"
     ).read_text(encoding="utf-8")
 
@@ -187,6 +187,18 @@ def test_client_redirects_expired_sessions_only_for_authenticated_401_responses(
     assert "if (error?.sessionExpired) return;" in script
     assert "toast-warning" in html
     assert ".toast-warning" in styles
+
+
+def test_lucide_icons_render_after_unauthenticated_boot_and_first_login():
+    script = Path("static/app.js").read_text(encoding="utf-8")
+
+    assert "this.observeIcons();" in script
+    assert "this.renderIconsSoon();" in script
+    assert "renderIconsSoon()" in script
+    assert (
+        "this.$nextTick(() => requestAnimationFrame(() => this.renderIcons()));"
+        in script
+    )
 
 
 def test_agent_tools_use_product_capability_groups_with_safe_defaults():

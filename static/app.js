@@ -215,6 +215,7 @@ function platform() {
     sessionExpired: false,
     async init() {
       window.omaPlatform = this;
+      this.observeIcons();
       this.sharedMode =
         window.location.pathname.startsWith("/share/") ||
         window.location.pathname === "/file-view" ||
@@ -225,6 +226,7 @@ function platform() {
         await this.loadSession();
         if (!this.authUser) {
           this.appReady = true;
+          this.renderIconsSoon();
           return;
         }
       }
@@ -244,13 +246,15 @@ function platform() {
       } catch (e) {
         this.showError(e);
       } finally {
-        this.renderIcons();
-        this.observeIcons();
         this.appReady = true;
+        this.renderIconsSoon();
       }
     },
     renderIcons() {
       if (window.lucide?.createIcons) window.lucide.createIcons();
+    },
+    renderIconsSoon() {
+      this.$nextTick(() => requestAnimationFrame(() => this.renderIcons()));
     },
     observeIcons() {
       if (!window.MutationObserver) return;
@@ -336,6 +340,7 @@ function platform() {
         if (this.agents.length) this.selectedAgentId = this.agents[0].id;
         this.appReady = true;
         await this.routeFromUrl();
+        this.renderIconsSoon();
       } catch (error) {
         this.authUser = null;
         this.loginError = error.message;
