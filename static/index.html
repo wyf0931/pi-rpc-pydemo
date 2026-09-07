@@ -22,7 +22,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260906-chat-viewport-composer" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260907-expired-session-redirect" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -2571,7 +2571,10 @@
       class="toast"
       x-show="toastMessage || error"
       x-text="toastMessage || error"
-      :class="{'toast-success': toastMessage && toastKind === 'success'}"
+      :class="{
+        'toast-success': toastMessage && toastKind === 'success',
+        'toast-warning': toastMessage && toastKind === 'warning',
+      }"
       x-cloak
     ></div>
 
@@ -2771,6 +2774,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260906-chat-viewport-composer"></script>
+    <script src="/static/app.js?v=20260907-expired-session-redirect"></script>
   </body>
 </html>

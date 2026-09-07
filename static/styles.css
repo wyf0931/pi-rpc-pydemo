@@ -846,6 +846,10 @@ body {
  background: var(--color-success);
  color: var(--color-success-content);
 }
+.toast-warning {
+ background: var(--color-warning);
+ color: var(--color-warning-content);
+}
 .login-screen {
  min-height: 100vh;
  display: grid;

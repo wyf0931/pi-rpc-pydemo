@@ -151,7 +151,7 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260906-chat-viewport-composer" in Path(
+    assert "app.js?v=20260907-expired-session-redirect" in Path(
         "static/index.html"
     ).read_text(encoding="utf-8")
 
@@ -171,6 +171,22 @@ def test_chat_viewport_and_composer_use_latest_message_and_seven_line_contract()
     assert "this.scrollMessagesToLatest();" in script
     assert ".composer textarea" in styles
     assert "max-height: calc(10.5em + 24px);" in styles
+
+
+def test_client_redirects_expired_sessions_only_for_authenticated_401_responses():
+    html = Path("static/index.html").read_text(encoding="utf-8")
+    script = Path("static/app.js").read_text(encoding="utf-8")
+    styles = Path("static/styles.css").read_text(encoding="utf-8")
+
+    assert "handleUnauthorizedResponse(response, requestPath, error);" in script
+    assert "response.status !== 401" in script
+    assert 'path === "/api/auth/login"' in script
+    assert 'path === "/api/auth/session"' in script
+    assert "error.sessionExpired = true;" in script
+    assert "Your login session has expired. Please sign in again." in script
+    assert "if (error?.sessionExpired) return;" in script
+    assert "toast-warning" in html
+    assert ".toast-warning" in styles
 
 
 def test_agent_tools_use_product_capability_groups_with_safe_defaults():

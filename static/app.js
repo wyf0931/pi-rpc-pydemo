@@ -212,6 +212,7 @@ function platform() {
     theme: "light",
     systemThemeQuery: null,
     appReady: false,
+    sessionExpired: false,
     async init() {
       window.omaPlatform = this;
       this.sharedMode =
@@ -294,7 +295,9 @@ function platform() {
         await response.text();
       }
       if (!response.ok) {
-        throw this.errorFromResponse(response, responseId, data);
+        const error = this.errorFromResponse(response, responseId, data);
+        this.handleUnauthorizedResponse(response, requestPath, error);
+        throw error;
       }
       if (data === null) {
         const error = new Error(`Server returned a non-JSON response (request_id: ${responseId})`);
@@ -326,6 +329,7 @@ function platform() {
             password: this.loginPassword,
           }),
         });
+        this.sessionExpired = false;
         this.loginPassword = "";
         this.appReady = false;
         await Promise.all([this.loadAgents(), this.loadChats(), this.loadHealth(), this.loadResources()]);
@@ -358,7 +362,32 @@ function platform() {
       const detail = data?.detail || `Server returned ${response.status}`;
       const error = new Error(`${detail} (request_id: ${requestId})`);
       error.requestId = requestId;
+      error.status = response.status;
       return error;
+    },
+    handleUnauthorizedResponse(response, path, error) {
+      if (response.status !== 401 || this.sharedMode || path === "/api/auth/login" || path === "/api/auth/session")
+        return;
+      error.sessionExpired = true;
+      if (this.sessionExpired) return;
+      this.sessionExpired = true;
+      this.stopWatching();
+      this.chatViewToken += 1;
+      this.authUser = null;
+      this.authChecked = true;
+      this.activeChat = null;
+      this.agents = [];
+      this.chats = [];
+      this.messages = [];
+      this.files = [];
+      this.loading = false;
+      this.messagesLoading = false;
+      this.page = "chat";
+      this.runError = "";
+      this.loginError = "";
+      this.appReady = true;
+      history.replaceState({}, "", "/chat" + this.modeQuery());
+      this.showToast("Your login session has expired. Please sign in again.", "warning");
     },
     async loadAgents() {
       try {
@@ -1517,7 +1546,9 @@ function platform() {
           } else {
             await response.text();
           }
-          throw this.errorFromResponse(response, responseId, data);
+          const error = this.errorFromResponse(response, responseId, data);
+          this.handleUnauthorizedResponse(response, `/api/chats/${chatId}/messages`, error);
+          throw error;
         }
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -2452,7 +2483,11 @@ function platform() {
       } else {
         await response.text();
       }
-      if (!response.ok) throw this.errorFromResponse(response, responseId, data);
+      if (!response.ok) {
+        const error = this.errorFromResponse(response, responseId, data);
+        this.handleUnauthorizedResponse(response, `/api/agents/${encodeURIComponent(agentId)}/avatar`, error);
+        throw error;
+      }
       return data;
     },
     async uploadAgentAvatar(event) {
@@ -2833,6 +2868,7 @@ function platform() {
     },
     productionToolAllowlist: ["read", "write", "edit", "web_search", "web_fetch"],
     showError(error) {
+      if (error?.sessionExpired) return;
       this.toastMessage = "";
       this.error = error.message || String(error);
       this.runError = this.error;
