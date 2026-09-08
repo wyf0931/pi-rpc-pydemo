@@ -126,9 +126,12 @@ def test_health_and_agents(client):
 def test_favicon_assets_are_explicit_and_ico_is_not_spa_html(client):
     html = Path("static/index.html").read_text(encoding="utf-8")
 
-    assert 'rel="icon" type="image/png" sizes="32x32"' in html
+    assert 'rel="icon"' in html
+    assert 'sizes="32x32"' in html
     assert 'href="/static/favicon-32.png?v=20260908"' in html
+    assert 'href="/static/favicon-dark-32.png?v=20260908"' in html
     assert 'href="/static/favicon-16.png?v=20260908"' in html
+    assert 'href="/static/favicon-dark-16.png?v=20260908"' in html
     assert 'href="/favicon.ico?v=20260908"' in html
     assert 'href="/static/apple-touch-icon.png?v=20260908"' in html
 
