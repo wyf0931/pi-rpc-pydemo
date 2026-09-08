@@ -22,14 +22,17 @@ set -a
 set +a
 PORT="${OMA_PORT:-8000}"
 
-if [[ -z "${PI_HOST_AGENTS_HOME:-}" ]]; then
-  echo "PI_HOST_AGENTS_HOME is required in $ROOT/.env.ops" >&2
-  exit 1
-fi
-if [[ "$PI_HOST_AGENTS_HOME" != /* || ! -d "$PI_HOST_AGENTS_HOME" ]]; then
-  echo "PI_HOST_AGENTS_HOME must be an existing absolute host directory: $PI_HOST_AGENTS_HOME" >&2
-  exit 1
-fi
+for path_var in PI_HOST_HOME PI_HOST_AGENTS_HOME; do
+  path_value="${!path_var:-}"
+  if [[ -z "$path_value" ]]; then
+    echo "$path_var is required in $ROOT/.env.ops" >&2
+    exit 1
+  fi
+  if [[ "$path_value" != /* || ! -d "$path_value" ]]; then
+    echo "$path_var must be an existing absolute host directory: $path_value" >&2
+    exit 1
+  fi
+done
 
 # Pin an exact commit when the caller passes a full SHA (CI path); fall back
 # to branch-head resolution for manual runs.
@@ -59,6 +62,15 @@ git clone "${clone_args[@]}" "$REL"
 ln -s ../../.env.ops "$REL/.env"
 
 cd "$REL"
+COMPOSE_FILES=(-f docker-compose.yml -f deploy/docker-compose.production.yaml)
+
+show_compose_diagnostics() {
+  echo "==> docker compose status (diagnostics)" >&2
+  docker compose "${COMPOSE_FILES[@]}" ps >&2 || true
+  echo "==> oma-studio logs (last 100 lines)" >&2
+  docker compose "${COMPOSE_FILES[@]}" logs --tail 100 oma-studio >&2 || true
+}
+
 LOG_DIR="${PI_LOG_DIR:-./logs}"
 if [[ "$LOG_DIR" != /* ]]; then
   LOG_DIR="$REL/$LOG_DIR"
@@ -68,7 +80,11 @@ if ! chown 1000:1000 "$LOG_DIR" 2>/dev/null; then
   chmod 0777 "$LOG_DIR"
 fi
 echo "==> building image and restarting service (project: ${COMPOSE_PROJECT_NAME:-oma-studio})"
-docker compose -f docker-compose.yml -f deploy/docker-compose.production.yaml up -d --build
+if ! docker compose "${COMPOSE_FILES[@]}" up -d --build; then
+  echo "container startup FAILED; collecting diagnostics" >&2
+  show_compose_diagnostics
+  exit 1
+fi
 
 echo "==> waiting for health on 127.0.0.1:$PORT"
 ok=0
@@ -81,7 +97,7 @@ for _ in $(seq 1 45); do
 done
 if [ "$ok" -ne 1 ]; then
   echo "health check FAILED; keeping release for debugging: $REL" >&2
-  docker compose logs --tail 50 oma-studio >&2 || true
+  show_compose_diagnostics
   exit 1
 fi
 
