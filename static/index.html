@@ -536,38 +536,40 @@
                     </span>
                   </template>
                 </div>
-                <textarea
-                  id="conversation-message"
-                  name="message"
-                  rows="1"
-                  class="textarea textarea-bordered"
-                  x-ref="conversationInput"
-                  x-model="draft"
-                  @input="resizeConversationInput($event); updateAttachmentCommandState()"
-                  @keydown.enter.meta.prevent="sendMessage()"
-                  :disabled="loading"
-                  placeholder="Message this agent…"
-                ></textarea
-                ><button
-                  type="button"
-                  class="btn btn-ghost btn-square conversation-attach"
-                  @click="openUploadPicker()"
-                  :disabled="uploadingFiles || loading"
-                  title="Attach files"
-                  aria-label="Attach files"
-                >
-                  <i data-lucide="paperclip" aria-hidden="true"></i></button
-                ><button
-                  class="icon-send conversation-send"
-                  @click="loading ? abort() : sendMessage()"
-                  :class="{abort: loading}"
-                  :disabled="!loading && !draft.trim()"
-                  :title="loading ? 'Abort' : 'Send'"
-                  :aria-label="loading ? 'Abort' : 'Send'"
-                >
-                  <i data-lucide="arrow-up" x-show="!loading" aria-hidden="true"></i>
-                  <i data-lucide="x" x-show="loading" aria-hidden="true"></i>
-                </button>
+                <div class="composer-input-row">
+                  <textarea
+                    id="conversation-message"
+                    name="message"
+                    rows="1"
+                    class="textarea textarea-bordered"
+                    x-ref="conversationInput"
+                    x-model="draft"
+                    @input="resizeConversationInput($event); updateAttachmentCommandState()"
+                    @keydown.enter.meta.prevent="sendMessage()"
+                    :disabled="loading"
+                    placeholder="Message this agent…"
+                  ></textarea
+                  ><button
+                    type="button"
+                    class="btn btn-ghost btn-square conversation-attach"
+                    @click="openUploadPicker()"
+                    :disabled="uploadingFiles || loading"
+                    title="Attach files"
+                    aria-label="Attach files"
+                  >
+                    <i data-lucide="paperclip" aria-hidden="true"></i></button
+                  ><button
+                    class="icon-send conversation-send"
+                    @click="loading ? abort() : sendMessage()"
+                    :class="{abort: loading}"
+                    :disabled="!loading && !draft.trim()"
+                    :title="loading ? 'Abort' : 'Send'"
+                    :aria-label="loading ? 'Abort' : 'Send'"
+                  >
+                    <i data-lucide="arrow-up" x-show="!loading" aria-hidden="true"></i>
+                    <i data-lucide="x" x-show="loading" aria-hidden="true"></i>
+                  </button>
+                </div>
                 <div class="attachment-command-palette" x-show="attachmentCommandVisible()" x-cloak role="listbox">
                   <template x-for="file in attachmentCommandItems()" :key="file.path">
                     <button type="button" role="option" @mousedown.prevent="chooseArtifactAttachment(file)">
