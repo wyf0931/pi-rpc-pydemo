@@ -661,6 +661,20 @@ def test_native_files_open_in_browser_tabs_while_text_files_keep_internal_previe
     assert '"jpg"' in script
 
 
+def test_long_user_messages_wrap_inside_the_chat_bubble():
+    styles = Path("static/styles.css").read_text(encoding="utf-8")
+
+    assert (
+        ".message.user .message-body {\n"
+        " max-width: 88%;\n"
+        " margin-left: auto;\n"
+        " min-width: 0;\n"
+        " overflow-wrap: anywhere;\n"
+        " word-break: break-word;\n"
+        "}"
+    ) in styles
+
+
 def test_auth_rejects_unauthenticated_requests(client):
     client.post("/api/auth/logout")
     assert client.get("/api/agents").status_code == 401
