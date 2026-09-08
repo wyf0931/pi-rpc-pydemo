@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from ...avatars import avatar_file, copy_avatar, remove_avatar, save_avatar
 from ...config import Settings
+from ...pi_rpc import PiRpcError, PiRuntimeManager
 from ...resources import discover_resources
 from ...store import SUPPORTED_TOOLS, Store
 
@@ -35,6 +36,18 @@ class AgentUpdate(BaseModel):
     mcp_servers: list[str] | None = None
 
 
+class AgentInstructionDraft(BaseModel):
+    name: str = Field(default="", max_length=80)
+    instruction: str = Field(default="", max_length=10000)
+    provider: str | None = None
+    model: str | None = None
+    thinking_level: str | None = None
+    tools: list[str] = Field(default_factory=list)
+    extensions: list[str] = Field(default_factory=list)
+    skills: list[str] = Field(default_factory=list)
+    mcp_servers: list[str] = Field(default_factory=list)
+
+
 class AgentPublish(BaseModel):
     version: str = Field(pattern=r"^v?\d+\.\d+\.\d+$")
 
@@ -46,11 +59,36 @@ class AgentInstall(BaseModel):
 def create_router(
     settings: Settings,
     store: Store,
+    runtime: PiRuntimeManager,
     visible_or_404: Callable[[dict | None, Request, str], dict],
     visible_records: Callable[[list[dict], Request], list[dict]],
     user_id: Callable[[Request], str],
 ) -> APIRouter:
     router = APIRouter(tags=["agents"])
+
+    def catalog() -> dict:
+        return discover_resources(
+            settings.pi_home, settings.pi_cwd, settings.pi_agents_home
+        )
+
+    def validate_capabilities(
+        tools: list[str],
+        extensions: list[str],
+        skills: list[str],
+        mcp_servers: list[str],
+        resource_catalog: dict,
+    ) -> None:
+        if any(tool not in SUPPORTED_TOOLS for tool in tools):
+            raise HTTPException(400, "Unsupported tool")
+        allowed_extensions = {item["path"] for item in resource_catalog["extensions"]}
+        allowed_skills = {item["path"] for item in resource_catalog["skills"]}
+        allowed_servers = {item["id"] for item in resource_catalog["mcp_servers"]}
+        if any(path not in allowed_extensions for path in extensions):
+            raise HTTPException(400, "Unsupported extension path")
+        if any(path not in allowed_skills for path in skills):
+            raise HTTPException(400, "Unsupported skill path")
+        if any(name not in allowed_servers for name in mcp_servers):
+            raise HTTPException(400, "Unsupported MCP server")
 
     def normalize_agent_version(version: str) -> str:
         value = version.strip()
@@ -99,21 +137,15 @@ def create_router(
             if payload.tools is not None
             else list(settings.pi_default_tools)
         )
-        if any(tool not in SUPPORTED_TOOLS for tool in tools):
-            raise HTTPException(400, "Unsupported tool")
-        catalog = discover_resources(
-            settings.pi_home, settings.pi_cwd, settings.pi_agents_home
+        resource_catalog = catalog()
+        validate_capabilities(
+            tools,
+            payload.extensions or [],
+            payload.skills or [],
+            payload.mcp_servers or [],
+            resource_catalog,
         )
-        allowed_extensions = {item["path"] for item in catalog["extensions"]}
-        allowed_skills = {item["path"] for item in catalog["skills"]}
-        if any(path not in allowed_extensions for path in payload.extensions or []):
-            raise HTTPException(400, "Unsupported extension path")
-        if any(path not in allowed_skills for path in payload.skills or []):
-            raise HTTPException(400, "Unsupported skill path")
-        allowed_servers = {item["id"] for item in catalog["mcp_servers"]}
-        if any(name not in allowed_servers for name in payload.mcp_servers or []):
-            raise HTTPException(400, "Unsupported MCP server")
-        validate_model_selection(payload.provider, payload.model, catalog)
+        validate_model_selection(payload.provider, payload.model, resource_catalog)
         validate_thinking_level(payload.thinking_level)
         return store.create_agent(
             payload.name,
@@ -127,6 +159,41 @@ def create_router(
             thinking_level=payload.thinking_level,
             user_id=owner_id,
         )
+
+    @router.post("/api/agents/instruction-draft")
+    async def generate_instruction(payload: AgentInstructionDraft):
+        resource_catalog = catalog()
+        validate_capabilities(
+            payload.tools,
+            payload.extensions,
+            payload.skills,
+            payload.mcp_servers,
+            resource_catalog,
+        )
+        validate_model_selection(payload.provider, payload.model, resource_catalog)
+        validate_thinking_level(payload.thinking_level)
+        skill_by_path = {item["path"]: item for item in resource_catalog["skills"]}
+        extension_by_path = {
+            item["path"]: item for item in resource_catalog["extensions"]
+        }
+        mcp_by_id = {item["id"]: item for item in resource_catalog["mcp_servers"]}
+        draft = {
+            "agent_name": payload.name.strip(),
+            "existing_instruction": payload.instruction.strip(),
+            "provider": payload.provider,
+            "model": payload.model,
+            "thinking_level": payload.thinking_level,
+            "tools": payload.tools,
+            "extensions": [extension_by_path[path] for path in payload.extensions],
+            "mcp_servers": [mcp_by_id[name] for name in payload.mcp_servers],
+            "skills": payload.skills,
+            "skill_catalog": [skill_by_path[path] for path in payload.skills],
+        }
+        try:
+            instruction = await runtime.generate_agent_instruction(draft)
+        except PiRpcError as exc:
+            raise HTTPException(503, str(exc)) from exc
+        return {"instruction": instruction}
 
     @router.get("/api/market/agents")
     async def list_market_agents():
@@ -219,28 +286,14 @@ def create_router(
 
     @router.patch("/api/agents/{agent_id}")
     async def update_agent(agent_id: str, payload: AgentUpdate, request: Request):
-        if payload.tools is not None and any(
-            tool not in SUPPORTED_TOOLS for tool in payload.tools
-        ):
-            raise HTTPException(400, "Unsupported tool")
-        catalog = discover_resources(
-            settings.pi_home, settings.pi_cwd, settings.pi_agents_home
+        resource_catalog = catalog()
+        validate_capabilities(
+            payload.tools or [],
+            payload.extensions or [],
+            payload.skills or [],
+            payload.mcp_servers or [],
+            resource_catalog,
         )
-        if payload.extensions is not None and any(
-            path not in {item["path"] for item in catalog["extensions"]}
-            for path in payload.extensions
-        ):
-            raise HTTPException(400, "Unsupported extension path")
-        if payload.skills is not None and any(
-            path not in {item["path"] for item in catalog["skills"]}
-            for path in payload.skills
-        ):
-            raise HTTPException(400, "Unsupported skill path")
-        if payload.mcp_servers is not None and any(
-            name not in {item["id"] for item in catalog["mcp_servers"]}
-            for name in payload.mcp_servers
-        ):
-            raise HTTPException(400, "Unsupported MCP server")
         existing = visible_or_404(store.get_agent(agent_id), request, "Agent")
         validate_model_selection(
             payload.provider
@@ -249,7 +302,7 @@ def create_router(
             payload.model
             if "model" in payload.model_fields_set
             else existing.get("model"),
-            catalog,
+            resource_catalog,
         )
         validate_thinking_level(
             payload.thinking_level

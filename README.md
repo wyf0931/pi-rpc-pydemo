@@ -362,6 +362,7 @@ This MVP is a single FastAPI application with a static frontend. The main endpoi
 | `DELETE /api/users/{id}` | Delete a normal user (admin only) |
 | `GET /api/agents` | List Agent definitions |
 | `POST /api/agents` | Create an Agent definition |
+| `POST /api/agents/instruction-draft` | Generate a specialist instruction from selected capabilities |
 | `PATCH /api/agents/{id}` | Update an Agent definition |
 | `DELETE /api/agents/{id}` | Delete a non-default Agent |
 | `GET /api/agents/{id}/avatar` | Read an Agent avatar |

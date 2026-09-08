@@ -96,7 +96,9 @@ async def require_login(request: Request, call_next):
 
 app.include_router(create_identity_router(settings, store))
 app.include_router(
-    create_agents_router(settings, store, _visible_or_404, _visible_records, _user_id)
+    create_agents_router(
+        settings, store, runtime, _visible_or_404, _visible_records, _user_id
+    )
 )
 app.include_router(create_resource_catalog_router(settings))
 app.include_router(

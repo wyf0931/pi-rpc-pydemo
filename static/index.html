@@ -69,7 +69,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260908-users-toolbar-spacing" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260908-agent-instruction-generator" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -2526,7 +2526,7 @@
       :open="createDialog"
       x-show="createDialog"
       x-cloak
-      @click.self="createDialog = false"
+      @click.self="dismissAgentDialogFromBackdrop()"
     >
       <div class="modal-box agent-dialog-box">
         <div class="dialog-head">
@@ -2618,15 +2618,32 @@
             </div>
           </div>
           <div class="form-field agent-instruction-field">
-            <label for="new-agent-instruction">Instruction</label
-            ><textarea
-              id="new-agent-instruction"
-              class="textarea textarea-bordered"
-              x-model="newAgentInstruction"
-              required
-              maxlength="10000"
-              placeholder="Tell this agent how it should behave…"
-            ></textarea>
+            <label for="new-agent-instruction">Instruction</label>
+            <div class="instruction-textarea-wrap">
+              <textarea
+                id="new-agent-instruction"
+                class="textarea textarea-bordered"
+                x-model="newAgentInstruction"
+                required
+                maxlength="10000"
+                placeholder="Tell this agent how it should behave…"
+              ></textarea>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm btn-square instruction-generate-button"
+                :disabled="generatingInstruction"
+                @click="generateAgentInstruction"
+                title="Generate specialist instruction"
+                aria-label="Generate specialist instruction"
+              >
+                <i x-show="!generatingInstruction" data-lucide="pencil-sparkles" aria-hidden="true"></i>
+                <span
+                  x-show="generatingInstruction"
+                  class="loading loading-spinner loading-xs"
+                  aria-hidden="true"
+                ></span>
+              </button>
+            </div>
           </div>
           <div class="form-field">
             <label>Built-in tools</label>
@@ -2916,6 +2933,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260908-active-chat-loading"></script>
+    <script src="/static/app.js?v=20260908-agent-draft-protect"></script>
   </body>
 </html>

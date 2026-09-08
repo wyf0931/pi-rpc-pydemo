@@ -119,6 +119,36 @@ def test_container_maps_host_pi_home_resource_paths():
     assert "/home/node/.agents/skills/shared-skill" in command
 
 
+def test_instruction_generator_is_ephemeral_and_loads_selected_skills_read_only():
+    settings = SimpleNamespace(
+        pi_cli_path="pi",
+        pi_provider="deepseek",
+        pi_model="deepseek-v4-pro",
+        pi_thinking_level="low",
+        pi_home="/home/node/.pi/agent",
+        pi_agents_home="/home/node/.agents",
+    )
+    runtime = PiRuntimeManager(settings, store=None)
+
+    command = runtime._instruction_generator_command(
+        {
+            "provider": "zhipu",
+            "model": "glm-5.3-flash",
+            "thinking_level": "medium",
+            "skills": ["/Users/scott/.agents/skills/diagram-design"],
+        }
+    )
+
+    assert "--no-session" in command
+    assert "--session" not in command
+    assert "--session-id" not in command
+    assert "--no-extensions" in command
+    assert command[command.index("--tools") + 1] == "read,ls"
+    assert "/home/node/.agents/skills/diagram-design" in command
+    assert command[command.index("--provider") + 1] == "zhipu"
+    assert command[command.index("--model") + 1] == "glm-5.3-flash"
+
+
 def test_stream_prompt_emits_assistant_message_boundaries():
     client = PiRpcClient(["pi"], ".")
     events = [

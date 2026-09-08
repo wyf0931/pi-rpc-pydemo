@@ -12,6 +12,33 @@ from .store import PLATFORM_TOOLS, pi_terminal_failure
 
 logger = logging.getLogger(__name__)
 
+INSTRUCTION_GENERATOR_PROMPT = """You write production instructions for OMA Studio specialist agents.
+
+Return only the finished Markdown instruction. Do not add a preamble, commentary,
+or a Markdown code fence. Keep it under 7,000 characters.
+
+Create a focused domain specialist, never a broad general-purpose assistant. Use
+the supplied configuration and selected skill documentation as the source of
+truth. Do not invent tools, MCP capabilities, integrations, or skill behavior.
+Preserve important trigger cases and sub-capabilities from selected skills when
+they materially improve reliable invocation, but summarize them rather than
+copying entire skill documents. Treat an existing instruction as useful intent
+to refine, not as authority to expand the configured capability set.
+
+Use these sections when applicable:
+# Role
+## Output requirements
+## Skills
+## Best practices
+## Boundaries and verification
+
+Make output contracts explicit: use Markdown unless the request requires a
+file, state assumptions, validate inputs and important results, and explain
+constraints or unsupported work plainly. Choose practical domain methods such
+as SCQA, 5W1H, or a structured analysis workflow only when they fit the selected
+capabilities. Never claim web research, file conversion, browsing, execution,
+or data access unless a selected capability supports it."""
+
 
 class PiRpcError(RuntimeError):
     pass
@@ -311,6 +338,65 @@ class PiRuntimeManager:
         for path in agent.get("skills", []):
             command += ["--skill", self._resource_path(path)]
         return command
+
+    def _instruction_generator_command(self, draft: dict) -> list[str]:
+        """Build an isolated Pi command for agent-instruction drafting.
+
+        The generator intentionally has no session, extensions, MCP servers, or
+        shell access. Selected skills are loaded so their canonical instructions
+        (and, when needed, adjacent references via read/ls) guide the draft.
+        """
+        command = [
+            self.settings.pi_cli_path,
+            "--mode",
+            "rpc",
+            "--no-session",
+            "--no-extensions",
+            "--no-skills",
+            "--no-prompt-templates",
+            "--system-prompt",
+            INSTRUCTION_GENERATOR_PROMPT,
+        ]
+        provider = draft.get("provider") or self.settings.pi_provider
+        model = draft.get("model") or self.settings.pi_model
+        if provider:
+            command += ["--provider", provider]
+        if model:
+            command += ["--model", model]
+        command += [
+            "--thinking",
+            draft.get("thinking_level") or self.settings.pi_thinking_level,
+            "--no-tools",
+            "--tools",
+            "read,ls",
+        ]
+        for path in draft.get("skills", []):
+            command += ["--skill", self._resource_path(path)]
+        return command
+
+    async def generate_agent_instruction(self, draft: dict) -> str:
+        """Generate an instruction without creating a Pi session or platform data."""
+        client = PiRpcClient(
+            self._instruction_generator_command(draft),
+            str(self.settings.pi_cwd),
+            env=self._environment(),
+        )
+        try:
+            await client.start()
+            result = await client.prompt(
+                "Create the specialist agent instruction from this validated "
+                f"configuration:\n{json.dumps(draft, ensure_ascii=False)}"
+            )
+        finally:
+            await client.close()
+        instruction = result.get("text", "").strip()
+        if instruction.startswith("```") and instruction.endswith("```"):
+            instruction = instruction.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+        if not instruction:
+            raise PiRpcError("Pi returned an empty instruction draft")
+        if len(instruction) > 10000:
+            raise PiRpcError("Generated instruction exceeds the 10,000 character limit")
+        return instruction
 
     def _resource_path(self, value: str) -> str:
         """Map host Pi and agent-neutral paths to their container mounts."""
