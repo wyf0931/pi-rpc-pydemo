@@ -167,7 +167,7 @@ body {
  width: 30px;
  height: 30px;
  object-fit: cover;
- border-radius: 8px;
+ border-radius: 50%;
  background: #fff;
 }
 [data-theme="dark"] .brand img {
@@ -4733,13 +4733,13 @@ body > .link-drawer {
  width: 52px;
  height: 52px;
  margin-bottom: 24px;
- border-radius: 12px;
+ border-radius: 50%;
  background: #fff;
 }
 .chat-empty-logo img {
  width: 42px;
  height: 42px;
- object-fit: cover;
+ object-fit: contain;
 }
 [data-theme="dark"] .chat-empty-logo img {
  filter: invert(1);
