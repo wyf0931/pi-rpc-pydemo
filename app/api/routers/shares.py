@@ -112,7 +112,7 @@ def create_router(
             filename=file_path.name,
             media_type=media_type,
             content_disposition_type="inline",
-            headers=native_browser_headers(file_path),
+            headers=native_browser_headers(media_type),
         )
 
     return router

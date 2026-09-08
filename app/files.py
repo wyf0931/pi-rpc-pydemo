@@ -1,6 +1,7 @@
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from xml.etree import ElementTree
 
 MAX_VIEW_BYTES = 5 * 1024 * 1024
 
@@ -22,12 +23,19 @@ NATIVE_BROWSER_MEDIA_TYPES = {
 
 def native_browser_media_type(path: Path) -> str | None:
     """Return a safe browser-native media type for supported generated files."""
-    return NATIVE_BROWSER_MEDIA_TYPES.get(path.suffix.lower())
+    media_type = NATIVE_BROWSER_MEDIA_TYPES.get(path.suffix.lower())
+    if media_type != "image/svg+xml":
+        return media_type
+    try:
+        root = ElementTree.fromstring(path.read_bytes())
+    except (ElementTree.ParseError, OSError):
+        return "text/plain"
+    return "image/svg+xml" if root.tag.rsplit("}", 1)[-1] == "svg" else "text/plain"
 
 
-def native_browser_headers(path: Path) -> dict[str, str]:
+def native_browser_headers(media_type: str) -> dict[str, str]:
     """Sandbox generated active documents before serving them inline."""
-    if path.suffix.lower() in {".htm", ".html", ".svg"}:
+    if media_type in {"text/html", "image/svg+xml"}:
         return {
             "Content-Security-Policy": "sandbox",
             "X-Content-Type-Options": "nosniff",
