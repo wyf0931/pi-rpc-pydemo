@@ -1,6 +1,6 @@
-# TinyDB 数据结构
+# 平台 SQLite 数据结构
 
-OMA Studio 的平台元数据保存在 `~/.oma-studio/data/platform.json`。当前由 `app/store.py` 创建并管理九张 TinyDB 表。消息正文、工具调用结果、完整对话记录和 Pi 原生 session 文件不在本文范围内，也不会写入这些表。
+OMA Studio 的平台元数据保存在 `~/.oma-studio/data/platform.sqlite3`，由 SQLModel 管理 11 张表。历史 `platform.json` 会在 SQLite 不存在时自动校验、一次性导入，并复制为带 UTC 时间戳的备份。消息正文、工具调用结果、完整对话记录和 Pi 原生 session 文件不在本文范围内，也不会写入这些表。
 
 ## ER 图
 
@@ -203,15 +203,15 @@ Agent 配置快照。Admin 和 normal 用户都可以发布自己拥有的 Agent
 | `agents.id` → `agent_publications.source_agent_id` | 发布记录追踪最初的用户 Agent |
 | `agent_publications.id` → `agent_publication_versions.publication_id` | 一个发布资源拥有多个不可变版本 |
 
-TinyDB 的这些表没有 SQL 意义上的外键、唯一索引或级联约束。`PK` 和 `FK` 表示当前代码中的身份字段和关联字段，实际约束由 `Store` 及 API 逻辑维护。
+SQLite 为身份字段提供主键/唯一索引，迁移阶段校验关键关系；删除和业务级级联仍由 `Store` 维护。`PK` 和 `FK` 表示当前代码中的身份字段和关联字段。
 
 普通用户只能读取和修改自己拥有的 Agents、Chats、Autopilots、Runs 和 Shares；管理员可以跨用户查看和管理这些记录。Marketplace 的 Skills 和 Extensions 是全局资源，仅管理员可以安装或卸载，不属于某个用户。
 
-历史数据不在应用启动时自动迁移。部署或本地升级时由操作者执行一次性回填脚本；脚本默认只预览，带 `--apply` 才会写入，重复执行不会产生额外修改：
+历史 TinyDB 数据会在应用启动时自动迁移；也可以由操作者显式预览或执行：
 
 ```bash
-uv run python scripts/backfill_user_ownership.py --data ~/.oma-studio/data
-uv run python scripts/backfill_user_ownership.py --data ~/.oma-studio/data --apply
+uv run python scripts/migrate_tinydb_to_sqlite.py --data ~/.oma-studio/data
+uv run python scripts/migrate_tinydb_to_sqlite.py --data ~/.oma-studio/data --apply
 ```
 
 ## 数据边界

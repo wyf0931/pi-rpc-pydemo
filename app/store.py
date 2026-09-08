@@ -1,13 +1,17 @@
 import hashlib
 import json
 import secrets
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
-from tinydb import Query, TinyDB  # pyright: ignore[reportMissingImports]
+from sqlmodel import Session, select
 
 from .auth import hash_password, new_session_token, session_digest
+from .storage import create_sqlite_engine, from_row, migrate_tinydb, to_row
+from .storage_models import TABLE_MODELS
 
 DEFAULT_TOOLS = ["read", "write", "edit", "bash"]
 BUILTIN_TOOLS = DEFAULT_TOOLS + ["grep", "find", "ls"]
@@ -20,7 +24,6 @@ def now_iso() -> str:
 
 
 def pi_terminal_failure(messages: list[dict]) -> str | None:
-    """Return a user-facing error when Pi ends a turn without an answer."""
     for message in reversed(messages):
         if message.get("role") != "assistant":
             continue
@@ -36,30 +39,72 @@ def pi_terminal_failure(messages: list[dict]) -> str | None:
 
 
 class Store:
+    """Dictionary-compatible metadata store backed by SQLModel/SQLite."""
+
     def __init__(self, path: Path):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        self.db = TinyDB(path)
-        self.agents = self.db.table("agents")
-        self.chats = self.db.table("chats")
-        self.autopilots = self.db.table("autopilots")
-        self.autopilot_runs = self.db.table("autopilot_runs")
-        self.shares = self.db.table("shares")
-        self.users = self.db.table("users")
-        self.sessions = self.db.table("sessions")
-        self.agent_publications = self.db.table("agent_publications")
-        self.agent_publication_versions = self.db.table("agent_publication_versions")
-        self.uploads = self.db.table("uploads")
-        self.system_settings = self.db.table("system_settings")
+        self.legacy_path = (
+            path if path.suffix != ".sqlite3" else path.with_name("platform.json")
+        )
+        self.sqlite_path = (
+            path if path.suffix == ".sqlite3" else path.with_name("platform.sqlite3")
+        )
+        migrate_tinydb(self.legacy_path, self.sqlite_path)
+        self.engine = create_sqlite_engine(self.sqlite_path)
+
+    def close(self) -> None:
+        self.engine.dispose()
 
     @staticmethod
     def public_user(user: dict) -> dict:
         return {key: value for key, value in user.items() if key != "password_hash"}
 
+    def _all(self, table: str) -> list[dict]:
+        model = TABLE_MODELS[table]
+        with Session(self.engine) as session:
+            return [from_row(row) for row in session.exec(select(model)).all()]
+
+    def _find(self, table: str, predicate: Callable[[dict], bool]) -> dict | None:
+        return next((item for item in self._all(table) if predicate(item)), None)
+
+    def _insert(self, table: str, values: dict[str, Any]) -> dict:
+        model = TABLE_MODELS[table]
+        with Session(self.engine) as session:
+            session.add(model(**to_row(table, values)))
+            session.commit()
+        return values
+
+    def _update(
+        self, table: str, predicate: Callable[[dict], bool], values: dict
+    ) -> int:
+        model = TABLE_MODELS[table]
+        with Session(self.engine) as session:
+            changed = 0
+            for row in session.exec(select(model)).all():
+                item = from_row(row)
+                if predicate(item):
+                    item.update(values)
+                    for key, value in to_row(table, item).items():
+                        setattr(row, key, value)
+                    session.add(row)
+                    changed += 1
+            session.commit()
+            return changed
+
+    def _remove(self, table: str, predicate: Callable[[dict], bool]) -> int:
+        model = TABLE_MODELS[table]
+        with Session(self.engine) as session:
+            removed = 0
+            for row in session.exec(select(model)).all():
+                if predicate(from_row(row)):
+                    session.delete(row)
+                    removed += 1
+            session.commit()
+            return removed
+
     def ensure_default_user(self, password: str) -> dict:
         user = self.get_user_by_username("admin")
         if user:
             return user
-        timestamp = now_iso()
         user = {
             "id": str(uuid4()),
             "username": "admin",
@@ -67,11 +112,94 @@ class Store:
             "password_hash": hash_password(password),
             "role": "admin",
             "status": "active",
-            "created_at": timestamp,
+            "created_at": now_iso(),
             "last_login_at": None,
         }
-        self.users.insert(user)
+        self._insert("users", user)
         return user
+
+    def list_users(self) -> list[dict]:
+        return [self.public_user(user) for user in self._all("users")]
+
+    def get_system_setting(self, key: str, default: str) -> str:
+        record = self._find("system_settings", lambda item: item.get("key") == key)
+        return record.get("value", default) if record else default
+
+    def set_system_setting(self, key: str, value: str) -> str:
+        if self._update(
+            "system_settings", lambda item: item.get("key") == key, {"value": value}
+        ):
+            return value
+        self._insert("system_settings", {"key": key, "value": value})
+        return value
+
+    def get_user(self, user_id: str) -> dict | None:
+        return self._find("users", lambda item: item.get("id") == user_id)
+
+    def get_user_by_username(self, username: str) -> dict | None:
+        return self._find("users", lambda item: item.get("username") == username)
+
+    def create_user(self, username: str, email: str | None, password: str) -> dict:
+        user = {
+            "id": str(uuid4()),
+            "username": username.strip(),
+            "email": email.strip() if email else None,
+            "password_hash": hash_password(password),
+            "role": "normal",
+            "status": "active",
+            "created_at": now_iso(),
+            "last_login_at": None,
+        }
+        self._insert("users", user)
+        return user
+
+    def update_user_status(self, user_id: str, status: str) -> dict | None:
+        self._update(
+            "users", lambda item: item.get("id") == user_id, {"status": status}
+        )
+        return self.get_user(user_id)
+
+    def delete_user(self, user_id: str) -> bool:
+        self._remove("sessions", lambda item: item.get("user_id") == user_id)
+        return bool(self._remove("users", lambda item: item.get("id") == user_id))
+
+    def create_session(self, user_id: str, expires_at: str) -> str:
+        token = new_session_token()
+        self._insert(
+            "sessions",
+            {
+                "id": str(uuid4()),
+                "token_hash": session_digest(token),
+                "user_id": user_id,
+                "created_at": now_iso(),
+                "expires_at": expires_at,
+            },
+        )
+        return token
+
+    def get_session_user(self, token: str) -> dict | None:
+        session = self._find(
+            "sessions", lambda item: item.get("token_hash") == session_digest(token)
+        )
+        if not session:
+            return None
+        if session.get("expires_at", "") <= now_iso():
+            self._remove("sessions", lambda item: item.get("id") == session.get("id"))
+            return None
+        return self.get_user(session["user_id"])
+
+    def delete_session(self, token: str) -> None:
+        self._remove(
+            "sessions", lambda item: item.get("token_hash") == session_digest(token)
+        )
+
+    def mark_user_login(self, user_id: str) -> dict | None:
+        self._update(
+            "users",
+            lambda item: item.get("id") == user_id,
+            {"last_login_at": now_iso()},
+        )
+        return self.get_user(user_id)
 
     @staticmethod
     def agent_config(agent: dict) -> dict:
@@ -97,91 +225,25 @@ class Store:
             ensure_ascii=False,
             sort_keys=True,
             separators=(",", ":"),
-        ).encode("utf-8")
+        ).encode()
         return hashlib.sha256(payload).hexdigest()
 
-    def list_users(self) -> list[dict]:
-        return [self.public_user(user) for user in self.users.all()]
-
-    def get_system_setting(self, key: str, default: str) -> str:
-        record = self.system_settings.get(Query().key == key)
-        return record.get("value", default) if record else default
-
-    def set_system_setting(self, key: str, value: str) -> str:
-        self.system_settings.upsert({"key": key, "value": value}, Query().key == key)
-        return value
-
-    def get_user(self, user_id: str) -> dict | None:
-        return self.users.get(Query().id == user_id)
-
-    def get_user_by_username(self, username: str) -> dict | None:
-        return self.users.get(Query().username == username)
-
-    def create_user(self, username: str, email: str | None, password: str) -> dict:
-        timestamp = now_iso()
-        user = {
-            "id": str(uuid4()),
-            "username": username.strip(),
-            "email": email.strip() if email else None,
-            "password_hash": hash_password(password),
-            "role": "normal",
-            "status": "active",
-            "created_at": timestamp,
-            "last_login_at": None,
-        }
-        self.users.insert(user)
-        return user
-
-    def update_user_status(self, user_id: str, status: str) -> dict | None:
-        self.users.update({"status": status}, Query().id == user_id)
-        return self.get_user(user_id)
-
-    def delete_user(self, user_id: str) -> bool:
-        self.sessions.remove(Query().user_id == user_id)
-        return bool(self.users.remove(Query().id == user_id))
-
-    def create_session(self, user_id: str, expires_at: str) -> str:
-        token = new_session_token()
-        self.sessions.insert(
-            {
-                "id": str(uuid4()),
-                "token_hash": session_digest(token),
-                "user_id": user_id,
-                "created_at": now_iso(),
-                "expires_at": expires_at,
-            }
-        )
-        return token
-
-    def get_session_user(self, token: str) -> dict | None:
-        session = self.sessions.get(Query().token_hash == session_digest(token))
-        if not session:
-            return None
-        if session.get("expires_at", "") <= now_iso():
-            self.sessions.remove(doc_ids=[session.doc_id])
-            return None
-        return self.get_user(session["user_id"])
-
-    def delete_session(self, token: str) -> None:
-        self.sessions.remove(Query().token_hash == session_digest(token))
-
-    def mark_user_login(self, user_id: str) -> dict | None:
-        self.users.update({"last_login_at": now_iso()}, Query().id == user_id)
-        return self.get_user(user_id)
-
     def ensure_default_agent(self, default_tools: list[str] | None = None) -> dict:
-        agent = self.agents.get(Query().id == "default-assistant")
+        agent = self.get_agent("default-assistant")
         if agent:
+            values = {}
             if "tools_configured" not in agent or "provider" not in agent:
                 values = {
                     "tools": agent.get("tools") or default_tools or [],
                     "tools_configured": True,
                     "provider": agent.get("provider"),
                 }
-                self.agents.update(values, Query().id == agent["id"])
+            if values:
+                self._update(
+                    "agents", lambda item: item.get("id") == agent["id"], values
+                )
                 agent.update(values)
-            if "avatar_path" not in agent:
-                agent["avatar_path"] = None
+            agent.setdefault("avatar_path", None)
             return agent
         item = {
             "id": "default-assistant",
@@ -200,14 +262,14 @@ class Store:
             "created_at": now_iso(),
             "updated_at": now_iso(),
         }
-        self.agents.insert(item)
+        self._insert("agents", item)
         return item
 
     def list_agents(self) -> list[dict]:
-        return list(self.agents.all())
+        return self._all("agents")
 
     def get_agent(self, agent_id: str) -> dict | None:
-        return self.agents.get(Query().id == agent_id)
+        return self._find("agents", lambda item: item.get("id") == agent_id)
 
     def create_agent(
         self,
@@ -242,7 +304,7 @@ class Store:
         if user_id:
             item["user_id"] = user_id
         item["content_hash"] = self.agent_content_hash(item)
-        self.agents.insert(item)
+        self._insert("agents", item)
         return item
 
     def update_agent(self, agent_id: str, values: dict) -> dict | None:
@@ -250,23 +312,27 @@ class Store:
         if "tools" in values:
             values["tools_configured"] = True
         values["updated_at"] = now_iso()
-        if self.agents.update(values, Query().id == agent_id):
-            agent = self.get_agent(agent_id)
-            if agent:
-                self.agents.update(
-                    {"content_hash": self.agent_content_hash(agent)},
-                    Query().id == agent_id,
-                )
-                agent["content_hash"] = self.agent_content_hash(agent)
-            return agent
-        return None
+        if not self._update("agents", lambda item: item.get("id") == agent_id, values):
+            return None
+        agent = self.get_agent(agent_id)
+        if agent:
+            content_hash = self.agent_content_hash(agent)
+            self._update(
+                "agents",
+                lambda item: item.get("id") == agent_id,
+                {"content_hash": content_hash},
+            )
+            agent["content_hash"] = content_hash
+        return agent
 
     def list_agent_publications(self) -> list[dict]:
         publications = []
-        for publication in self.agent_publications.all():
-            versions = self.agent_publication_versions.search(
-                Query().publication_id == publication["id"]
-            )
+        for publication in self._all("agent_publications"):
+            versions = [
+                v
+                for v in self._all("agent_publication_versions")
+                if v.get("publication_id") == publication["id"]
+            ]
             if not versions:
                 continue
             latest = max(versions, key=lambda item: tuple(item["version_sort"]))
@@ -287,12 +353,16 @@ class Store:
         )
 
     def get_agent_publication(self, publication_id: str) -> dict | None:
-        publication = self.agent_publications.get(Query().id == publication_id)
+        publication = self._find(
+            "agent_publications", lambda item: item.get("id") == publication_id
+        )
         if not publication:
             return None
-        versions = self.agent_publication_versions.search(
-            Query().publication_id == publication_id
-        )
+        versions = [
+            v
+            for v in self._all("agent_publication_versions")
+            if v.get("publication_id") == publication_id
+        ]
         if not versions:
             return None
         latest = max(versions, key=lambda item: tuple(item["version_sort"]))
@@ -307,20 +377,28 @@ class Store:
 
     def has_agent_publication_version(self, publication_id: str, version: str) -> bool:
         return bool(
-            self.agent_publication_versions.get(
-                (Query().publication_id == publication_id)
-                & (Query().version == version)
+            self._find(
+                "agent_publication_versions",
+                lambda item: (
+                    item.get("publication_id") == publication_id
+                    and item.get("version") == version
+                ),
             )
         )
 
     def publish_agent(self, agent: dict, owner_user_id: str, version: str) -> dict:
-        content = self.agent_config(agent)
-        content_hash = self.agent_content_hash(agent)
-        publication = self.agent_publications.get(
-            (Query().owner_user_id == owner_user_id)
-            & (Query().source_agent_id == agent["id"])
+        content, content_hash, timestamp = (
+            self.agent_config(agent),
+            self.agent_content_hash(agent),
+            now_iso(),
         )
-        timestamp = now_iso()
+        publication = self._find(
+            "agent_publications",
+            lambda item: (
+                item.get("owner_user_id") == owner_user_id
+                and item.get("source_agent_id") == agent["id"]
+            ),
+        )
         if not publication:
             publication = {
                 "id": str(uuid4()),
@@ -332,26 +410,29 @@ class Store:
                 "created_at": timestamp,
                 "updated_at": timestamp,
             }
-            self.agent_publications.insert(publication)
+            self._insert("agent_publications", publication)
         else:
-            self.agent_publications.update(
+            self._update(
+                "agent_publications",
+                lambda item: item.get("id") == publication["id"],
                 {
                     "name": agent["name"],
                     "description": agent["instruction"],
                     "updated_at": timestamp,
                 },
-                Query().id == publication["id"],
             )
-        version_record = {
-            "id": str(uuid4()),
-            "publication_id": publication["id"],
-            "version": version,
-            "version_sort": [int(part) for part in version[1:].split(".")],
-            "content": content,
-            "content_hash": content_hash,
-            "created_at": timestamp,
-        }
-        self.agent_publication_versions.insert(version_record)
+        self._insert(
+            "agent_publication_versions",
+            {
+                "id": str(uuid4()),
+                "publication_id": publication["id"],
+                "version": version,
+                "version_sort": [int(part) for part in version[1:].split(".")],
+                "content": content,
+                "content_hash": content_hash,
+                "created_at": timestamp,
+            },
+        )
         return self.get_agent_publication(publication["id"]) or publication
 
     def install_agent_publication(
@@ -360,50 +441,57 @@ class Store:
         publication = self.get_agent_publication(publication_id)
         if not publication:
             return None
-        target_version = publication["latest"]
+        target = publication["latest"]
         if version:
-            target_version = self.agent_publication_versions.get(
-                (Query().publication_id == publication_id)
-                & (Query().version == version)
+            target = self._find(
+                "agent_publication_versions",
+                lambda item: (
+                    item.get("publication_id") == publication_id
+                    and item.get("version") == version
+                ),
             )
-            if not target_version:
+            if not target:
                 return None
-        content = target_version["content"]
         timestamp = now_iso()
         agent = {
             "id": str(uuid4()),
-            **content,
+            **target["content"],
             "user_id": owner_user_id,
             "tools_configured": True,
             "avatar_path": None,
             "protected": False,
             "created_at": timestamp,
             "updated_at": timestamp,
-            "content_hash": target_version["content_hash"],
+            "content_hash": target["content_hash"],
             "source_publication_id": publication_id,
-            "source_version": target_version["version"],
-            "source_hash": target_version["content_hash"],
+            "source_version": target["version"],
+            "source_hash": target["content_hash"],
         }
-        self.agents.insert(agent)
-        self.agent_publications.update(
+        self._insert("agents", agent)
+        self._update(
+            "agent_publications",
+            lambda item: item.get("id") == publication_id,
             {"install_count": int(publication.get("install_count", 0)) + 1},
-            Query().id == publication_id,
         )
         return agent
 
     def delete_agent(self, agent_id: str) -> bool:
         agent = self.get_agent(agent_id)
-        if not agent or agent.get("protected"):
-            return False
-        return bool(self.agents.remove(Query().id == agent_id))
+        return bool(
+            agent
+            and not agent.get("protected")
+            and self._remove("agents", lambda item: item.get("id") == agent_id)
+        )
 
     def list_chats(self) -> list[dict]:
         return sorted(
-            self.chats.all(), key=lambda x: x.get("last_activity_at", ""), reverse=True
+            self._all("chats"),
+            key=lambda x: x.get("last_activity_at", ""),
+            reverse=True,
         )
 
     def get_chat(self, chat_id: str) -> dict | None:
-        return self.chats.get(Query().id == chat_id)
+        return self._find("chats", lambda item: item.get("id") == chat_id)
 
     def create_chat(
         self,
@@ -412,8 +500,7 @@ class Store:
         status: str = "starting",
         user_id: str | None = None,
     ) -> dict:
-        timestamp = now_iso()
-        chat_id = str(uuid4())
+        timestamp, chat_id = now_iso(), str(uuid4())
         item = {
             "id": chat_id,
             "session_id": session_id or chat_id,
@@ -426,60 +513,57 @@ class Store:
         }
         if user_id:
             item["user_id"] = user_id
-        self.chats.insert(item)
+        self._insert("chats", item)
         return item
 
     def create_autopilot_chat(
         self, agent_id: str, title: str, user_id: str | None = None
     ) -> dict:
-        """Create a fresh chat whose Pi session ID is unique to this run."""
         chat = self.create_chat(agent_id, status="starting", user_id=user_id)
         return self.update_chat(chat["id"], {"title": title}) or chat
 
     def update_chat(self, chat_id: str, values: dict) -> dict | None:
-        # updated_at tracks any metadata touch; last_activity_at is the sidebar
-        # ordering key and is only bumped when a caller passes it explicitly
-        # (real user/autopilot activity), so reading history never reorders.
         values = {**values, "updated_at": now_iso()}
-        if self.chats.update(values, Query().id == chat_id):
-            return self.get_chat(chat_id)
-        return None
+        return (
+            self.get_chat(chat_id)
+            if self._update("chats", lambda item: item.get("id") == chat_id, values)
+            else None
+        )
 
     def delete_chat(self, chat_id: str) -> bool:
-        self.shares.remove(Query().chat_id == chat_id)
-        self.uploads.remove(Query().chat_id == chat_id)
-        return bool(self.chats.remove(Query().id == chat_id))
+        self._remove("shares", lambda item: item.get("chat_id") == chat_id)
+        self._remove("uploads", lambda item: item.get("chat_id") == chat_id)
+        return bool(self._remove("chats", lambda item: item.get("id") == chat_id))
 
     def create_upload(self, values: dict) -> dict:
         item = {**values, "created_at": now_iso()}
-        self.uploads.insert(item)
+        self._insert("uploads", item)
         return item
 
     def get_upload(self, upload_id: str) -> dict | None:
-        return self.uploads.get(Query().id == upload_id)
+        return self._find("uploads", lambda item: item.get("id") == upload_id)
 
     def list_uploads(self, chat_id: str) -> list[dict]:
         return sorted(
-            self.uploads.search(Query().chat_id == chat_id),
-            key=lambda item: item.get("created_at", ""),
+            [x for x in self._all("uploads") if x.get("chat_id") == chat_id],
+            key=lambda x: x.get("created_at", ""),
         )
 
     def delete_upload(self, upload_id: str, chat_id: str) -> bool:
         return bool(
-            self.uploads.remove(
-                (Query().id == upload_id) & (Query().chat_id == chat_id)
+            self._remove(
+                "uploads",
+                lambda x: x.get("id") == upload_id and x.get("chat_id") == chat_id,
             )
         )
 
     def get_share(self, token: str) -> dict | None:
-        matches = self.shares.search(Query().token == token)
-        return matches[0] if matches else None
+        return self._find("shares", lambda x: x.get("token") == token)
 
     def create_share(self, chat_id: str, user_id: str | None = None) -> dict:
-        """Create (or reuse) the unguessable public share token for a chat."""
-        existing = self.shares.search(Query().chat_id == chat_id)
+        existing = self._find("shares", lambda x: x.get("chat_id") == chat_id)
         if existing:
-            return existing[0]
+            return existing
         share = {
             "token": secrets.token_urlsafe(12),
             "chat_id": chat_id,
@@ -487,18 +571,16 @@ class Store:
         }
         if user_id:
             share["user_id"] = user_id
-        self.shares.insert(share)
+        self._insert("shares", share)
         return share
 
     def list_autopilots(self) -> list[dict]:
         return sorted(
-            self.autopilots.all(),
-            key=lambda item: item.get("updated_at", ""),
-            reverse=True,
+            self._all("autopilots"), key=lambda x: x.get("updated_at", ""), reverse=True
         )
 
     def get_autopilot(self, autopilot_id: str) -> dict | None:
-        return self.autopilots.get(Query().id == autopilot_id)
+        return self._find("autopilots", lambda x: x.get("id") == autopilot_id)
 
     def create_autopilot(
         self,
@@ -526,17 +608,19 @@ class Store:
         }
         if user_id:
             item["user_id"] = user_id
-        self.autopilots.insert(item)
+        self._insert("autopilots", item)
         return item
 
     def update_autopilot(self, autopilot_id: str, values: dict) -> dict | None:
         values = {**values, "updated_at": now_iso()}
-        if self.autopilots.update(values, Query().id == autopilot_id):
-            return self.get_autopilot(autopilot_id)
-        return None
+        return (
+            self.get_autopilot(autopilot_id)
+            if self._update("autopilots", lambda x: x.get("id") == autopilot_id, values)
+            else None
+        )
 
     def delete_autopilot(self, autopilot_id: str) -> bool:
-        return bool(self.autopilots.remove(Query().id == autopilot_id))
+        return bool(self._remove("autopilots", lambda x: x.get("id") == autopilot_id))
 
     def create_autopilot_run(
         self,
@@ -558,21 +642,24 @@ class Store:
         }
         if user_id:
             item["user_id"] = user_id
-        self.autopilot_runs.insert(item)
+        self._insert("autopilot_runs", item)
         return item
 
     def update_autopilot_run(self, run_id: str, values: dict) -> dict | None:
-        if self.autopilot_runs.update(values, Query().id == run_id):
-            return self.autopilot_runs.get(Query().id == run_id)
-        return None
+        if not self._update("autopilot_runs", lambda x: x.get("id") == run_id, values):
+            return None
+        return self._find("autopilot_runs", lambda x: x.get("id") == run_id)
 
     def list_autopilot_runs(self, autopilot_id: str) -> list[dict]:
         return sorted(
-            (
-                item
-                for item in self.autopilot_runs.all()
-                if item.get("autopilot_id") == autopilot_id
-            ),
-            key=lambda item: item.get("started_at", ""),
+            [
+                x
+                for x in self._all("autopilot_runs")
+                if x.get("autopilot_id") == autopilot_id
+            ],
+            key=lambda x: x.get("started_at", ""),
             reverse=True,
         )
+
+    def list_all_autopilot_runs(self) -> list[dict]:
+        return self._all("autopilot_runs")

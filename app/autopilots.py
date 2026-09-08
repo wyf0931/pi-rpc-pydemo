@@ -66,7 +66,7 @@ class AutopilotScheduler:
         self.running: set[str] = set()
 
     async def start(self) -> None:
-        for run in self.store.autopilot_runs.all():
+        for run in self.store.list_all_autopilot_runs():
             if run.get("status") == "running":
                 self.store.update_autopilot_run(
                     run["id"],

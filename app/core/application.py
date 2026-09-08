@@ -28,7 +28,7 @@ def create_context() -> ApplicationContext:
     settings.pi_session_dir.mkdir(parents=True, exist_ok=True)
     configure_logging(settings.log_dir)
 
-    store = Store(settings.data_dir / "platform.json")
+    store = Store(settings.data_dir / "platform.sqlite3")
     default_agent = store.ensure_default_agent(list(settings.pi_default_tools))
     if not default_agent.get("avatar_path"):
         seeded_agent = seed_default_avatar(settings.data_dir, default_agent)

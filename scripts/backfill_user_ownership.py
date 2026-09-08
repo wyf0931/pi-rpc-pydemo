@@ -1,9 +1,4 @@
-"""One-off ownership backfill for existing TinyDB metadata.
-
-Run without --apply first to inspect the plan. This script intentionally is
-not called from application startup; ownership decisions for legacy records
-are an operator action.
-"""
+"""Backfill ownership after the TinyDB-to-SQLite migration."""
 
 import argparse
 import sys
@@ -17,18 +12,12 @@ from app.config import get_settings
 from app.store import Store
 
 
-def assign(table, doc_id: int, user_id: str, apply: bool) -> None:
-    if apply:
-        table.update({"user_id": user_id}, doc_ids=[doc_id])
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, help="Platform data directory")
     parser.add_argument("--apply", action="store_true", help="Write ownership changes")
     args = parser.parse_args()
-    settings = get_settings()
-    data_dir = (args.data or settings.data_dir).expanduser()
+    data_dir = (args.data or get_settings().data_dir).expanduser()
     store = Store(data_dir / "platform.json")
     admin = store.get_user_by_username("admin")
     if not admin:
@@ -36,68 +25,47 @@ def main() -> None:
     admin_id = admin["id"]
     changes = 0
 
-    agents = store.agents.all()
-    for agent in agents:
-        if not agent.get("user_id"):
-            assign(store.agents, agent.doc_id, admin_id, args.apply)
+    def update(table: str, item: dict, user_id: str) -> None:
+        nonlocal changes
+        if not item.get("user_id"):
             changes += 1
+            if args.apply:
+                store._update(
+                    table,
+                    lambda value: (
+                        value.get("id") == item.get("id")
+                        or value.get("token") == item.get("token")
+                    ),
+                    {"user_id": user_id},
+                )
 
-    agent_users = {
-        agent["id"]: agent.get("user_id", admin_id) for agent in store.agents.all()
-    }
-    chats = store.chats.all()
-    for chat in chats:
-        if not chat.get("user_id"):
-            assign(
-                store.chats,
-                chat.doc_id,
-                agent_users.get(chat.get("agent_id"), admin_id),
-                args.apply,
-            )
-            changes += 1
-
-    autopilots = store.autopilots.all()
-    for autopilot in autopilots:
-        if not autopilot.get("user_id"):
-            assign(
-                store.autopilots,
-                autopilot.doc_id,
-                agent_users.get(autopilot.get("agent_id"), admin_id),
-                args.apply,
-            )
-            changes += 1
-
-    chat_users = {
-        chat["id"]: chat.get("user_id", admin_id) for chat in store.chats.all()
-    }
+    agents = store.list_agents()
+    for item in agents:
+        update("agents", item, admin_id)
+    agent_users = {item["id"]: item.get("user_id") or admin_id for item in agents}
+    chats = store.list_chats()
+    for item in chats:
+        update("chats", item, agent_users.get(item.get("agent_id"), admin_id))
+    chat_users = {item["id"]: item.get("user_id") or admin_id for item in chats}
+    autopilots = store.list_autopilots()
+    for item in autopilots:
+        update("autopilots", item, agent_users.get(item.get("agent_id"), admin_id))
     autopilot_users = {
-        item["id"]: item.get("user_id", admin_id) for item in store.autopilots.all()
+        item["id"]: item.get("user_id") or admin_id for item in autopilots
     }
-    for run in store.autopilot_runs.all():
-        if not run.get("user_id"):
-            assign(
-                store.autopilot_runs,
-                run.doc_id,
-                chat_users.get(
-                    run.get("chat_id"),
-                    autopilot_users.get(run.get("autopilot_id"), admin_id),
-                ),
-                args.apply,
-            )
-            changes += 1
-
-    for share in store.shares.all():
-        if not share.get("user_id"):
-            assign(
-                store.shares,
-                share.doc_id,
-                chat_users.get(share.get("chat_id"), admin_id),
-                args.apply,
-            )
-            changes += 1
-
+    for item in store.list_all_autopilot_runs():
+        update(
+            "autopilot_runs",
+            item,
+            chat_users.get(
+                item.get("chat_id"),
+                autopilot_users.get(item.get("autopilot_id"), admin_id),
+            ),
+        )
+    for item in store._all("shares"):
+        update("shares", item, chat_users.get(item.get("chat_id"), admin_id))
     action = "Applied" if args.apply else "Would apply"
-    print(f"{action} {changes} ownership updates in {data_dir / 'platform.json'}")
+    print(f"{action} {changes} ownership updates in {data_dir / 'platform.sqlite3'}")
     if not args.apply:
         print("Re-run with --apply to write these changes.")
 
