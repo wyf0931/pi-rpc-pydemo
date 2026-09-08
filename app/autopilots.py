@@ -1,8 +1,11 @@
 import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
 
 from croniter import croniter
+
+AUTOPILOT_TIMEZONE = ZoneInfo("Asia/Shanghai")
 
 
 def _parse_time(value: str | None) -> datetime | None:
@@ -12,15 +15,11 @@ def _parse_time(value: str | None) -> datetime | None:
         parsed = datetime.fromisoformat(value)
     except ValueError:
         return None
-    return (
-        parsed
-        if parsed.tzinfo
-        else parsed.replace(tzinfo=datetime.now().astimezone().tzinfo)
-    )
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=AUTOPILOT_TIMEZONE)
 
 
 def next_run_at(autopilot: dict, now: datetime | None = None) -> datetime | None:
-    now = now or datetime.now(UTC)
+    now = (now or datetime.now(AUTOPILOT_TIMEZONE)).astimezone(AUTOPILOT_TIMEZONE)
     starts_at = _parse_time(autopilot.get("starts_at"))
     ends_at = _parse_time(autopilot.get("ends_at"))
     if ends_at and now >= ends_at:
@@ -36,7 +35,7 @@ def next_run_at(autopilot: dict, now: datetime | None = None) -> datetime | None
 
 
 def previous_run_at(autopilot: dict, now: datetime | None = None) -> datetime | None:
-    now = now or datetime.now(UTC)
+    now = (now or datetime.now(AUTOPILOT_TIMEZONE)).astimezone(AUTOPILOT_TIMEZONE)
     try:
         return croniter(autopilot["cron"], now).get_prev(datetime)
     except (KeyError, ValueError, TypeError):
@@ -79,7 +78,7 @@ class AutopilotScheduler:
             await asyncio.sleep(self.interval)
 
     async def tick(self, now: datetime | None = None) -> None:
-        now = now or datetime.now(UTC)
+        now = (now or datetime.now(AUTOPILOT_TIMEZONE)).astimezone(AUTOPILOT_TIMEZONE)
         for autopilot in self.store.list_autopilots():
             if not autopilot.get("enabled") or autopilot["id"] in self.running:
                 continue

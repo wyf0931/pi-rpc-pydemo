@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from ...autopilots import AutopilotScheduler, next_run_at
+from ...autopilots import AUTOPILOT_TIMEZONE, AutopilotScheduler, next_run_at
 from ...pi_rpc import PiRpcError, PiRuntimeManager
 from ...store import Store, now_iso
 
@@ -44,7 +44,7 @@ def create_executor(
         started = time.monotonic()
         prompt = (
             f"{autopilot['instruction'].strip()}\n\nCurrent time: "
-            f"{datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S')}"
+            f"{datetime.now(AUTOPILOT_TIMEZONE).strftime('%Y-%m-%d %H:%M:%S %Z')}"
         )
         try:
             async for _event in runtime.stream(

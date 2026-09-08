@@ -1,7 +1,7 @@
 import asyncio
 from datetime import UTC, datetime
 
-from app.autopilots import AutopilotScheduler, next_run_at
+from app.autopilots import AUTOPILOT_TIMEZONE, AutopilotScheduler, next_run_at
 from app.store import Store
 
 
@@ -11,6 +11,14 @@ def test_naive_schedule_times_are_timezone_aware(tmp_path):
         datetime(2026, 8, 29, 0, 1, tzinfo=UTC),
     )
     assert value is not None and value.tzinfo is not None
+
+
+def test_autopilot_defaults_to_shanghai_timezone():
+    value = next_run_at({"cron": "0 9 * * *"}, datetime(2026, 9, 8, 0, 0, tzinfo=UTC))
+
+    assert value is not None
+    assert value.tzinfo == AUTOPILOT_TIMEZONE
+    assert value.hour == 9
 
 
 def test_scheduler_recovers_stale_runs_on_start(tmp_path):
