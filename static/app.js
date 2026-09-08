@@ -1523,6 +1523,7 @@ function platform() {
       this.page = "chat";
       this.cancelEditingChatTitle();
       this.activeChat = chat;
+      this.loading = false;
       this.files = [];
       this.filesOpen = false;
       this.pendingUploads = [];
@@ -1533,10 +1534,17 @@ function platform() {
       this.messages = [];
       this.messagesLoading = true;
       try {
-        const data = await this.api(`/api/chats/${chat.id}/messages?mode=${this.mode}`);
+        const [data, currentChat] = await Promise.all([
+          this.api(`/api/chats/${chat.id}/messages?mode=${this.mode}`),
+          chat.status === "created" ? Promise.resolve(chat) : this.api(`/api/chats/${chat.id}`),
+        ]);
         if (viewToken !== this.chatViewToken || this.activeChat?.id !== chat.id) return;
+        this.activeChat = currentChat;
+        const sidebarChat = this.chats.find((item) => item.id === chat.id);
+        if (sidebarChat) Object.assign(sidebarChat, currentChat);
+        this.loading = currentChat.status === "running";
         this.messages = this.normalizeMessages(data.messages);
-        if (chat.status === "created") {
+        if (currentChat.status === "created") {
           this.pendingUploads = (await this.api(`/api/chats/${chat.id}/uploads`)).uploads || [];
         }
         this.scrollMessagesToLatest();
@@ -1545,7 +1553,7 @@ function platform() {
       } finally {
         if (viewToken === this.chatViewToken && this.activeChat?.id === chat.id) this.messagesLoading = false;
       }
-      if (chat.status === "running" && !this.loading) void this.watchChat(chat.id);
+      if (this.activeChat?.status === "running") void this.watchChat(chat.id);
     },
     async routeFromUrl() {
       this.syncModeFromUrl();
