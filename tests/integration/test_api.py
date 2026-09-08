@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from uuid import uuid4
 
@@ -1192,6 +1193,14 @@ def test_share_flow_public_and_revoked(client, temporary_agent):
     token = created.json()["token"]
     assert created.json()["url"] == f"/share/{token}"
 
+    shared_page = client.get(f"/share/{token}")
+    assert shared_page.status_code == 200
+    assert "<title>New conversation — OMA Studio</title>" in shared_page.text
+    assert 'property="og:title" content="New conversation — OMA Studio"' in (
+        shared_page.text
+    )
+    assert "http://testserver/static/oma-logo-transparent.png" in shared_page.text
+
     # Idempotent: sharing again returns the same token.
     again = client.post(f"/api/chats/{chat['id']}/share")
     assert again.json()["token"] == token
@@ -1202,15 +1211,54 @@ def test_share_flow_public_and_revoked(client, temporary_agent):
     assert shared.json()["messages"] == []
     assert shared.json()["chat"]["title"] == chat["title"]
 
-    # The page itself is served for any token shape.
-    assert client.get(f"/share/{token}").status_code == 200
-
     # Unknown tokens are 404.
     assert client.get("/api/share/not-a-token").status_code == 404
 
     # Deleting the chat revokes the share.
     client.delete(f"/api/chats/{chat['id']}")
     assert client.get(f"/api/share/{token}").status_code == 404
+
+
+def test_shared_file_preview_has_dynamic_social_metadata(client, temporary_agent):
+    from app import main as main_module
+
+    agent_id = temporary_agent({"name": "file-preview", "instruction": "x"}).json()[
+        "id"
+    ]
+    chat = client.post("/api/chats", json={"agent_id": agent_id}).json()
+    client.patch(f"/api/chats/{chat['id']}", json={"title": "Roadmap & launch"})
+    token = client.post(f"/api/chats/{chat['id']}/share").json()["token"]
+
+    file_path = main_module.settings.pi_cwd / "research" / "roadmap.md"
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.write_text("# Roadmap", encoding="utf-8")
+    session_path = main_module.settings.pi_session_dir / f"test_{chat['id']}.jsonl"
+    session_path.write_text(
+        json.dumps(
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": [
+                        {
+                            "type": "toolCall",
+                            "name": "write",
+                            "arguments": {"path": "research/roadmap.md"},
+                        }
+                    ],
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    page = client.get(f"/file-view?share={token}&path=research/roadmap.md")
+    assert page.status_code == 200
+    assert "<title>roadmap.md — OMA Studio</title>" in page.text
+    assert (
+        'property="og:description" content="Preview roadmap.md from Roadmap &amp;'
+        ' launch in OMA Studio."'
+    ) in page.text
+    client.delete(f"/api/chats/{chat['id']}")
 
 
 def test_chat_title_can_be_updated(client, temporary_agent):
