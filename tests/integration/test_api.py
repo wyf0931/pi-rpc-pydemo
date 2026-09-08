@@ -799,6 +799,8 @@ def test_sidebar_footer_uses_a_grouped_profile_menu_with_existing_actions():
     assert "profileMenuOpen" in script
     assert "openProfileUsers()" in script
     assert ".sidebar-profile-menu" in styles
+    assert ".app-shell.sidebar-collapsed .sidebar-footer" in styles
+    assert "display: none;" in styles
 
 
 def test_auth_rejects_unauthenticated_requests(client):

@@ -1879,25 +1879,9 @@ body {
 .app-shell.sidebar-collapsed .brand span,
 .app-shell.sidebar-collapsed .sidebar-section-heading,
 .app-shell.sidebar-collapsed .history-list,
-.app-shell.sidebar-collapsed .empty-history {
- display: none;
-}
+.app-shell.sidebar-collapsed .empty-history,
 .app-shell.sidebar-collapsed .sidebar-footer {
- display: flex;
- justify-content: center;
-}
-.app-shell.sidebar-collapsed .sidebar-profile-trigger {
- width: 48px;
- padding: 7px;
- justify-content: center;
-}
-.app-shell.sidebar-collapsed .sidebar-profile-identity,
-.app-shell.sidebar-collapsed .sidebar-profile-chevron {
  display: none;
-}
-.app-shell.sidebar-collapsed .sidebar-profile-menu {
- left: -2px;
- width: 244px;
 }
 .app-shell.sidebar-collapsed .sidebar-top {
  flex-direction: column;
