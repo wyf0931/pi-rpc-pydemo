@@ -1029,6 +1029,9 @@ body {
  gap: 6px;
  margin: 0 0 8px;
 }
+.start-attachments {
+ padding: 10px 12px 0;
+}
 .composer-attachment {
  display: inline-flex;
  align-items: center;
