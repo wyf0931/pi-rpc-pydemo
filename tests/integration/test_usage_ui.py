@@ -47,3 +47,11 @@ def test_users_are_managed_in_a_dedicated_dialog_not_settings_tab():
     assert "settingsTab === 'users'" not in html
     assert "openSettingsTab('users')" not in html
     assert ".users-modal-box" in styles
+    users_markup = html.split('class="modal modal-middle users-dialog"', 1)[1].split(
+        "</dialog>", 1
+    )[0]
+    assert "usage-count" not in users_markup
+    assert 'class="btn btn-soft btn-primary" @click="openAddUser()"' in users_markup
+    assert "New" in users_markup
+    assert ".user-add-dialog" in styles
+    assert "z-index: 60;" in styles
