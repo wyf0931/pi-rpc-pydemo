@@ -1035,6 +1035,21 @@ def test_market_skill_install(client, monkeypatch):
     assert called == {"source": "acme/skills", "skill": "python"}
 
 
+def test_market_skill_install_keeps_dialog_open_and_tracks_each_install():
+    script = Path("static/app.js").read_text(encoding="utf-8")
+    install_method = script.split("async installMarketSkill(result) {", 1)[1].split(
+        "async installMarketExtension()", 1
+    )[0]
+
+    assert "marketInstallingSkills: []" in script
+    assert "this.marketInstallingSkills.push(resultKey)" in install_method
+    assert "this.marketInstallingSkills = this.marketInstallingSkills.filter" in (
+        install_method
+    )
+    assert "this.marketInstallOpen = false" not in install_method
+    assert "marketSkillSourceKey(result.repo)" in script
+
+
 def test_market_skill_install_rejects_already_installed(client, monkeypatch):
     async def fail_install(*args):
         raise AssertionError("duplicate skill must not reach the CLI")

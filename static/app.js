@@ -122,7 +122,7 @@ function platform() {
     marketSearchResults: [],
     marketSearchLoading: false,
     marketSearchError: "",
-    marketActionSkill: "",
+    marketInstallingSkills: [],
     marketExtensionPackage: "",
     marketExtensionAction: false,
     marketUninstallTarget: null,
@@ -655,7 +655,7 @@ function platform() {
       this.marketInstallOpen = true;
     },
     closeMarketInstall() {
-      if (this.marketActionSkill || this.marketExtensionAction) return;
+      if (this.marketInstallingSkills.length || this.marketExtensionAction) return;
       this.marketInstallOpen = false;
       this.marketSearchError = "";
     },
@@ -692,12 +692,28 @@ function platform() {
       }
     },
     marketSkillInstalled(result) {
+      const sourceKey = this.marketSkillSourceKey(result.repo);
       return this.resources.skills.some(
-        (item) => item.name === result.skill && (!result.repo || item.source === result.repo || !item.source),
+        (item) =>
+          item.name === result.skill &&
+          (!sourceKey || !item.source || this.marketSkillSourceKey(item.source) === sourceKey),
       );
     },
+    marketSkillSourceKey(source) {
+      return String(source || "")
+        .trim()
+        .replace(/^https:\/\/github\.com\//i, "")
+        .replace(/\.git\/?$/i, "")
+        .replace(/\/$/, "")
+        .toLowerCase();
+    },
+    marketSkillResultKey(result) {
+      return `${result.repo || ""}:${result.skill}`;
+    },
     async installMarketSkill(result) {
-      this.marketActionSkill = result.skill;
+      const resultKey = this.marketSkillResultKey(result);
+      if (this.marketInstallingSkills.includes(resultKey) || this.marketSkillInstalled(result)) return;
+      this.marketInstallingSkills.push(resultKey);
       this.marketSearchError = "";
       try {
         await this.api("/api/market/skills/install", {
@@ -705,13 +721,11 @@ function platform() {
           body: JSON.stringify({ source: result.repo, skill: result.skill }),
         });
         await this.refreshResources();
-        this.marketInstallOpen = false;
-        this.marketSearchResults = [];
         this.showToast(`Skill ${result.skill} installed`);
       } catch (error) {
         this.showError(error);
       } finally {
-        this.marketActionSkill = "";
+        this.marketInstallingSkills = this.marketInstallingSkills.filter((key) => key !== resultKey);
       }
     },
     async installMarketExtension() {
