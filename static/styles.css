@@ -4043,15 +4043,15 @@ pre,
  z-index: 50;
 }
 .user-add-dialog {
- z-index: 60;
+ z-index: 70;
 }
-.users-toolbar {
+.usage-toolbar.users-toolbar {
  justify-content: flex-end;
- padding-bottom: 0;
+ padding: 16px 32px 12px;
  border-bottom: 0;
 }
 .users-body {
- padding-top: 24px;
+ padding-top: 0;
 }
 .users-loading {
  display: grid;
