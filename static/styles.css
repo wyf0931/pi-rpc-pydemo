@@ -1096,6 +1096,17 @@ body {
  height: 36px;
  font-size: 18px;
 }
+.upload-trigger {
+ min-width: 38px;
+ min-height: 38px;
+ border: 1px solid var(--line);
+ border-radius: var(--radius-field);
+ background: var(--color-base-100);
+ color: var(--ink);
+}
+.upload-trigger:hover {
+ background: var(--color-base-200);
+}
 @media (max-width: 800px) {
  .topbar {
   padding: 0 18px;
