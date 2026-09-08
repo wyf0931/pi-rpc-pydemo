@@ -151,9 +151,9 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260907-lucide-first-login" in Path(
-        "static/index.html"
-    ).read_text(encoding="utf-8")
+    assert "app.js?v=20260908-native-file-tabs" in Path("static/index.html").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_chat_viewport_and_composer_use_latest_message_and_seven_line_contract():
@@ -606,6 +606,59 @@ def test_chat_file_list_and_download_include_chat_id(
     assert downloaded.status_code == 200
     assert downloaded.content == b"# Notes\n"
     assert 'filename="notes.md"' in downloaded.headers["content-disposition"]
+
+
+def test_chat_file_view_serves_native_files_inline_and_sandboxes_html(
+    client, temporary_agent, monkeypatch
+):
+    import app.main as main_module
+
+    agent_id = temporary_agent({"name": "file-view", "instruction": "x"}).json()["id"]
+    chat = client.post("/api/chats", json={"agent_id": agent_id}).json()
+    file_path = main_module.settings.pi_cwd / "research" / "preview.html"
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.write_text("<h1>Preview</h1>", encoding="utf-8")
+    messages = [
+        {
+            "role": "assistant",
+            "content": [
+                {
+                    "type": "toolCall",
+                    "name": "write",
+                    "arguments": {"path": "research/preview.html"},
+                }
+            ],
+        }
+    ]
+
+    async def fake_messages(_chat):
+        return messages
+
+    monkeypatch.setattr(main_module.runtime, "messages", fake_messages)
+    viewed = client.get(
+        f"/api/chats/{chat['id']}/files/view?path=research/preview.html"
+    )
+    assert viewed.status_code == 200
+    assert viewed.headers["content-type"].startswith("text/html")
+    assert viewed.headers["content-disposition"].startswith("inline;")
+    assert viewed.headers["content-security-policy"] == "sandbox"
+    assert viewed.content == b"<h1>Preview</h1>"
+    assert (
+        client.get(
+            f"/api/chats/{chat['id']}/files/view?path=research/missing.png"
+        ).status_code
+        == 404
+    )
+
+
+def test_native_files_open_in_browser_tabs_while_text_files_keep_internal_preview():
+    script = Path("static/app.js").read_text(encoding="utf-8")
+
+    assert "opensInNativeBrowser(file)" in script
+    assert "browserViewUrl(file.chat_id, file.path)" in script
+    assert '"html"' in script
+    assert '"png"' in script
+    assert '"jpg"' in script
 
 
 def test_auth_rejects_unauthenticated_requests(client):
