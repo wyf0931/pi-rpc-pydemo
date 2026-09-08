@@ -5,9 +5,25 @@ from app.files import (
     delete_chat_files,
     discover_chat_files,
     discover_session_files,
+    native_browser_headers,
+    native_browser_media_type,
     read_session_messages,
     resolve_chat_file,
 )
+
+
+def test_native_svg_view_falls_back_to_plain_text_when_xml_is_malformed(tmp_path: Path):
+    valid = tmp_path / "valid.svg"
+    valid.write_text('<svg xmlns="http://www.w3.org/2000/svg"><desc>ok</desc></svg>')
+    malformed = tmp_path / "malformed.svg"
+    malformed.write_text("<svg><desc>broken</svg></desc>")
+
+    assert native_browser_media_type(valid) == "image/svg+xml"
+    assert (
+        native_browser_headers("image/svg+xml")["Content-Security-Policy"] == "sandbox"
+    )
+    assert native_browser_media_type(malformed) == "text/plain"
+    assert "Content-Security-Policy" not in native_browser_headers("text/plain")
 
 
 def test_discovers_only_workspace_files_written_by_chat(tmp_path: Path):
