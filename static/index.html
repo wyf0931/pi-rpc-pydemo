@@ -3,7 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pi studio</title>
+    <title>OMA Studio — Local-First AI Agent Workspace</title>
+    <meta
+      name="description"
+      content="OMA Studio is a local-first workspace for creating, managing, and collaborating with AI agents."
+    />
+    <meta name="keywords" content="OMA Studio, AI agents, local-first, agent workspace, Pi coding agent" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="icon" type="image/png" href="/static/oma-logo-light.png" />
+    <link rel="apple-touch-icon" href="/static/oma-logo-light.png" />
     <style>
       [x-cloak] {
         display: none !important;
@@ -22,7 +30,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260908-upload-control-alignment" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260908-oma-brand-upload-control-size" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
