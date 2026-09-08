@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 from fastapi import HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .api.routers.agents import create_router as create_agents_router
@@ -152,6 +152,12 @@ app.include_router(create_usage_router(settings, store))
 
 static_dir = Path(__file__).parent.parent / "static"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return FileResponse(static_dir / "favicon.ico", media_type="image/x-icon")
+
 
 SPA_TEMPLATE = load_template(static_dir)
 DEFAULT_OG_TITLE = "OMA Studio — AI Agent Platform"

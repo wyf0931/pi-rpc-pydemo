@@ -123,6 +123,21 @@ def test_health_and_agents(client):
     assert any(agent["name"] == "assistant" for agent in agents)
 
 
+def test_favicon_assets_are_explicit_and_ico_is_not_spa_html(client):
+    html = Path("static/index.html").read_text(encoding="utf-8")
+
+    assert 'rel="icon" type="image/png" sizes="32x32"' in html
+    assert 'href="/static/favicon-32.png?v=20260908"' in html
+    assert 'href="/static/favicon-16.png?v=20260908"' in html
+    assert 'href="/favicon.ico?v=20260908"' in html
+    assert 'href="/static/apple-touch-icon.png?v=20260908"' in html
+
+    response = client.get("/favicon.ico")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/x-icon"
+    assert response.content[:4] == b"\x00\x00\x01\x00"
+
+
 def test_agent_edit_entry_is_card_action_only():
     html = Path("static/index.html").read_text(encoding="utf-8")
 
