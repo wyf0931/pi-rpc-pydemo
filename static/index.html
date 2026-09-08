@@ -69,7 +69,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260908-oma-logo-transparent" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260908-users-dialog" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -227,27 +227,63 @@
             </div>
           </div>
           <div class="sidebar-footer">
-            <button
-              type="button"
-              class="theme-toggle usage-trigger"
-              title="Usage statistics"
-              aria-label="Usage statistics"
-              @click="openUsage()"
-            >
-              <i data-lucide="chart-pie" aria-hidden="true"></i>
-            </button>
-            <button
-              type="button"
-              class="theme-toggle settings-trigger"
-              title="Settings"
-              aria-label="Settings"
-              @click="openSettings()"
-            >
-              <i data-lucide="settings" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="theme-toggle" title="Log out" aria-label="Log out" @click="requestLogout()">
-              <i data-lucide="log-out" aria-hidden="true"></i>
-            </button>
+            <div class="dropdown dropdown-top sidebar-profile" :class="{'dropdown-open': profileMenuOpen}">
+              <button
+                type="button"
+                class="sidebar-profile-trigger"
+                @click.stop="profileMenuOpen = !profileMenuOpen"
+                :aria-expanded="profileMenuOpen"
+                aria-haspopup="menu"
+                aria-label="Open profile menu"
+              >
+                <div class="avatar avatar-placeholder sidebar-profile-avatar">
+                  <div><span x-text="profileAvatarInitials()"></span></div>
+                </div>
+                <span class="sidebar-profile-identity"
+                  ><b x-text="authUser?.username || 'User'"></b><small x-text="profileRoleLabel()"></small
+                ></span>
+                <i class="sidebar-profile-chevron" data-lucide="chevron-up" aria-hidden="true"></i>
+              </button>
+              <ul
+                class="menu menu-sm dropdown-content sidebar-profile-menu"
+                x-show="profileMenuOpen"
+                x-cloak
+                @click.stop
+              >
+                <li class="menu-title"><span>Workspace</span></li>
+                <li>
+                  <button type="button" @click="openProfileSettings()">
+                    <i data-lucide="settings" aria-hidden="true"></i>Settings
+                  </button>
+                </li>
+                <li>
+                  <button type="button" @click="openProfileUsage()">
+                    <i data-lucide="chart-pie" aria-hidden="true"></i>Usage
+                  </button>
+                </li>
+                <li x-show="authUser?.role === 'admin'">
+                  <button type="button" @click="openProfileUsers()">
+                    <i data-lucide="users" aria-hidden="true"></i>Users
+                  </button>
+                </li>
+                <li class="sidebar-profile-divider" aria-hidden="true"></li>
+                <li class="menu-title"><span>Support</span></li>
+                <li class="menu-disabled">
+                  <button type="button" disabled>
+                    <i data-lucide="circle-help" aria-hidden="true"></i>Help &amp; feedback
+                  </button>
+                </li>
+                <li class="menu-disabled">
+                  <button type="button" disabled><i data-lucide="info" aria-hidden="true"></i>About</button>
+                </li>
+                <li class="sidebar-profile-divider" aria-hidden="true"></li>
+                <li>
+                  <button type="button" class="sidebar-profile-logout" @click="openProfileLogout()">
+                    <i data-lucide="log-out" aria-hidden="true"></i>Log out
+                  </button>
+                </li>
+              </ul>
+            </div>
           </div>
         </aside>
         <button
@@ -1938,15 +1974,6 @@
             <button type="button" :class="{active: settingsTab === 'general'}" @click="openSettingsTab('general')">
               <i data-lucide="settings" aria-hidden="true"></i> General
             </button>
-            <button
-              type="button"
-              x-show="authUser?.role === 'admin'"
-              x-cloak
-              :class="{active: settingsTab === 'users'}"
-              @click="openSettingsTab('users')"
-            >
-              <i data-lucide="users" aria-hidden="true"></i> Users
-            </button>
           </aside>
           <section class="settings-content" x-show="settingsTab === 'general'">
             <div class="settings-title">
@@ -2020,79 +2047,90 @@
               </div>
             </div>
           </section>
-          <section
-            class="settings-content settings-users"
-            x-show="settingsTab === 'users' && authUser?.role === 'admin'"
-          >
-            <div class="settings-title">
-              <h3>Users</h3>
-              <p>Manage workspace accounts and access status.</p>
-            </div>
-            <div class="users-toolbar">
-              <p x-text="users.length + ' user' + (users.length === 1 ? '' : 's')"></p>
-              <button type="button" class="btn btn-ghost" @click="openAddUser()">
-                <i data-lucide="plus" aria-hidden="true"></i> Add user
-              </button>
-            </div>
-            <div class="users-table-wrap overflow-x-auto">
-              <div class="files-empty" x-show="usersLoading">
-                <span class="loading loading-dots loading-sm"></span>
-              </div>
-              <table class="table" x-show="!usersLoading">
-                <thead>
+        </div>
+      </div>
+    </dialog>
+    <dialog
+      class="modal modal-middle users-dialog"
+      :open="usersOpen"
+      x-show="usersOpen"
+      x-cloak
+      @click.self="usersOpen = false"
+    >
+      <div class="modal-box usage-modal-box users-modal-box">
+        <div class="usage-header">
+          <div>
+            <div class="eyebrow">Workspace administration</div>
+            <h2>Users</h2>
+            <p>Manage workspace accounts and access status.</p>
+          </div>
+          <button type="button" class="icon-btn" @click="usersOpen = false" aria-label="Close users">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="usage-toolbar users-toolbar">
+          <p class="usage-count" x-text="users.length + ' user' + (users.length === 1 ? '' : 's')"></p>
+          <button type="button" class="btn btn-ghost" @click="openAddUser()">
+            <i data-lucide="plus" aria-hidden="true"></i> Add user
+          </button>
+        </div>
+        <div class="usage-body users-body">
+          <div class="users-table-wrap overflow-x-auto">
+            <div class="users-loading" x-show="usersLoading"><span class="loading loading-dots loading-sm"></span></div>
+            <table class="table" x-show="!usersLoading">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Last login</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="user in users" :key="user.id">
                   <tr>
-                    <th>Name</th>
-                    <th>Username</th>
-                    <th>Email</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th>Last login</th>
-                    <th>Actions</th>
+                    <td x-text="user.username"></td>
+                    <td><code x-text="user.username"></code></td>
+                    <td x-text="user.email || '—'"></td>
+                    <td>
+                      <span
+                        class="badge badge-soft"
+                        :class="user.status === 'active' ? 'badge-success' : 'badge-ghost'"
+                        x-text="user.status"
+                      ></span>
+                    </td>
+                    <td x-text="formatDateTime(user.created_at)"></td>
+                    <td x-text="user.last_login_at ? formatDateTime(user.last_login_at) : 'Never'"></td>
+                    <td>
+                      <div class="users-actions">
+                        <input
+                          type="checkbox"
+                          class="toggle toggle-sm toggle-success"
+                          :checked="user.status === 'active'"
+                          :disabled="user.role === 'admin'"
+                          @change="toggleManagedUser(user)"
+                          :aria-label="'Enable ' + user.username"
+                        />
+                        <button
+                          type="button"
+                          class="btn btn-ghost btn-error btn-sm btn-square"
+                          x-show="user.role !== 'admin'"
+                          @click="requestDeleteUser(user)"
+                          :aria-label="'Delete ' + user.username"
+                          title="Delete user"
+                        >
+                          <i data-lucide="trash-2" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  <template x-for="user in users" :key="user.id">
-                    <tr>
-                      <td x-text="user.username"></td>
-                      <td><code x-text="user.username"></code></td>
-                      <td x-text="user.email || '—'"></td>
-                      <td>
-                        <span
-                          class="badge badge-soft"
-                          :class="user.status === 'active' ? 'badge-success' : 'badge-ghost'"
-                          x-text="user.status"
-                        ></span>
-                      </td>
-                      <td x-text="formatDateTime(user.created_at)"></td>
-                      <td x-text="user.last_login_at ? formatDateTime(user.last_login_at) : 'Never'"></td>
-                      <td>
-                        <div class="users-actions">
-                          <input
-                            type="checkbox"
-                            class="toggle toggle-sm toggle-success"
-                            :checked="user.status === 'active'"
-                            :disabled="user.role === 'admin'"
-                            @change="toggleManagedUser(user)"
-                            :aria-label="'Enable ' + user.username"
-                          />
-                          <button
-                            type="button"
-                            class="btn btn-ghost btn-error btn-sm btn-square"
-                            x-show="user.role !== 'admin'"
-                            @click="requestDeleteUser(user)"
-                            :aria-label="'Delete ' + user.username"
-                            title="Delete user"
-                          >
-                            <i data-lucide="trash-2" aria-hidden="true"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  </template>
-                </tbody>
-              </table>
-            </div>
-          </section>
+                </template>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </dialog>
@@ -2877,6 +2915,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260908-upload-control-alignment"></script>
+    <script src="/static/app.js?v=20260908-users-dialog"></script>
   </body>
 </html>

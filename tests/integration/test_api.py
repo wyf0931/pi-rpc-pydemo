@@ -170,9 +170,9 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260908-upload-control-alignment" in Path(
-        "static/index.html"
-    ).read_text(encoding="utf-8")
+    assert "app.js?v=20260908-users-dialog" in Path("static/index.html").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_chat_viewport_and_composer_use_latest_message_and_seven_line_contract():
@@ -288,17 +288,18 @@ def test_new_chat_is_removed_when_pi_cannot_start(client, temporary_agent, monke
     assert main_module.store.get_chat(chat["id"]) is None
 
 
-def test_user_management_is_available_only_from_the_admin_settings_tab():
+def test_user_management_is_available_only_from_the_admin_profile_menu():
     html = Path("static/index.html").read_text(encoding="utf-8")
     script = Path("static/app.js").read_text(encoding="utf-8")
     styles = Path("static/styles.css").read_text(encoding="utf-8")
 
     assert 'title="Users"' not in html
-    assert "@click=\"openSettingsTab('users')\"" in html
-    assert "settingsTab === 'users' && authUser?.role === 'admin'" in html
-    assert "usersOpen" not in script
+    assert '@click="openProfileUsers()"' in html
+    assert "x-show=\"authUser?.role === 'admin'\"" in html
+    assert "usersOpen" in script
+    assert "openProfileUsers()" in script
     assert "async openSettingsTab(tab)" in script
-    assert "height: min(764px, calc(100vh - 32px))" in styles
+    assert ".users-modal-box" in styles
     assert "display: flex" in styles
     assert "flex: 1 1 auto" in styles
 
@@ -783,6 +784,21 @@ def test_new_chat_upload_control_follows_the_agent_picker_and_uses_its_border_to
     assert ".upload-trigger" in styles
     assert "border: 1px solid var(--line);" in styles
     assert "border-radius: var(--radius-field);" in styles
+
+
+def test_sidebar_footer_uses_a_grouped_profile_menu_with_existing_actions():
+    html = Path("static/index.html").read_text(encoding="utf-8")
+    script = Path("static/app.js").read_text(encoding="utf-8")
+    styles = Path("static/styles.css").read_text(encoding="utf-8")
+
+    assert "sidebar-profile" in html
+    assert "avatar-placeholder sidebar-profile-avatar" in html
+    assert "Settings" in html and "Usage" in html and "Users" in html
+    assert "Help &amp; feedback" in html and "About" in html
+    assert 'data-lucide="log-out"' in html
+    assert "profileMenuOpen" in script
+    assert "openProfileUsers()" in script
+    assert ".sidebar-profile-menu" in styles
 
 
 def test_auth_rejects_unauthenticated_requests(client):

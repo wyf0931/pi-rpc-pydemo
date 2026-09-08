@@ -3,6 +3,7 @@ function platform() {
     settingsOpen: false,
     settingsTab: "general",
     usageOpen: false,
+    usersOpen: false,
     usageTab: "overview",
     usageRange: "7",
     usageLoading: false,
@@ -139,6 +140,7 @@ function platform() {
     userCreating: false,
     userDeleteTarget: null,
     logoutConfirmOpen: false,
+    profileMenuOpen: false,
     newUserUsername: "",
     newUserEmail: "",
     searchOpen: false,
@@ -366,6 +368,29 @@ function platform() {
       } catch (error) {
         this.showError(error);
       }
+    },
+    profileAvatarInitials() {
+      return this.initials(this.authUser?.username || "User");
+    },
+    profileRoleLabel() {
+      return this.authUser?.role === "admin" ? "Administrator" : "Member";
+    },
+    openProfileSettings() {
+      this.profileMenuOpen = false;
+      this.openSettings();
+    },
+    async openProfileUsage() {
+      this.profileMenuOpen = false;
+      await this.openUsage();
+    },
+    async openProfileUsers() {
+      this.profileMenuOpen = false;
+      this.usersOpen = true;
+      await this.loadUsers();
+    },
+    openProfileLogout() {
+      this.profileMenuOpen = false;
+      this.requestLogout();
     },
     errorFromResponse(response, requestId, data = null) {
       const detail = data?.detail || `Server returned ${response.status}`;
@@ -1440,7 +1465,6 @@ function platform() {
     },
     async openSettingsTab(tab) {
       this.settingsTab = tab;
-      if (tab === "users" && this.authUser?.role === "admin") await this.loadUsers();
     },
     saveLanguage() {
       if (this.language !== "en") this.language = "en";
@@ -2936,15 +2960,17 @@ function platform() {
       this.linkDrawerOpen = true;
     },
     closeDrawersOutside(event) {
-      if (!this.filesOpen && !this.linkDrawerOpen) return;
+      if (!this.filesOpen && !this.linkDrawerOpen && !this.profileMenuOpen) return;
       if (
         event.target.closest?.(".files-drawer") ||
         event.target.closest?.(".files-toggle") ||
-        event.target.closest?.(".web-activity")
+        event.target.closest?.(".web-activity") ||
+        event.target.closest?.(".sidebar-profile")
       )
         return;
       this.filesOpen = false;
       this.linkDrawerOpen = false;
+      this.profileMenuOpen = false;
     },
     renderReasoning(parts, messageKey, isStreaming = false) {
       const entries = [];
