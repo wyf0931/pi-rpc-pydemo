@@ -1,6 +1,7 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 def _env_file_values() -> dict[str, str]:
@@ -45,6 +46,7 @@ class Settings:
     baidu_search_base_url: str
     admin_password: str | None
     default_user_password: str | None
+    system_timezone: str
 
 
 def get_settings() -> Settings:
@@ -68,6 +70,11 @@ def get_settings() -> Settings:
         "max",
     }:
         thinking_level = "low"
+    system_timezone = value("OMA_TIMEZONE", "Asia/Shanghai") or "Asia/Shanghai"
+    try:
+        ZoneInfo(system_timezone)
+    except ZoneInfoNotFoundError:
+        system_timezone = "Asia/Shanghai"
     return Settings(
         data_dir=data_dir,
         log_dir=Path(value("PI_LOG_DIR", "logs") or "logs").expanduser(),
@@ -105,4 +112,5 @@ def get_settings() -> Settings:
         or "https://qianfan.baidubce.com",
         admin_password=value("OMA_ADMIN_PASSWORD"),
         default_user_password=value("OMA_DEFAULT_USER_PASSWORD"),
+        system_timezone=system_timezone,
     )

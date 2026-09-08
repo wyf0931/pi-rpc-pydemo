@@ -5,23 +5,27 @@ from zoneinfo import ZoneInfo
 
 from croniter import croniter
 
-AUTOPILOT_TIMEZONE = ZoneInfo("Asia/Shanghai")
+DEFAULT_AUTOPILOT_TIMEZONE = ZoneInfo("Asia/Shanghai")
 
 
-def _parse_time(value: str | None) -> datetime | None:
+def _parse_time(value: str | None, timezone: ZoneInfo) -> datetime | None:
     if not value:
         return None
     try:
         parsed = datetime.fromisoformat(value)
     except ValueError:
         return None
-    return parsed if parsed.tzinfo else parsed.replace(tzinfo=AUTOPILOT_TIMEZONE)
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone)
 
 
-def next_run_at(autopilot: dict, now: datetime | None = None) -> datetime | None:
-    now = (now or datetime.now(AUTOPILOT_TIMEZONE)).astimezone(AUTOPILOT_TIMEZONE)
-    starts_at = _parse_time(autopilot.get("starts_at"))
-    ends_at = _parse_time(autopilot.get("ends_at"))
+def next_run_at(
+    autopilot: dict,
+    now: datetime | None = None,
+    timezone: ZoneInfo = DEFAULT_AUTOPILOT_TIMEZONE,
+) -> datetime | None:
+    now = (now or datetime.now(timezone)).astimezone(timezone)
+    starts_at = _parse_time(autopilot.get("starts_at"), timezone)
+    ends_at = _parse_time(autopilot.get("ends_at"), timezone)
     if ends_at and now >= ends_at:
         return None
     base = max(now, starts_at) if starts_at else now
@@ -34,8 +38,12 @@ def next_run_at(autopilot: dict, now: datetime | None = None) -> datetime | None
     return candidate
 
 
-def previous_run_at(autopilot: dict, now: datetime | None = None) -> datetime | None:
-    now = (now or datetime.now(AUTOPILOT_TIMEZONE)).astimezone(AUTOPILOT_TIMEZONE)
+def previous_run_at(
+    autopilot: dict,
+    now: datetime | None = None,
+    timezone: ZoneInfo = DEFAULT_AUTOPILOT_TIMEZONE,
+) -> datetime | None:
+    now = (now or datetime.now(timezone)).astimezone(timezone)
     try:
         return croniter(autopilot["cron"], now).get_prev(datetime)
     except (KeyError, ValueError, TypeError):
@@ -44,10 +52,15 @@ def previous_run_at(autopilot: dict, now: datetime | None = None) -> datetime | 
 
 class AutopilotScheduler:
     def __init__(
-        self, store, executor: Callable[[dict], Awaitable[None]], interval: float = 15.0
+        self,
+        store,
+        executor: Callable[[dict], Awaitable[None]],
+        timezone_provider: Callable[[], ZoneInfo] = lambda: DEFAULT_AUTOPILOT_TIMEZONE,
+        interval: float = 15.0,
     ):
         self.store = store
         self.executor = executor
+        self.timezone_provider = timezone_provider
         self.interval = interval
         self.task: asyncio.Task | None = None
         self.running: set[str] = set()
@@ -78,15 +91,16 @@ class AutopilotScheduler:
             await asyncio.sleep(self.interval)
 
     async def tick(self, now: datetime | None = None) -> None:
-        now = (now or datetime.now(AUTOPILOT_TIMEZONE)).astimezone(AUTOPILOT_TIMEZONE)
+        timezone = self.timezone_provider()
+        now = (now or datetime.now(timezone)).astimezone(timezone)
         for autopilot in self.store.list_autopilots():
             if not autopilot.get("enabled") or autopilot["id"] in self.running:
                 continue
-            scheduled = previous_run_at(autopilot, now)
-            starts_at = _parse_time(autopilot.get("starts_at"))
-            ends_at = _parse_time(autopilot.get("ends_at"))
-            last_run = _parse_time(autopilot.get("last_run_at"))
-            created_at = _parse_time(autopilot.get("created_at"))
+            scheduled = previous_run_at(autopilot, now, timezone)
+            starts_at = _parse_time(autopilot.get("starts_at"), timezone)
+            ends_at = _parse_time(autopilot.get("ends_at"), timezone)
+            last_run = _parse_time(autopilot.get("last_run_at"), timezone)
+            created_at = _parse_time(autopilot.get("created_at"), timezone)
             if (
                 scheduled
                 and scheduled <= now

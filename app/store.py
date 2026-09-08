@@ -49,6 +49,7 @@ class Store:
         self.agent_publications = self.db.table("agent_publications")
         self.agent_publication_versions = self.db.table("agent_publication_versions")
         self.uploads = self.db.table("uploads")
+        self.system_settings = self.db.table("system_settings")
 
     @staticmethod
     def public_user(user: dict) -> dict:
@@ -101,6 +102,14 @@ class Store:
 
     def list_users(self) -> list[dict]:
         return [self.public_user(user) for user in self.users.all()]
+
+    def get_system_setting(self, key: str, default: str) -> str:
+        record = self.system_settings.get(Query().key == key)
+        return record.get("value", default) if record else default
+
+    def set_system_setting(self, key: str, value: str) -> str:
+        self.system_settings.upsert({"key": key, "value": value}, Query().key == key)
+        return value
 
     def get_user(self, user_id: str) -> dict | None:
         return self.users.get(Query().id == user_id)

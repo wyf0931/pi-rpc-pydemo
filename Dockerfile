@@ -49,6 +49,7 @@ COPY static ./static
 # Non-root: keeps bind-mounted file ownership predictable
 USER node
 ENV HOME=/home/node \
+    OMA_TIMEZONE=Asia/Shanghai \
     TZ=Asia/Shanghai \
     PI_CLI_PATH=pi \
     PI_HOME=/home/node/.pi/agent \

@@ -170,9 +170,9 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260908-users-dialog" in Path("static/index.html").read_text(
-        encoding="utf-8"
-    )
+    assert "app.js?v=20260908-system-timezone-settings" in Path(
+        "static/index.html"
+    ).read_text(encoding="utf-8")
 
 
 def test_chat_viewport_and_composer_use_latest_message_and_seven_line_contract():
@@ -803,9 +803,57 @@ def test_sidebar_footer_uses_a_grouped_profile_menu_with_existing_actions():
     assert "display: none;" in styles
 
 
+def test_system_timezone_control_is_admin_only_and_not_browser_local_storage():
+    html = Path("static/index.html").read_text(encoding="utf-8")
+    script = Path("static/app.js").read_text(encoding="utf-8")
+
+    assert "x-show=\"authUser?.role === 'admin'\"" in html
+    assert 'x-model="systemTimezone"' in html
+    assert '@change="saveSystemTimezone()"' in html
+    assert "loadSystemSettings()" in script
+    assert "/api/settings/timezone" in script
+    assert "oma-timezone" not in script
+
+
 def test_auth_rejects_unauthenticated_requests(client):
     client.post("/api/auth/logout")
     assert client.get("/api/agents").status_code == 401
+
+
+def test_system_timezone_is_admin_managed(client):
+    import app.main as main_module
+
+    original = main_module.store.get_system_setting("timezone", "Asia/Shanghai")
+    normal_user = None
+    try:
+        assert client.get("/api/settings").json()["timezone"] == original
+        assert (
+            client.patch(
+                "/api/settings/timezone", json={"timezone": "Asia/Tokyo"}
+            ).json()["timezone"]
+            == "Asia/Tokyo"
+        )
+        normal_user = client.post(
+            "/api/users", json={"username": f"timezone-{uuid4().hex[:8]}"}
+        ).json()
+        client.post("/api/auth/logout")
+        client.post(
+            "/api/auth/login",
+            json={
+                "username": normal_user["username"],
+                "password": "test-user-password",
+            },
+        )
+        assert client.get("/api/settings").status_code == 403
+    finally:
+        main_module.store.set_system_setting("timezone", original)
+        client.post("/api/auth/logout")
+        client.post(
+            "/api/auth/login",
+            json={"username": "admin", "password": "test-admin-password"},
+        )
+        if normal_user:
+            client.delete(f"/api/users/{normal_user['id']}")
 
 
 def test_resources_expose_platform_web_tools(client):

@@ -1995,14 +1995,14 @@
                 <option value="zh" disabled>中文 (Coming soon)</option>
               </select>
             </div>
-            <div class="settings-section">
-              <label for="settings-timezone">Timezone</label>
-              <p>Used when displaying and scheduling automation tasks.</p>
+            <div class="settings-section" x-show="authUser?.role === 'admin'" x-cloak>
+              <label for="settings-timezone">System timezone</label>
+              <p>Used by all Autopilot schedules and run prompts in this deployment.</p>
               <select
                 id="settings-timezone"
                 class="select select-bordered settings-select"
-                x-model="timezone"
-                @change="saveTimezone()"
+                x-model="systemTimezone"
+                @change="saveSystemTimezone()"
               >
                 <option value="Asia/Shanghai">Shanghai (UTC+08:00)</option>
                 <option value="Asia/Tokyo">Tokyo (UTC+09:00)</option>
@@ -2916,6 +2916,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260908-users-dialog"></script>
+    <script src="/static/app.js?v=20260908-system-timezone-settings"></script>
   </body>
 </html>

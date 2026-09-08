@@ -255,6 +255,7 @@ PI_PLATFORM_DATA_DIR=/absolute/path/to/.oma-studio/data
 PI_SESSION_DIR=/absolute/path/to/.oma-studio/data/pi-sessions
 PI_LOG_DIR=/absolute/path/to/.oma-studio/logs
 PI_CWD=/absolute/path/to/.oma-studio/workspace
+OMA_TIMEZONE=Asia/Shanghai
 PI_HOST_HOME=/absolute/path/to/.oma-studio/pi-home/agent
 PI_HOST_AGENTS_HOME=/absolute/path/to/.oma-studio/.agents
 PI_PROVIDER=deepseek
