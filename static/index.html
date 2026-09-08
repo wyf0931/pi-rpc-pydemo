@@ -22,7 +22,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260908-wrap-user-messages" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260908-chat-attachments" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -289,6 +289,16 @@
                       </div>
                     </div>
                     <div class="start-composer-foot">
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-square upload-trigger"
+                        @click="openUploadPicker()"
+                        :disabled="uploadingFiles || !selectedAgentId"
+                        title="Attach files"
+                        aria-label="Attach files"
+                      >
+                        <i data-lucide="paperclip" aria-hidden="true"></i>
+                      </button>
                       <div class="agent-picker" @click.outside="agentPickerOpen = false">
                         <button
                           type="button"
@@ -414,6 +424,21 @@
                 ></template>
               </div>
               <div class="composer" x-show="!shareMode" x-cloak>
+                <div class="composer-attachments" x-show="pendingAttachments().length" x-cloak>
+                  <template x-for="file in pendingAttachments()" :key="file.id || ('artifact:' + file.path)">
+                    <span class="composer-attachment">
+                      <i data-lucide="paperclip" aria-hidden="true"></i
+                      ><span x-text="'@' + (file.filename || file.name)"></span
+                      ><button
+                        type="button"
+                        @click="file.filename ? removePendingUpload(file) : removePendingArtifact(file)"
+                        :aria-label="'Remove ' + (file.filename || file.name)"
+                      >
+                        <i data-lucide="x" aria-hidden="true"></i>
+                      </button>
+                    </span>
+                  </template>
+                </div>
                 <textarea
                   id="conversation-message"
                   name="message"
@@ -421,11 +446,20 @@
                   class="textarea textarea-bordered"
                   x-ref="conversationInput"
                   x-model="draft"
-                  @input="resizeConversationInput($event)"
+                  @input="resizeConversationInput($event); updateAttachmentCommandState()"
                   @keydown.enter.meta.prevent="sendMessage()"
                   :disabled="loading"
                   placeholder="Message this agent…"
                 ></textarea
+                ><button
+                  type="button"
+                  class="btn btn-ghost btn-square conversation-attach"
+                  @click="openUploadPicker()"
+                  :disabled="uploadingFiles || loading"
+                  title="Attach files"
+                  aria-label="Attach files"
+                >
+                  <i data-lucide="paperclip" aria-hidden="true"></i></button
                 ><button
                   class="icon-send conversation-send"
                   @click="loading ? abort() : sendMessage()"
@@ -437,6 +471,13 @@
                   <i data-lucide="arrow-up" x-show="!loading" aria-hidden="true"></i>
                   <i data-lucide="x" x-show="loading" aria-hidden="true"></i>
                 </button>
+                <div class="attachment-command-palette" x-show="attachmentCommandVisible()" x-cloak role="listbox">
+                  <template x-for="file in attachmentCommandItems()" :key="file.path">
+                    <button type="button" role="option" @mousedown.prevent="chooseArtifactAttachment(file)">
+                      <i data-lucide="file-text" aria-hidden="true"></i><span x-text="'@' + file.name"></span>
+                    </button>
+                  </template>
+                </div>
               </div>
               <div class="share-bar" x-show="shareMode" x-cloak>
                 <span class="share-hint"
@@ -1456,6 +1497,7 @@
       </aside>
     </div>
 
+    <input x-ref="uploadInput" class="hidden" type="file" multiple @change="handleUploadSelection($event)" />
     <dialog
       class="modal modal-middle"
       :open="autopilotDialog"
@@ -2774,6 +2816,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260908-native-file-tabs"></script>
+    <script src="/static/app.js?v=20260908-chat-attachments"></script>
   </body>
 </html>

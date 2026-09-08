@@ -151,7 +151,7 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260908-native-file-tabs" in Path("static/index.html").read_text(
+    assert "app.js?v=20260908-chat-attachments" in Path("static/index.html").read_text(
         encoding="utf-8"
     )
 
@@ -163,7 +163,10 @@ def test_chat_viewport_and_composer_use_latest_message_and_seven_line_contract()
 
     assert 'id="conversation-message"' in html
     assert 'rows="1"' in html
-    assert '@input="resizeConversationInput($event)"' in html
+    assert (
+        '@input="resizeConversationInput($event); updateAttachmentCommandState()"'
+        in html
+    )
     assert 'x-ref="chatContent"' in html
     assert "scrollMessagesToLatest()" in script
     assert "const maxHeight = lineHeight * 7 + verticalPadding" in script
@@ -661,6 +664,63 @@ def test_native_files_open_in_browser_tabs_while_text_files_keep_internal_previe
     assert '"jpg"' in script
 
 
+def test_chat_uploads_are_staged_before_the_first_pi_session(client, temporary_agent):
+    import app.main as main_module
+
+    agent_id = temporary_agent({"name": "uploads", "instruction": "x"}).json()["id"]
+    chat = client.post("/api/chats", json={"agent_id": agent_id}).json()
+
+    uploaded = client.post(
+        f"/api/chats/{chat['id']}/uploads",
+        content=b"name,value\na,1\n",
+        headers={"X-Upload-Filename": "source.csv", "content-type": "text/csv"},
+    )
+    assert uploaded.status_code == 201
+    payload = uploaded.json()
+    assert payload["chat_id"] == chat["id"]
+    assert payload["path"] == f"uploads/{chat['id']}/source.csv"
+    assert client.get(f"/api/chats/{chat['id']}").status_code == 200
+    assert any(
+        item["id"] == chat["id"] for item in client.get("/api/chats").json()["chats"]
+    )
+    assert (
+        client.get(f"/api/chats/{chat['id']}/uploads").json()["uploads"][0]["id"]
+        == payload["id"]
+    )
+    assert (
+        client.delete(f"/api/chats/{chat['id']}/uploads/{payload['id']}").status_code
+        == 200
+    )
+    uploaded_again = client.post(
+        f"/api/chats/{chat['id']}/uploads",
+        content=b"name,value\na,1\n",
+        headers={"X-Upload-Filename": "source.csv", "content-type": "text/csv"},
+    )
+    assert uploaded_again.status_code == 201
+    path = main_module.settings.pi_cwd / uploaded_again.json()["path"]
+    assert path.is_file()
+    assert client.delete(f"/api/chats/{chat['id']}").status_code == 200
+    assert not path.exists()
+
+
+def test_attachment_blocks_restore_clean_user_content_and_file_labels():
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": '<oma-attachments>{"files":[{"id":"upload-1","name":"source.csv","path":"uploads/chat/source.csv","media_type":"text/csv","size":12}]}</oma-attachments>\n\nSummarize this file.',
+                }
+            ],
+        }
+    ]
+
+    visible = visible_messages(messages)
+    assert visible[0]["display_content"] == "Summarize this file."
+    assert visible[0]["_attachments"][0]["name"] == "source.csv"
+
+
 def test_long_user_messages_wrap_inside_the_chat_bubble():
     styles = Path("static/styles.css").read_text(encoding="utf-8")
 
@@ -673,6 +733,20 @@ def test_long_user_messages_wrap_inside_the_chat_bubble():
         " word-break: break-word;\n"
         "}"
     ) in styles
+
+
+def test_client_uploads_chat_files_and_limits_at_mentions_to_published_artifacts():
+    html = Path("static/index.html").read_text(encoding="utf-8")
+    script = Path("static/app.js").read_text(encoding="utf-8")
+
+    assert "openUploadPicker()" in script
+    assert "handleUploadSelection(event)" in script
+    assert "attachmentCommandItems()" in script
+    assert "this.files.filter" not in script
+    assert "/uploads" in script
+    assert "pendingArtifacts" in script
+    assert 'x-ref="uploadInput"' in html
+    assert 'data-lucide="paperclip"' in html
 
 
 def test_auth_rejects_unauthenticated_requests(client):
