@@ -170,7 +170,7 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260908-system-timezone-settings" in Path(
+    assert "app.js?v=20260908-active-chat-loading" in Path(
         "static/index.html"
     ).read_text(encoding="utf-8")
 
@@ -813,6 +813,18 @@ def test_system_timezone_control_is_admin_only_and_not_browser_local_storage():
     assert "loadSystemSettings()" in script
     assert "/api/settings/timezone" in script
     assert "oma-timezone" not in script
+
+
+def test_opening_a_chat_refreshes_its_running_state_without_leaking_prior_loading():
+    script = Path("static/app.js").read_text(encoding="utf-8")
+
+    assert "this.loading = false;" in script
+    assert "const [data, currentChat] = await Promise.all" in script
+    assert 'this.loading = currentChat.status === "running";' in script
+    assert (
+        'if (this.activeChat?.status === "running") void this.watchChat(chat.id);'
+        in script
+    )
 
 
 def test_auth_rejects_unauthenticated_requests(client):
