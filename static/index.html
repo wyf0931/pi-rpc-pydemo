@@ -69,7 +69,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260908-sidebar-profile-collapsed" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260908-users-dialog-layer" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -2069,9 +2069,8 @@
           </button>
         </div>
         <div class="usage-toolbar users-toolbar">
-          <p class="usage-count" x-text="users.length + ' user' + (users.length === 1 ? '' : 's')"></p>
-          <button type="button" class="btn btn-ghost" @click="openAddUser()">
-            <i data-lucide="plus" aria-hidden="true"></i> Add user
+          <button type="button" class="btn btn-soft btn-primary" @click="openAddUser()">
+            <i data-lucide="plus" aria-hidden="true"></i> New
           </button>
         </div>
         <div class="usage-body users-body">

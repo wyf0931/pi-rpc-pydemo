@@ -4039,9 +4039,16 @@ pre,
 .users-modal-box {
  width: min(1120px, calc(100vw - 48px));
 }
+.users-dialog {
+ z-index: 50;
+}
+.user-add-dialog {
+ z-index: 60;
+}
 .users-toolbar {
- padding-bottom: 18px;
- border-bottom: 1px solid var(--line);
+ justify-content: flex-end;
+ padding-bottom: 0;
+ border-bottom: 0;
 }
 .users-body {
  padding-top: 24px;
