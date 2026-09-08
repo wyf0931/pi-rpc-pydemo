@@ -91,6 +91,7 @@ function platform() {
     files: [],
     pendingUploads: [],
     pendingArtifacts: [],
+    uploadDraftChat: null,
     uploadingFiles: false,
     fileViewer: null,
     libraryFiles: [],
@@ -874,15 +875,13 @@ function platform() {
     },
     async ensureUploadChat() {
       if (this.activeChat) return this.activeChat;
+      if (this.uploadDraftChat) return this.uploadDraftChat;
       if (!this.selectedAgentId) throw new Error("Choose an Agent before attaching a file");
       const chat = await this.api("/api/chats", {
         method: "POST",
         body: JSON.stringify({ agent_id: this.selectedAgentId }),
       });
-      this.activeChat = chat;
-      this.files = [];
-      this.page = "chat";
-      history.pushState({}, "", `/chat/${chat.id}` + this.modeQuery());
+      this.uploadDraftChat = chat;
       return chat;
     },
     openUploadPicker() {
@@ -928,9 +927,10 @@ function platform() {
       }
     },
     async removePendingUpload(upload) {
-      if (!this.activeChat) return;
+      const chat = this.activeChat || this.uploadDraftChat;
+      if (!chat) return;
       try {
-        await this.api(`/api/chats/${this.activeChat.id}/uploads/${upload.id}`, { method: "DELETE" });
+        await this.api(`/api/chats/${chat.id}/uploads/${upload.id}`, { method: "DELETE" });
         this.pendingUploads = this.pendingUploads.filter((item) => item.id !== upload.id);
       } catch (error) {
         this.showError(error);
@@ -1450,7 +1450,9 @@ function platform() {
       localStorage.setItem("oma-timezone", this.timezone);
     },
     newChat() {
-      const draftChat = this.activeChat?.status === "created" && this.pendingUploads.length ? this.activeChat : null;
+      const draftChat =
+        this.uploadDraftChat ||
+        (this.activeChat?.status === "created" && this.pendingUploads.length ? this.activeChat : null);
       if (draftChat) void this.api(`/api/chats/${draftChat.id}`, { method: "DELETE" }).catch(() => {});
       this.stopWatching();
       this.chatViewToken += 1;
@@ -1462,6 +1464,7 @@ function platform() {
       this.filesOpen = false;
       this.pendingUploads = [];
       this.pendingArtifacts = [];
+      this.uploadDraftChat = null;
       this.draft = "";
       this.loading = false;
       this.messagesLoading = false;
@@ -1482,6 +1485,7 @@ function platform() {
       this.filesOpen = false;
       this.pendingUploads = [];
       this.pendingArtifacts = [];
+      this.uploadDraftChat = null;
       this.resetConversationInput();
       if (updateUrl) history.pushState({}, "", `/chat/${chat.id}` + this.modeQuery());
       this.messages = [];
@@ -1535,14 +1539,18 @@ function platform() {
       }
     },
     async sendFirst() {
-      if (!this.draft.trim() || !this.selectedAgentId) return;
-      let createdChatId = null;
+      if (!this.draft.trim() || (!this.selectedAgentId && !this.uploadDraftChat)) return;
+      let createdChatId = this.uploadDraftChat?.id || null;
       try {
-        const chat = await this.api("/api/chats", {
-          method: "POST",
-          body: JSON.stringify({ agent_id: this.selectedAgentId }),
-        });
+        const chat =
+          this.uploadDraftChat ||
+          (await this.api("/api/chats", {
+            method: "POST",
+            body: JSON.stringify({ agent_id: this.selectedAgentId }),
+          }));
         createdChatId = chat.id;
+        this.selectedAgentId = chat.agent_id;
+        this.uploadDraftChat = null;
         this.activeChat = chat;
         this.chats.unshift(chat);
         history.pushState({}, "", `/chat/${chat.id}`);

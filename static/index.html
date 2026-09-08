@@ -22,7 +22,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260908-chat-attachments" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260908-chat-upload-draft" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -244,6 +244,20 @@
               <div class="start-grid">
                 <div class="aura aura-rainbow aura-lg">
                   <div class="start-card rounded-box">
+                    <div class="composer-attachments start-attachments" x-show="pendingUploads.length" x-cloak>
+                      <template x-for="file in pendingUploads" :key="file.id">
+                        <span class="composer-attachment">
+                          <i data-lucide="paperclip" aria-hidden="true"></i><span x-text="'@' + file.filename"></span
+                          ><button
+                            type="button"
+                            @click="removePendingUpload(file)"
+                            :aria-label="'Remove ' + file.filename"
+                          >
+                            <i data-lucide="x" aria-hidden="true"></i>
+                          </button>
+                        </span>
+                      </template>
+                    </div>
                     <div class="skill-command-editor">
                       <div
                         class="skill-command-highlight"
@@ -2816,6 +2830,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260908-chat-attachments"></script>
+    <script src="/static/app.js?v=20260908-chat-upload-draft"></script>
   </body>
 </html>

@@ -151,7 +151,7 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260908-chat-attachments" in Path("static/index.html").read_text(
+    assert "app.js?v=20260908-chat-upload-draft" in Path("static/index.html").read_text(
         encoding="utf-8"
     )
 
@@ -747,6 +747,10 @@ def test_client_uploads_chat_files_and_limits_at_mentions_to_published_artifacts
     assert "pendingArtifacts" in script
     assert 'x-ref="uploadInput"' in html
     assert 'data-lucide="paperclip"' in html
+    assert "uploadDraftChat" in script
+    assert "this.uploadDraftChat = chat;" in script
+    assert "this.activeChat = chat;" in script
+    assert "this.uploadDraftChat = null;" in script
 
 
 def test_auth_rejects_unauthenticated_requests(client):
