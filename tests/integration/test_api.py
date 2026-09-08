@@ -899,6 +899,12 @@ def test_market_skill_search(client, monkeypatch):
 
 
 def test_market_skill_preview(client, monkeypatch):
+    html = Path("static/index.html").read_text(encoding="utf-8")
+    assert (
+        'x-for="result in marketSearchResults" :key="result.repo + \':\' + result.skill"'
+        in html
+    )
+
     async def fake_preview(source):
         assert source == "https://github.com/yanliudesign/mono-color-skill"
         return [{"skill": "mono-color"}]

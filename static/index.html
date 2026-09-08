@@ -1168,7 +1168,7 @@
                 class="market-search-results"
                 x-show="!marketSearchLoading && !marketSearchError && marketSearchResults.length"
               >
-                <template x-for="result in marketSearchResults" :key="result.url">
+                <template x-for="result in marketSearchResults" :key="result.repo + ':' + result.skill">
                   <article class="card card-border market-result-card bg-base-100">
                     <div class="card-body">
                       <div class="market-result-heading">
