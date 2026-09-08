@@ -10,8 +10,8 @@
     />
     <meta name="keywords" content="OMA Studio, AI agents, local-first, agent workspace, Pi coding agent" />
     <meta name="theme-color" content="#ffffff" />
-    <link rel="icon" type="image/png" href="/static/oma-logo-light.png" />
-    <link rel="apple-touch-icon" href="/static/oma-logo-light.png" />
+    <link rel="icon" type="image/png" href="/static/oma-logo-transparent.png" />
+    <link rel="apple-touch-icon" href="/static/oma-logo-transparent.png" />
     <style>
       [x-cloak] {
         display: none !important;
@@ -30,12 +30,12 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260908-oma-brand-round" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260908-oma-logo-transparent" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
       <div class="app-boot-brand">
-        <img src="/static/oma-logo-light.png" alt="" />
+        <img src="/static/oma-logo-transparent.png" alt="" />
         <span>OMA studio</span>
       </div>
       <span class="loading loading-bars loading-md" aria-hidden="true"></span>
@@ -44,7 +44,7 @@
     <main class="login-screen" x-show="authChecked && !authUser && !sharedMode" x-cloak>
       <form class="card login-card" @submit.prevent="login()">
         <div class="login-brand">
-          <img src="/static/oma-logo-light.png" alt="OMA studio" />
+          <img src="/static/oma-logo-transparent.png" alt="OMA studio" />
           <span>OMA studio</span>
         </div>
         <h1>Welcome back</h1>
@@ -90,7 +90,7 @@
           >
             <i data-lucide="menu" aria-hidden="true"></i></button
           ><a class="mobile-brand" href="#" @click.prevent="newChat()"
-            ><img src="/static/oma-logo-light.png" alt="OMA studio" /><span>OMA studio</span></a
+            ><img src="/static/oma-logo-transparent.png" alt="OMA studio" /><span>OMA studio</span></a
           ><button type="button" class="btn btn-ghost btn-circle" @click="newChat()" aria-label="New chat">
             <i data-lucide="plus" aria-hidden="true"></i>
           </button>
@@ -98,7 +98,7 @@
         <aside class="history-panel">
           <div class="sidebar-top">
             <a class="brand" href="#" @click.prevent="brandClick()"
-              ><img src="/static/oma-logo-light.png" alt="OhMyAgent logo" /><span>OMA studio</span></a
+              ><img src="/static/oma-logo-transparent.png" alt="OhMyAgent logo" /><span>OMA studio</span></a
             >
             <div class="sidebar-tools">
               <button
@@ -245,7 +245,7 @@
           <template x-if="!activeChat">
             <div class="chat-empty">
               <div class="chat-empty-logo">
-                <img src="/static/oma-logo-light.png" alt="OMA studio" />
+                <img src="/static/oma-logo-transparent.png" alt="OMA studio" />
               </div>
               <h1>Stay hungry. Stay foolish.</h1>
               <p class="chat-empty-subtitle">What should we do?</p>

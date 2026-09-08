@@ -4740,6 +4740,7 @@ body > .link-drawer {
  width: 42px;
  height: 42px;
  object-fit: contain;
+ border-radius: 50%;
 }
 [data-theme="dark"] .chat-empty-logo img {
  filter: invert(1);
