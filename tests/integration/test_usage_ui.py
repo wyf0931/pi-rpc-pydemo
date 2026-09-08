@@ -57,5 +57,6 @@ def test_users_are_managed_in_a_dedicated_dialog_not_settings_tab():
     assert "z-index: 70;" in styles
     assert ".usage-toolbar.users-toolbar" in styles
     assert "justify-content: flex-end;" in styles
-    assert ".users-body" in styles
-    assert "padding-top: 0;" in styles
+    assert "margin: 0;" in styles
+    assert ".usage-body.users-body" in styles
+    assert "padding: 0 32px 32px;" in styles
