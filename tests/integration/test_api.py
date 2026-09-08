@@ -152,9 +152,9 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260908-sidebar-profile-menu" in Path(
-        "static/index.html"
-    ).read_text(encoding="utf-8")
+    assert "app.js?v=20260908-users-dialog" in Path("static/index.html").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_chat_viewport_and_composer_use_latest_message_and_seven_line_contract():
@@ -270,17 +270,18 @@ def test_new_chat_is_removed_when_pi_cannot_start(client, temporary_agent, monke
     assert main_module.store.get_chat(chat["id"]) is None
 
 
-def test_user_management_is_available_only_from_the_admin_settings_tab():
+def test_user_management_is_available_only_from_the_admin_profile_menu():
     html = Path("static/index.html").read_text(encoding="utf-8")
     script = Path("static/app.js").read_text(encoding="utf-8")
     styles = Path("static/styles.css").read_text(encoding="utf-8")
 
     assert 'title="Users"' not in html
-    assert "@click=\"openSettingsTab('users')\"" in html
-    assert "settingsTab === 'users' && authUser?.role === 'admin'" in html
-    assert "usersOpen" not in script
+    assert '@click="openProfileUsers()"' in html
+    assert "x-show=\"authUser?.role === 'admin'\"" in html
+    assert "usersOpen" in script
+    assert "openProfileUsers()" in script
     assert "async openSettingsTab(tab)" in script
-    assert "height: min(764px, calc(100vh - 32px))" in styles
+    assert ".users-modal-box" in styles
     assert "display: flex" in styles
     assert "flex: 1 1 auto" in styles
 

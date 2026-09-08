@@ -3,6 +3,7 @@ function platform() {
     settingsOpen: false,
     settingsTab: "general",
     usageOpen: false,
+    usersOpen: false,
     usageTab: "overview",
     usageRange: "7",
     usageLoading: false,
@@ -384,8 +385,8 @@ function platform() {
     },
     async openProfileUsers() {
       this.profileMenuOpen = false;
-      this.settingsOpen = true;
-      await this.openSettingsTab("users");
+      this.usersOpen = true;
+      await this.loadUsers();
     },
     openProfileLogout() {
       this.profileMenuOpen = false;
@@ -1464,7 +1465,6 @@ function platform() {
     },
     async openSettingsTab(tab) {
       this.settingsTab = tab;
-      if (tab === "users" && this.authUser?.role === "admin") await this.loadUsers();
     },
     saveLanguage() {
       if (this.language !== "en") this.language = "en";
