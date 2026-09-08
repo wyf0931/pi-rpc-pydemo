@@ -48,6 +48,7 @@ class Store:
         self.sessions = self.db.table("sessions")
         self.agent_publications = self.db.table("agent_publications")
         self.agent_publication_versions = self.db.table("agent_publication_versions")
+        self.uploads = self.db.table("uploads")
 
     @staticmethod
     def public_user(user: dict) -> dict:
@@ -437,7 +438,29 @@ class Store:
 
     def delete_chat(self, chat_id: str) -> bool:
         self.shares.remove(Query().chat_id == chat_id)
+        self.uploads.remove(Query().chat_id == chat_id)
         return bool(self.chats.remove(Query().id == chat_id))
+
+    def create_upload(self, values: dict) -> dict:
+        item = {**values, "created_at": now_iso()}
+        self.uploads.insert(item)
+        return item
+
+    def get_upload(self, upload_id: str) -> dict | None:
+        return self.uploads.get(Query().id == upload_id)
+
+    def list_uploads(self, chat_id: str) -> list[dict]:
+        return sorted(
+            self.uploads.search(Query().chat_id == chat_id),
+            key=lambda item: item.get("created_at", ""),
+        )
+
+    def delete_upload(self, upload_id: str, chat_id: str) -> bool:
+        return bool(
+            self.uploads.remove(
+                (Query().id == upload_id) & (Query().chat_id == chat_id)
+            )
+        )
 
     def get_share(self, token: str) -> dict | None:
         matches = self.shares.search(Query().token == token)

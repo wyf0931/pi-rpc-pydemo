@@ -89,6 +89,9 @@ function platform() {
     filesOpen: false,
     filesLoading: false,
     files: [],
+    pendingUploads: [],
+    pendingArtifacts: [],
+    uploadingFiles: false,
     fileViewer: null,
     libraryFiles: [],
     libraryLoading: false,
@@ -841,6 +844,101 @@ function platform() {
         : new URLSearchParams({ chat_id: this.activeChat.id, path: file.path, from: "chat" });
       this.openInternalTab(`/file-view?${query.toString()}`);
     },
+    pendingAttachments() {
+      return [...this.pendingUploads, ...this.pendingArtifacts];
+    },
+    attachmentCommandMatch() {
+      if (!this.activeChat || this.sharedMode) return null;
+      const match = this.draft.match(/(?:^|\s)@([^\s]*)$/);
+      return match ? { query: match[1].toLowerCase() } : null;
+    },
+    attachmentCommandItems() {
+      const match = this.attachmentCommandMatch();
+      if (!match) return [];
+      const selected = new Set(this.pendingArtifacts.map((file) => file.path));
+      return this.files
+        .filter((file) => !selected.has(file.path))
+        .filter((file) => file.name.toLowerCase().includes(match.query))
+        .slice(0, 8);
+    },
+    attachmentCommandVisible() {
+      return Boolean(this.attachmentCommandMatch()) && this.attachmentCommandItems().length > 0;
+    },
+    updateAttachmentCommandState() {
+      if (this.attachmentCommandMatch() && !this.filesLoading && !this.files.length) void this.loadChatFiles();
+    },
+    chooseArtifactAttachment(file) {
+      this.pendingArtifacts.push(file);
+      this.draft = this.draft.replace(/(?:^|\s)@[^\s]*$/, (value) => (value.startsWith(" ") ? " " : ""));
+      this.$nextTick(() => document.getElementById("conversation-message")?.focus());
+    },
+    async ensureUploadChat() {
+      if (this.activeChat) return this.activeChat;
+      if (!this.selectedAgentId) throw new Error("Choose an Agent before attaching a file");
+      const chat = await this.api("/api/chats", {
+        method: "POST",
+        body: JSON.stringify({ agent_id: this.selectedAgentId }),
+      });
+      this.activeChat = chat;
+      this.files = [];
+      this.page = "chat";
+      history.pushState({}, "", `/chat/${chat.id}` + this.modeQuery());
+      return chat;
+    },
+    openUploadPicker() {
+      if (!this.uploadingFiles) this.$refs.uploadInput?.click();
+    },
+    async handleUploadSelection(event) {
+      const selected = [...(event.target.files || [])];
+      event.target.value = "";
+      if (!selected.length) return;
+      const available = 5 - this.pendingAttachments().length;
+      if (selected.length > available) {
+        this.showError(new Error(`You can attach at most 5 files to one message`));
+      }
+      const files = selected.slice(0, Math.max(0, available));
+      if (!files.length) return;
+      this.uploadingFiles = true;
+      try {
+        const chat = await this.ensureUploadChat();
+        for (const file of files) {
+          const requestId = crypto.randomUUID();
+          const response = await fetch(`/api/chats/${chat.id}/uploads`, {
+            method: "POST",
+            headers: {
+              "Content-Type": file.type || "application/octet-stream",
+              "X-Request-ID": requestId,
+              "X-Upload-Filename": encodeURIComponent(file.name),
+            },
+            body: file,
+          });
+          const responseId = response.headers.get("X-Request-ID") || requestId;
+          const data = await response.json().catch(() => null);
+          if (!response.ok) {
+            const error = this.errorFromResponse(response, responseId, data);
+            this.handleUnauthorizedResponse(response, `/api/chats/${chat.id}/uploads`, error);
+            throw error;
+          }
+          this.pendingUploads.push(data);
+        }
+      } catch (error) {
+        this.showError(error);
+      } finally {
+        this.uploadingFiles = false;
+      }
+    },
+    async removePendingUpload(upload) {
+      if (!this.activeChat) return;
+      try {
+        await this.api(`/api/chats/${this.activeChat.id}/uploads/${upload.id}`, { method: "DELETE" });
+        this.pendingUploads = this.pendingUploads.filter((item) => item.id !== upload.id);
+      } catch (error) {
+        this.showError(error);
+      }
+    },
+    removePendingArtifact(artifact) {
+      this.pendingArtifacts = this.pendingArtifacts.filter((item) => item.path !== artifact.path);
+    },
     openLibraryFile(file) {
       if (this.opensInNativeBrowser(file)) {
         this.openInternalTab(this.browserViewUrl(file.chat_id, file.path));
@@ -1352,6 +1450,8 @@ function platform() {
       localStorage.setItem("oma-timezone", this.timezone);
     },
     newChat() {
+      const draftChat = this.activeChat?.status === "created" && this.pendingUploads.length ? this.activeChat : null;
+      if (draftChat) void this.api(`/api/chats/${draftChat.id}`, { method: "DELETE" }).catch(() => {});
       this.stopWatching();
       this.chatViewToken += 1;
       this.resetShare();
@@ -1360,6 +1460,8 @@ function platform() {
       this.messages = [];
       this.files = [];
       this.filesOpen = false;
+      this.pendingUploads = [];
+      this.pendingArtifacts = [];
       this.draft = "";
       this.loading = false;
       this.messagesLoading = false;
@@ -1378,6 +1480,8 @@ function platform() {
       this.activeChat = chat;
       this.files = [];
       this.filesOpen = false;
+      this.pendingUploads = [];
+      this.pendingArtifacts = [];
       this.resetConversationInput();
       if (updateUrl) history.pushState({}, "", `/chat/${chat.id}` + this.modeQuery());
       this.messages = [];
@@ -1386,6 +1490,9 @@ function platform() {
         const data = await this.api(`/api/chats/${chat.id}/messages?mode=${this.mode}`);
         if (viewToken !== this.chatViewToken || this.activeChat?.id !== chat.id) return;
         this.messages = this.normalizeMessages(data.messages);
+        if (chat.status === "created") {
+          this.pendingUploads = (await this.api(`/api/chats/${chat.id}/uploads`)).uploads || [];
+        }
         this.scrollMessagesToLatest();
       } catch (e) {
         if (viewToken === this.chatViewToken && this.activeChat?.id === chat.id) this.showError(e);
@@ -1530,12 +1637,20 @@ function platform() {
     async sendMessage() {
       const content = this.draft.trim();
       if (!content || !this.activeChat || this.loading) return;
+      const messageAttachments = this.pendingAttachments().map((file) => ({
+        id: file.id || `artifact:${file.path}`,
+        name: file.filename || file.name,
+        path: file.path,
+        media_type: file.media_type || "application/octet-stream",
+        size: file.size,
+      }));
       this.draft = "";
       this.resetConversationInput();
       this.messages.push({
         _key: crypto.randomUUID(),
         role: "user",
         content: [{ type: "text", text: content }],
+        _attachments: messageAttachments,
       });
       this.messages.push({
         _key: crypto.randomUUID(),
@@ -1546,6 +1661,8 @@ function platform() {
         _streaming: true,
       });
       this.loading = true;
+      const uploadIds = this.pendingUploads.map((file) => file.id);
+      const artifactPaths = this.pendingArtifacts.map((file) => file.path);
       const chatId = this.activeChat.id;
       const viewToken = this.chatViewToken;
       const isCurrentView = () => viewToken === this.chatViewToken && this.activeChat?.id === chatId;
@@ -1557,7 +1674,7 @@ function platform() {
             "Content-Type": "application/json",
             "X-Request-ID": requestId,
           },
-          body: JSON.stringify({ content }),
+          body: JSON.stringify({ content, upload_ids: uploadIds, artifact_paths: artifactPaths }),
         });
         if (!response.ok) {
           const responseId = response.headers.get("X-Request-ID") || requestId;
@@ -1574,6 +1691,8 @@ function platform() {
           this.handleUnauthorizedResponse(response, `/api/chats/${chatId}/messages`, error);
           throw error;
         }
+        this.pendingUploads = [];
+        this.pendingArtifacts = [];
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
@@ -2026,8 +2145,17 @@ function platform() {
     renderUserMessage(message, parts) {
       const text = message.display_content || this.partsText(parts);
       const command = message._skill_invocation?.command;
-      if (!command || !text.startsWith(command)) return this.escape(text).replace(/\n/g, "<br>");
-      return `<span class="skill-invocation-command">${this.escape(command)}</span>${this.escape(text.slice(command.length)).replace(/\n/g, "<br>")}`;
+      const body =
+        !command || !text.startsWith(command)
+          ? this.escape(text).replace(/\n/g, "<br>")
+          : `<span class="skill-invocation-command">${this.escape(command)}</span>${this.escape(text.slice(command.length)).replace(/\n/g, "<br>")}`;
+      const attachments = (message._attachments || [])
+        .map(
+          (file) =>
+            `<span class="message-attachment"><i data-lucide="paperclip" aria-hidden="true"></i>${this.escape(`@${file.name}`)}</span>`,
+        )
+        .join("");
+      return attachments ? `<div class="message-attachments">${attachments}</div>${body}` : body;
     },
     renderReasoningPart(part) {
       if (part.type === "thinking")

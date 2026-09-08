@@ -508,6 +508,21 @@ body {
  padding: 11px 14px;
  line-height: 1.6;
 }
+.message-attachments {
+ display: flex;
+ flex-wrap: wrap;
+ gap: 5px;
+ margin-bottom: 7px;
+}
+.message-attachment {
+ display: inline-flex;
+ align-items: center;
+ gap: 4px;
+ padding: 3px 6px;
+ border-radius: 999px;
+ background: color-mix(in srgb, currentColor 12%, transparent);
+ font-size: 11px;
+}
 .skill-invocation-command {
  color: var(--color-success);
 }
@@ -998,7 +1013,71 @@ body {
  position: relative;
 }
 .composer textarea {
- padding: 12px 58px 12px 12px;
+ padding: 12px 58px 12px 52px;
+}
+.conversation-attach {
+ position: absolute;
+ left: 10px;
+ bottom: 10px;
+ width: 34px;
+ height: 34px;
+ min-height: 0;
+}
+.composer-attachments {
+ display: flex;
+ flex-wrap: wrap;
+ gap: 6px;
+ margin: 0 0 8px;
+}
+.composer-attachment {
+ display: inline-flex;
+ align-items: center;
+ gap: 4px;
+ max-width: 100%;
+ padding: 4px 7px;
+ border-radius: 999px;
+ background: var(--color-base-200);
+ color: var(--ink);
+ font: 11px var(--font-sans);
+}
+.composer-attachment > span {
+ overflow: hidden;
+ text-overflow: ellipsis;
+ white-space: nowrap;
+}
+.composer-attachment button {
+ display: inline-flex;
+ padding: 0;
+ border: 0;
+ background: transparent;
+ color: inherit;
+ cursor: pointer;
+}
+.attachment-command-palette {
+ position: absolute;
+ right: 0;
+ bottom: calc(100% + 8px);
+ z-index: 12;
+ display: grid;
+ min-width: 220px;
+ overflow: hidden;
+ border: 1px solid var(--line);
+ border-radius: 8px;
+ background: var(--color-base-100);
+ box-shadow: 0 10px 30px #0002;
+}
+.attachment-command-palette button {
+ display: flex;
+ align-items: center;
+ gap: 7px;
+ padding: 8px 10px;
+ border: 0;
+ background: transparent;
+ color: var(--ink);
+ text-align: left;
+}
+.attachment-command-palette button:hover {
+ background: var(--color-base-200);
 }
 .conversation-send {
  position: absolute;
@@ -4329,7 +4408,11 @@ pre,
  .composer textarea {
   min-height: calc(1.5em + 20px);
   max-height: calc(10.5em + 20px);
-  padding: 10px 46px 10px 10px;
+  padding: 10px 46px 10px 48px;
+ }
+ .conversation-attach {
+  left: 8px;
+  bottom: 8px;
  }
  .conversation-send {
   right: 12px !important;

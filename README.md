@@ -323,9 +323,10 @@ If the `pi-mcp-adapter` extension is selected, its `mcp` and `mcpScript` tools a
 | Agent definitions and chat metadata | OMA Studio / TinyDB | `~/.oma-studio/data/platform.json` |
 | Pi session transcripts | Pi | `~/.oma-studio/data/pi-sessions` |
 | Agent working directory | Pi / platform | `~/.oma-studio/workspace` |
+| Chat uploads | OMA Studio metadata + workspace files | `~/.oma-studio/workspace/uploads/<chat-id>/` |
 | Pi configuration, extensions, skills, models | Pi | `~/.pi/agent` |
 
-TinyDB records chat identity, title, Agent binding, timestamps, and status only. It is intentionally not a second message store.
+TinyDB records chat identity, title, Agent binding, timestamps, status, and upload metadata only. It is intentionally not a second message or file-content store.
 
 Agents, Chats, Autopilots, Autopilot runs, and Shares carry an explicit `user_id`.
 Normal users can only see and modify their own records; administrators can see all
@@ -392,6 +393,9 @@ This MVP is a single FastAPI application with a static frontend. The main endpoi
 | `GET /api/chats/{id}/files/content` | Read an authorized Chat-generated text file |
 | `GET /api/chats/{id}/files/download` | Download an authorized Chat-generated file |
 | `GET /api/chats/{id}/files/view` | Open an authorized supported HTML, image, or PDF file inline; generated HTML and well-formed SVG are sandboxed, malformed SVG falls back to source |
+| `GET /api/chats/{id}/uploads` | List pending user uploads for a chat draft |
+| `POST /api/chats/{id}/uploads` | Upload one user file into the chat-scoped workspace directory |
+| `DELETE /api/chats/{id}/uploads/{upload_id}` | Remove one pending chat upload |
 | `GET /api/library/files` | Search and paginate files created by Agents |
 | `GET /api/usage?range=7d` | Read date-bucketed usage statistics; admin responses also include User and Agent aggregates |
 | `GET /api/autopilots` | List and filter scheduled Agent instructions |
