@@ -2549,6 +2549,12 @@ function platform() {
       this.newAgentMcpServers = this.defaultResources("mcp_servers");
       this.createDialog = true;
     },
+    hasAgentDraft() {
+      return Boolean(this.newAgentName.trim() || this.newAgentInstruction.trim());
+    },
+    dismissAgentDialogFromBackdrop() {
+      if (!this.hasAgentDraft()) this.createDialog = false;
+    },
     async generateAgentInstruction() {
       if (this.generatingInstruction) return;
       this.generatingInstruction = true;

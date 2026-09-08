@@ -207,6 +207,16 @@ def test_agent_instruction_generator_control_is_present():
     assert '"/api/agents/instruction-draft"' in script
 
 
+def test_agent_editor_keeps_nonempty_draft_open_on_backdrop_click():
+    html = Path("static/index.html").read_text(encoding="utf-8")
+    script = Path("static/app.js").read_text(encoding="utf-8")
+
+    assert '@click.self="dismissAgentDialogFromBackdrop()"' in html
+    assert "hasAgentDraft()" in script
+    assert "this.newAgentName.trim() || this.newAgentInstruction.trim()" in script
+    assert "if (!this.hasAgentDraft()) this.createDialog = false;" in script
+
+
 def test_favicon_assets_are_explicit_and_ico_is_not_spa_html(client):
     html = Path("static/index.html").read_text(encoding="utf-8")
 
@@ -254,7 +264,7 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260908-agent-instruction-generator" in Path(
+    assert "app.js?v=20260908-agent-draft-protect" in Path(
         "static/index.html"
     ).read_text(encoding="utf-8")
 

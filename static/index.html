@@ -2526,7 +2526,7 @@
       :open="createDialog"
       x-show="createDialog"
       x-cloak
-      @click.self="createDialog = false"
+      @click.self="dismissAgentDialogFromBackdrop()"
     >
       <div class="modal-box agent-dialog-box">
         <div class="dialog-head">
@@ -2933,6 +2933,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260908-agent-instruction-generator"></script>
+    <script src="/static/app.js?v=20260908-agent-draft-protect"></script>
   </body>
 </html>
