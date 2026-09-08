@@ -829,12 +829,23 @@ function platform() {
     },
     openFile(file) {
       if (!this.activeChat) return;
+      if (this.opensInNativeBrowser(file)) {
+        const url = this.sharedMode
+          ? `/api/share/${encodeURIComponent(this.sharedToken)}/files/view?path=${encodeURIComponent(file.path)}`
+          : this.browserViewUrl(this.activeChat.id, file.path);
+        this.openInternalTab(url);
+        return;
+      }
       const query = this.sharedMode
         ? new URLSearchParams({ share: this.sharedToken, path: file.path, from: "chat" })
         : new URLSearchParams({ chat_id: this.activeChat.id, path: file.path, from: "chat" });
       this.openInternalTab(`/file-view?${query.toString()}`);
     },
     openLibraryFile(file) {
+      if (this.opensInNativeBrowser(file)) {
+        this.openInternalTab(this.browserViewUrl(file.chat_id, file.path));
+        return;
+      }
       const query = new URLSearchParams({
         chat_id: file.chat_id,
         path: file.path,
@@ -854,6 +865,14 @@ function platform() {
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
+    },
+    opensInNativeBrowser(file) {
+      return ["avif", "bmp", "gif", "htm", "html", "ico", "jpeg", "jpg", "pdf", "png", "svg", "webp"].includes(
+        String(file?.extension || "").toLowerCase(),
+      );
+    },
+    browserViewUrl(chatId, path) {
+      return `/api/chats/${encodeURIComponent(chatId)}/files/view?path=${encodeURIComponent(path)}`;
     },
     leaveFileViewer() {
       const params = new URLSearchParams(location.search);

@@ -4,6 +4,36 @@ from pathlib import Path
 
 MAX_VIEW_BYTES = 5 * 1024 * 1024
 
+NATIVE_BROWSER_MEDIA_TYPES = {
+    ".avif": "image/avif",
+    ".bmp": "image/bmp",
+    ".gif": "image/gif",
+    ".htm": "text/html",
+    ".html": "text/html",
+    ".ico": "image/x-icon",
+    ".jpeg": "image/jpeg",
+    ".jpg": "image/jpeg",
+    ".pdf": "application/pdf",
+    ".png": "image/png",
+    ".svg": "image/svg+xml",
+    ".webp": "image/webp",
+}
+
+
+def native_browser_media_type(path: Path) -> str | None:
+    """Return a safe browser-native media type for supported generated files."""
+    return NATIVE_BROWSER_MEDIA_TYPES.get(path.suffix.lower())
+
+
+def native_browser_headers(path: Path) -> dict[str, str]:
+    """Sandbox generated active documents before serving them inline."""
+    if path.suffix.lower() in {".htm", ".html", ".svg"}:
+        return {
+            "Content-Security-Policy": "sandbox",
+            "X-Content-Type-Options": "nosniff",
+        }
+    return {"X-Content-Type-Options": "nosniff"}
+
 
 def _tool_arguments(part: dict) -> dict:
     arguments = part.get("arguments")
