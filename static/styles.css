@@ -1128,6 +1128,9 @@ body {
 .message.user .message-body {
  max-width: 88%;
  margin-left: auto;
+ min-width: 0;
+ overflow-wrap: anywhere;
+ word-break: break-word;
 }
 .composer {
  width: 100%;
