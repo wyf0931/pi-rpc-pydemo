@@ -4047,11 +4047,12 @@ pre,
 }
 .usage-toolbar.users-toolbar {
  justify-content: flex-end;
+ margin: 0;
  padding: 16px 32px 12px;
  border-bottom: 0;
 }
-.users-body {
- padding-top: 0;
+.usage-body.users-body {
+ padding: 0 32px 32px;
 }
 .users-loading {
  display: grid;
@@ -4345,6 +4346,9 @@ pre,
  }
  .usage-body {
   padding: 18px 20px 24px;
+ }
+ .usage-body.users-body {
+  padding: 0 20px 24px;
  }
  .usage-summary-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
