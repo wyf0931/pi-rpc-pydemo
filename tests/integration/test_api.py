@@ -123,6 +123,90 @@ def test_health_and_agents(client):
     assert any(agent["name"] == "assistant" for agent in agents)
 
 
+def test_instruction_draft_uses_validated_selected_capabilities(client, monkeypatch):
+    import app.main as main_module
+    from app.api.routers import agents as agents_router
+
+    skill_path = "/tmp/diagram-design"
+    extension_path = "/tmp/scraping-extension"
+    catalog = {
+        "skills": [
+            {
+                "path": skill_path,
+                "name": "diagram-design",
+                "description": "Create diagrams for technical workflows.",
+            }
+        ],
+        "extensions": [
+            {
+                "path": extension_path,
+                "name": "scraping-extension",
+                "description": "Collect web data.",
+            }
+        ],
+        "mcp_servers": [
+            {
+                "id": "catalog",
+                "name": "catalog",
+                "description": "Read product catalog data.",
+            }
+        ],
+        "providers": [{"id": "test", "models": [{"id": "test-model"}]}],
+    }
+    captured = {}
+
+    async def fake_generate(draft):
+        captured.update(draft)
+        return "# Role\nCreate technical diagrams."
+
+    monkeypatch.setattr(agents_router, "discover_resources", lambda *_args: catalog)
+    monkeypatch.setattr(
+        main_module.runtime, "generate_agent_instruction", fake_generate
+    )
+
+    response = client.post(
+        "/api/agents/instruction-draft",
+        json={
+            "name": "Architecture diagram specialist",
+            "instruction": "Prioritize accurate system diagrams.",
+            "provider": "test",
+            "model": "test-model",
+            "thinking_level": "medium",
+            "tools": ["read"],
+            "extensions": [extension_path],
+            "skills": [skill_path],
+            "mcp_servers": ["catalog"],
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"instruction": "# Role\nCreate technical diagrams."}
+    assert captured["skills"] == [skill_path]
+    assert captured["skill_catalog"] == catalog["skills"]
+    assert captured["extensions"] == catalog["extensions"]
+    assert captured["mcp_servers"] == catalog["mcp_servers"]
+
+
+def test_instruction_draft_rejects_unknown_skill(client):
+    response = client.post(
+        "/api/agents/instruction-draft",
+        json={"skills": ["/not-a-discovered-skill"]},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Unsupported skill path"
+
+
+def test_agent_instruction_generator_control_is_present():
+    html = Path("static/index.html").read_text(encoding="utf-8")
+    script = Path("static/app.js").read_text(encoding="utf-8")
+
+    assert 'data-lucide="pencil-sparkles"' in html
+    assert '@click="generateAgentInstruction"' in html
+    assert "async generateAgentInstruction()" in script
+    assert '"/api/agents/instruction-draft"' in script
+
+
 def test_favicon_assets_are_explicit_and_ico_is_not_spa_html(client):
     html = Path("static/index.html").read_text(encoding="utf-8")
 
@@ -170,7 +254,7 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260908-active-chat-loading" in Path(
+    assert "app.js?v=20260908-agent-instruction-generator" in Path(
         "static/index.html"
     ).read_text(encoding="utf-8")
 

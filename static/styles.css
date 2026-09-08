@@ -2041,6 +2041,22 @@ body {
 .agent-instruction-field .textarea {
  min-height: 150px;
 }
+.instruction-textarea-wrap {
+ position: relative;
+}
+.instruction-textarea-wrap .textarea {
+ width: 100%;
+ padding-right: 52px;
+}
+.instruction-generate-button {
+ position: absolute;
+ right: 8px;
+ bottom: 8px;
+ color: var(--muted);
+}
+.instruction-generate-button:hover {
+ color: var(--color-primary);
+}
 .picker-chevron {
  margin-left: 10px;
  color: var(--muted);

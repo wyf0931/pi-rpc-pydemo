@@ -154,6 +154,7 @@ function platform() {
     editingAgent: null,
     createDialog: false,
     creating: false,
+    generatingInstruction: false,
     newAgentName: "",
     newAgentInstruction: "",
     newAgentAvatarFile: null,
@@ -2547,6 +2548,32 @@ function platform() {
       this.newAgentSkills = this.defaultResources("skills");
       this.newAgentMcpServers = this.defaultResources("mcp_servers");
       this.createDialog = true;
+    },
+    async generateAgentInstruction() {
+      if (this.generatingInstruction) return;
+      this.generatingInstruction = true;
+      try {
+        const data = await this.api("/api/agents/instruction-draft", {
+          method: "POST",
+          body: JSON.stringify({
+            name: this.newAgentName,
+            instruction: this.newAgentInstruction,
+            provider: this.newAgentProvider,
+            model: this.newAgentModel,
+            thinking_level: this.newAgentThinkingLevel,
+            tools: this.newAgentTools,
+            extensions: this.newAgentExtensions,
+            skills: this.newAgentSkills,
+            mcp_servers: this.newAgentMcpServers,
+          }),
+        });
+        this.newAgentInstruction = data.instruction;
+        this.showToast("Instruction generated");
+      } catch (error) {
+        this.showError(error);
+      } finally {
+        this.generatingInstruction = false;
+      }
     },
     modelsFor(providerId = this.newAgentProvider) {
       return this.resources.providers.find((item) => item.id === providerId)?.models || [];
