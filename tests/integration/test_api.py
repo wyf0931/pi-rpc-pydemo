@@ -151,9 +151,9 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260908-chat-upload-draft" in Path("static/index.html").read_text(
-        encoding="utf-8"
-    )
+    assert "app.js?v=20260908-upload-control-alignment" in Path(
+        "static/index.html"
+    ).read_text(encoding="utf-8")
 
 
 def test_chat_viewport_and_composer_use_latest_message_and_seven_line_contract():
@@ -751,6 +751,19 @@ def test_client_uploads_chat_files_and_limits_at_mentions_to_published_artifacts
     assert "this.uploadDraftChat = chat;" in script
     assert "this.activeChat = chat;" in script
     assert "this.uploadDraftChat = null;" in script
+
+
+def test_new_chat_upload_control_follows_the_agent_picker_and_uses_its_border_tokens():
+    html = Path("static/index.html").read_text(encoding="utf-8")
+    styles = Path("static/styles.css").read_text(encoding="utf-8")
+
+    start_footer = html.split('<div class="start-composer-foot">', 1)[1]
+    assert start_footer.index('class="agent-picker"') < start_footer.index(
+        "upload-trigger"
+    )
+    assert ".upload-trigger" in styles
+    assert "border: 1px solid var(--line);" in styles
+    assert "border-radius: var(--radius-field);" in styles
 
 
 def test_auth_rejects_unauthenticated_requests(client):

@@ -22,7 +22,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260908-chat-upload-draft" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260908-upload-control-alignment" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -303,16 +303,6 @@
                       </div>
                     </div>
                     <div class="start-composer-foot">
-                      <button
-                        type="button"
-                        class="btn btn-ghost btn-square upload-trigger"
-                        @click="openUploadPicker()"
-                        :disabled="uploadingFiles || !selectedAgentId"
-                        title="Attach files"
-                        aria-label="Attach files"
-                      >
-                        <i data-lucide="paperclip" aria-hidden="true"></i>
-                      </button>
                       <div class="agent-picker" @click.outside="agentPickerOpen = false">
                         <button
                           type="button"
@@ -353,6 +343,16 @@
                           ></template>
                         </div>
                       </div>
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-square upload-trigger"
+                        @click="openUploadPicker()"
+                        :disabled="uploadingFiles || !selectedAgentId"
+                        title="Attach files"
+                        aria-label="Attach files"
+                      >
+                        <i data-lucide="paperclip" aria-hidden="true"></i>
+                      </button>
                       <button
                         class="icon-send"
                         @click="sendFirst()"
@@ -2830,6 +2830,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260908-chat-upload-draft"></script>
+    <script src="/static/app.js?v=20260908-upload-control-alignment"></script>
   </body>
 </html>
