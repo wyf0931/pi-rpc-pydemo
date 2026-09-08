@@ -16,7 +16,7 @@ function platform() {
       agents: [],
     },
     language: localStorage.getItem("oma-language") || "en",
-    timezone: localStorage.getItem("oma-timezone") || "Asia/Shanghai",
+    systemTimezone: "",
     themePreference: "system",
     runError: "",
     mobileSidebarOpen: false,
@@ -1316,9 +1316,10 @@ function platform() {
       document.documentElement.dataset.theme = this.theme;
       localStorage.setItem("oma-theme-preference", this.themePreference);
     },
-    openSettings() {
+    async openSettings() {
       this.settingsTab = "general";
       this.settingsOpen = true;
+      if (this.authUser?.role === "admin") await this.loadSystemSettings();
     },
     async openUsage() {
       this.usageOpen = true;
@@ -1470,8 +1471,25 @@ function platform() {
       if (this.language !== "en") this.language = "en";
       localStorage.setItem("oma-language", this.language);
     },
-    saveTimezone() {
-      localStorage.setItem("oma-timezone", this.timezone);
+    async loadSystemSettings() {
+      try {
+        this.systemTimezone = (await this.api("/api/settings")).timezone;
+      } catch (error) {
+        this.showError(error);
+      }
+    },
+    async saveSystemTimezone() {
+      try {
+        this.systemTimezone = (
+          await this.api("/api/settings/timezone", {
+            method: "PATCH",
+            body: JSON.stringify({ timezone: this.systemTimezone }),
+          })
+        ).timezone;
+        this.showToast("System timezone updated");
+      } catch (error) {
+        this.showError(error);
+      }
     },
     newChat() {
       const draftChat =

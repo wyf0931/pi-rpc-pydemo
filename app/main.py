@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
@@ -25,6 +26,7 @@ from .api.routers.resource_catalog import (
     create_router as create_resource_catalog_router,
 )
 from .api.routers.shares import create_router as create_share_router
+from .api.routers.system_settings import create_router as create_system_settings_router
 from .api.routers.usage import create_router as create_usage_router
 from .autopilots import AutopilotScheduler
 from .core.application import create_app, create_context
@@ -102,12 +104,19 @@ app.include_router(
         settings, _require_admin, lambda: catalog_response(settings), logger
     )
 )
-autopilot_executor = create_autopilot_executor(store, runtime)
-scheduler = AutopilotScheduler(store, autopilot_executor)
+
+
+def _system_timezone() -> ZoneInfo:
+    return ZoneInfo(store.get_system_setting("timezone", settings.system_timezone))
+
+
+autopilot_executor = create_autopilot_executor(store, runtime, _system_timezone)
+scheduler = AutopilotScheduler(store, autopilot_executor, _system_timezone)
 context.scheduler = scheduler
+app.include_router(create_system_settings_router(settings, store, _require_admin))
 app.include_router(
     create_autopilot_router(
-        store, scheduler, _visible_or_404, _visible_records, _user_id
+        store, scheduler, _system_timezone, _visible_or_404, _visible_records, _user_id
     )
 )
 

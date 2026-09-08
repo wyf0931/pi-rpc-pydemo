@@ -2,11 +2,12 @@ import asyncio
 import time
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from ...autopilots import AUTOPILOT_TIMEZONE, AutopilotScheduler, next_run_at
+from ...autopilots import AutopilotScheduler, next_run_at
 from ...pi_rpc import PiRpcError, PiRuntimeManager
 from ...store import Store, now_iso
 
@@ -31,7 +32,7 @@ class AutopilotUpdate(BaseModel):
 
 
 def create_executor(
-    store: Store, runtime: PiRuntimeManager
+    store: Store, runtime: PiRuntimeManager, timezone_provider: Callable[[], ZoneInfo]
 ) -> Callable[[dict], Awaitable[None]]:
     async def execute(autopilot: dict) -> None:
         user_id = autopilot.get("user_id")
@@ -44,7 +45,7 @@ def create_executor(
         started = time.monotonic()
         prompt = (
             f"{autopilot['instruction'].strip()}\n\nCurrent time: "
-            f"{datetime.now(AUTOPILOT_TIMEZONE).strftime('%Y-%m-%d %H:%M:%S %Z')}"
+            f"{datetime.now(timezone_provider()).strftime('%Y-%m-%d %H:%M:%S %Z')}"
         )
         try:
             async for _event in runtime.stream(
@@ -91,6 +92,7 @@ def create_executor(
 def create_router(
     store: Store,
     scheduler: AutopilotScheduler,
+    timezone_provider: Callable[[], ZoneInfo],
     visible_or_404: Callable[[dict | None, Request, str], dict],
     visible_records: Callable[[list[dict], Request], list[dict]],
     user_id: Callable[[Request], str],
@@ -99,7 +101,7 @@ def create_router(
 
     def view(item: dict) -> dict:
         agent = store.get_agent(item["agent_id"]) or {}
-        upcoming = next_run_at(item)
+        upcoming = next_run_at(item, timezone=timezone_provider())
         return {
             **item,
             "agent_name": agent.get("name", "Unknown agent"),
@@ -124,7 +126,7 @@ def create_router(
     @router.post("", status_code=201)
     async def create_autopilot(payload: AutopilotCreate, request: Request):
         agent = visible_or_404(store.get_agent(payload.agent_id), request, "Agent")
-        if next_run_at({"cron": payload.cron}) is None:
+        if next_run_at({"cron": payload.cron}, timezone=timezone_provider()) is None:
             raise HTTPException(400, "Invalid cron expression")
         return view(
             store.create_autopilot(
@@ -152,7 +154,11 @@ def create_router(
             )
             if agent.get("user_id") != current.get("user_id"):
                 raise HTTPException(400, "Agent belongs to another user")
-        if "cron" in values and next_run_at({"cron": values["cron"]}) is None:
+        if (
+            "cron" in values
+            and next_run_at({"cron": values["cron"]}, timezone=timezone_provider())
+            is None
+        ):
             raise HTTPException(400, "Invalid cron expression")
         return view(store.update_autopilot(autopilot_id, values) or current)
 
