@@ -1180,13 +1180,17 @@
                           type="button"
                           class="btn btn-soft btn-primary btn-sm btn-square market-install-action"
                           x-show="!marketSkillInstalled(result)"
-                          :disabled="marketActionSkill === result.skill"
+                          :disabled="marketInstallingSkills.includes(marketSkillResultKey(result))"
                           :aria-label="'Install ' + result.skill"
                           @click="installMarketSkill(result)"
                         >
-                          <i data-lucide="plus" x-show="marketActionSkill !== result.skill" aria-hidden="true"></i>
+                          <i
+                            data-lucide="plus"
+                            x-show="!marketInstallingSkills.includes(marketSkillResultKey(result))"
+                            aria-hidden="true"
+                          ></i>
                           <span
-                            x-show="marketActionSkill === result.skill"
+                            x-show="marketInstallingSkills.includes(marketSkillResultKey(result))"
                             class="loading loading-spinner loading-xs"
                           ></span>
                         </button>
