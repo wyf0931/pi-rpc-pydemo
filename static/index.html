@@ -41,7 +41,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260908-oma-logo-transparent" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260908-oma-logo-transparent-sidebar-profile" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -199,27 +199,63 @@
             </div>
           </div>
           <div class="sidebar-footer">
-            <button
-              type="button"
-              class="theme-toggle usage-trigger"
-              title="Usage statistics"
-              aria-label="Usage statistics"
-              @click="openUsage()"
-            >
-              <i data-lucide="chart-pie" aria-hidden="true"></i>
-            </button>
-            <button
-              type="button"
-              class="theme-toggle settings-trigger"
-              title="Settings"
-              aria-label="Settings"
-              @click="openSettings()"
-            >
-              <i data-lucide="settings" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="theme-toggle" title="Log out" aria-label="Log out" @click="requestLogout()">
-              <i data-lucide="log-out" aria-hidden="true"></i>
-            </button>
+            <div class="dropdown dropdown-top sidebar-profile" :class="{'dropdown-open': profileMenuOpen}">
+              <button
+                type="button"
+                class="sidebar-profile-trigger"
+                @click.stop="profileMenuOpen = !profileMenuOpen"
+                :aria-expanded="profileMenuOpen"
+                aria-haspopup="menu"
+                aria-label="Open profile menu"
+              >
+                <div class="avatar avatar-placeholder sidebar-profile-avatar">
+                  <div><span x-text="profileAvatarInitials()"></span></div>
+                </div>
+                <span class="sidebar-profile-identity"
+                  ><b x-text="authUser?.username || 'User'"></b><small x-text="profileRoleLabel()"></small
+                ></span>
+                <i class="sidebar-profile-chevron" data-lucide="chevron-up" aria-hidden="true"></i>
+              </button>
+              <ul
+                class="menu menu-sm dropdown-content sidebar-profile-menu"
+                x-show="profileMenuOpen"
+                x-cloak
+                @click.stop
+              >
+                <li class="menu-title"><span>Workspace</span></li>
+                <li>
+                  <button type="button" @click="openProfileSettings()">
+                    <i data-lucide="settings" aria-hidden="true"></i>Settings
+                  </button>
+                </li>
+                <li>
+                  <button type="button" @click="openProfileUsage()">
+                    <i data-lucide="chart-pie" aria-hidden="true"></i>Usage
+                  </button>
+                </li>
+                <li x-show="authUser?.role === 'admin'">
+                  <button type="button" @click="openProfileUsers()">
+                    <i data-lucide="users" aria-hidden="true"></i>Users
+                  </button>
+                </li>
+                <li class="sidebar-profile-divider" aria-hidden="true"></li>
+                <li class="menu-title"><span>Support</span></li>
+                <li class="menu-disabled">
+                  <button type="button" disabled>
+                    <i data-lucide="circle-help" aria-hidden="true"></i>Help &amp; feedback
+                  </button>
+                </li>
+                <li class="menu-disabled">
+                  <button type="button" disabled><i data-lucide="info" aria-hidden="true"></i>About</button>
+                </li>
+                <li class="sidebar-profile-divider" aria-hidden="true"></li>
+                <li>
+                  <button type="button" class="sidebar-profile-logout" @click="openProfileLogout()">
+                    <i data-lucide="log-out" aria-hidden="true"></i>Log out
+                  </button>
+                </li>
+              </ul>
+            </div>
           </div>
         </aside>
         <button
@@ -2849,6 +2885,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260908-upload-control-alignment"></script>
+    <script src="/static/app.js?v=20260908-sidebar-profile-menu"></script>
   </body>
 </html>

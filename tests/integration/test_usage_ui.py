@@ -7,7 +7,7 @@ def test_usage_statistics_has_a_single_sidebar_entry_and_dialog():
     styles = Path("static/styles.css").read_text(encoding="utf-8")
 
     assert 'data-lucide="chart-pie"' in html
-    assert '@click="openUsage()"' in html
+    assert '@click="openProfileUsage()"' in html
     assert 'class="modal modal-middle usage-dialog"' in html
     assert "usageOpen" in script
     assert "`/api/usage?days=${encodeURIComponent(this.usageRange)}`" in script
