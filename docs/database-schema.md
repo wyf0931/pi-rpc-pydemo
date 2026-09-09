@@ -2,7 +2,7 @@
 
 OMA Studio 的平台元数据保存在 `platform.sqlite3`，由 SQLModel 和 SQLite 管理。当前数据库包含 12 张业务表，以及 1 张由存储层维护的 `schema_meta` 表，共 13 张表。
 
-SQLite 是运行时唯一的元数据存储。旧的 `platform.json` 只用于一次性迁移：当目标 SQLite 文件不存在且 legacy JSON 存在时，应用会校验并导入数据，然后创建带 UTC 时间戳的 `.bak` 备份。Pi 消息正文、工具调用结果、完整对话记录和 Pi 原生 session 文件仍由 Pi 管理，不写入 SQLite。
+SQLite 是运行时唯一的元数据存储。旧的 `platform.json` 只用于一次性迁移：当目标 SQLite 文件不存在且 legacy JSON 存在时，应用会校验并导入数据，然后创建带 UTC 时间戳的 `.bak` 备份。已有 SQLite 执行 schema 增量升级前，会使用 SQLite 原生 backup API 创建 `platform.sqlite3.schema-vN.<timestamp>.bak`，再执行 `ALTER TABLE`；因此 WAL 中的已提交数据也包含在升级前备份中。Pi 消息正文、工具调用结果、完整对话记录和 Pi 原生 session 文件仍由 Pi 管理，不写入 SQLite。
 
 ## ER 图
 

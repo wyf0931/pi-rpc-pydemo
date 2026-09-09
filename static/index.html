@@ -76,7 +76,7 @@
       disabled
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260909-agent-profile" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260909-agent-profile-v2" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -2436,11 +2436,7 @@
     >
       <template x-if="dialog"
         ><div class="modal-box agent-dialog-box">
-          <div class="dialog-head">
-            <div>
-              <div class="eyebrow">Agent details</div>
-              <h2 x-text="dialog.name"></h2>
-            </div>
+          <div class="agent-dialog-toolbar">
             <button class="icon-btn" @click="dialog = null">
               <i data-lucide="x" aria-hidden="true"></i>
             </button>
@@ -2485,9 +2481,13 @@
             <div class="agent-skill-list" x-show="agentSkills(dialog).length">
               <template x-for="skill in agentSkills(dialog)" :key="skill.path">
                 <div class="agent-skill-row">
-                  <span class="agent-avatar skill-avatar" x-text="initials(skill.name)"></span>
                   <div>
-                    <b x-text="skill.name"></b><small x-text="skill.description || 'Ready to use in chat'"></small>
+                    <b x-text="skill.name"></b
+                    ><small
+                      class="agent-skill-description"
+                      :title="skill.description || 'Ready to use in chat'"
+                      x-text="skill.description || 'Ready to use in chat'"
+                    ></small>
                   </div>
                 </div>
               </template>
@@ -2627,7 +2627,7 @@
                 />
               </div>
               <div class="form-field">
-                <label for="new-agent-quickstarts">Try asking me <small>(one prompt per line, up to 5)</small></label>
+                <label for="new-agent-quickstarts">Try asking me <small>(3-5 prompts, one per line)</small></label>
                 <textarea
                   id="new-agent-quickstarts"
                   class="textarea textarea-bordered"
@@ -2998,6 +2998,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260909-agent-profile"></script>
+    <script src="/static/app.js?v=20260909-agent-profile-v2"></script>
   </body>
 </html>

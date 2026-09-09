@@ -890,6 +890,11 @@ body {
  align-items: center;
  gap: 14px;
 }
+.agent-dialog-toolbar {
+ display: flex;
+ justify-content: flex-end;
+ min-height: 30px;
+}
 .agent-profile-identity h3 {
  margin: 0;
  font-size: 23px;
@@ -937,12 +942,6 @@ body {
  gap: 11px;
  padding: 8px 0;
 }
-.skill-avatar {
- width: 32px;
- height: 32px;
- background: color-mix(in srgb, var(--color-info) 14%, transparent);
- color: var(--color-info);
-}
 .agent-skill-row b,
 .agent-skill-row small {
  display: block;
@@ -954,6 +953,15 @@ body {
  margin-top: 2px;
  color: var(--muted);
  font-size: 11px;
+}
+.agent-skill-description {
+ display: -webkit-box !important;
+ -webkit-box-orient: vertical;
+ -webkit-line-clamp: 2;
+ overflow: hidden;
+ line-height: 1.45;
+ max-height: 2.9em;
+ cursor: help;
 }
 .agent-detail-empty {
  color: var(--muted);

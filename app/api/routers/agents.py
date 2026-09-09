@@ -109,6 +109,8 @@ def create_router(
             not prompt.strip() or len(prompt.strip()) > 240 for prompt in quickstarts
         ):
             raise HTTPException(422, "Quickstart prompts must be 1-240 characters")
+        if quickstarts and len(quickstarts) < 3:
+            raise HTTPException(422, "Provide at least 3 quickstart prompts")
 
     def normalize_agent_version(version: str) -> str:
         value = version.strip()
