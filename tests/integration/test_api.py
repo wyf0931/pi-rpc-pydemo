@@ -414,6 +414,10 @@ def test_agent_profile_textareas_auto_resize_from_one_row():
     assert "lineHeight * 5" in script
     assert 'overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden"' in script
     assert "resize: vertical" in Path("static/styles.css").read_text(encoding="utf-8")
+    assert ".agent-form-content .textarea" in Path("static/styles.css").read_text(
+        encoding="utf-8"
+    )
+    assert "min-height: 0" in Path("static/styles.css").read_text(encoding="utf-8")
 
 
 def test_agent_save_refreshes_list_without_opening_detail_dialog():
