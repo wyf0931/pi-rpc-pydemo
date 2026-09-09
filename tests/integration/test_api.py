@@ -398,6 +398,10 @@ def test_agent_profile_detail_contract_is_user_facing():
     assert "agent-skill-row" in html
     assert "startQuickstart(agent, prompt)" in script
     assert "this.draft = prompt" in script
+    assert '<label for="new-agent-name">name' in html
+    assert '<label for="new-agent-description">description' in html
+    assert 'for="new-agent-tags">tags' in html
+    assert 'for="new-agent-quickstarts">shortcuts' in html
 
 
 def test_agent_save_refreshes_list_without_opening_detail_dialog():
