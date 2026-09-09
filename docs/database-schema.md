@@ -162,7 +162,7 @@ erDiagram
 
     SCHEMA_META {
         string key PK "当前为 version"
-        string value "当前 schema version 为 1"
+        string value "当前 schema version 为 2"
     }
 ```
 
@@ -216,7 +216,7 @@ erDiagram
 
 ### `schema_meta`
 
-由 `create_sqlite_engine()` 单独创建，用于记录存储 schema 版本。当前写入 `key = 'version'`、`value = '1'`。它不属于 `TABLE_MODELS`，也不参与 legacy TinyDB 数据迁移。
+由 `create_sqlite_engine()` 单独创建，用于记录存储 schema 版本。当前写入 `key = 'version'`、`value = '2'`。它不属于 `TABLE_MODELS`，也不参与 legacy TinyDB 数据迁移。
 
 ## 索引和关系约束
 
