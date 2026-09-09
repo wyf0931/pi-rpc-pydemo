@@ -76,7 +76,7 @@
       disabled
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260910-agent-form-dividers" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260910-agent-native-title" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -2481,13 +2481,11 @@
             <div class="agent-skill-list" x-show="agentSkills(dialog).length">
               <template x-for="skill in agentSkills(dialog)" :key="skill.path">
                 <div class="agent-skill-row">
-                  <div
-                    class="agent-skill-copy tooltip tooltip-top"
-                    :data-tip="skill.description || 'Ready to use in chat'"
-                  >
+                  <div class="agent-skill-copy">
                     <b x-text="skill.name"></b
                     ><small
                       class="agent-skill-description"
+                      :title="skill.description || 'Ready to use in chat'"
                       x-text="skill.description || 'Ready to use in chat'"
                     ></small>
                   </div>
