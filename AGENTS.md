@@ -7,7 +7,7 @@ Guidance for AI coding agents (pi, and any other agent) working in this reposito
 OMA Studio — an experimental, local-first agent platform. A single FastAPI process serves
 a static Alpine.js + DaisyUI frontend and a JSON API, and talks to the
 [Pi coding agent](https://github.com/earendil-works/pi) via `pi --mode rpc` (JSONL over
-stdin/stdout). TinyDB stores platform metadata only; **Pi owns all message content and
+stdin/stdout). SQLite stores platform metadata only; **Pi owns all message content and
 session transcripts**. Status: MVP, single user, localhost.
 
 ## Tech stack (and why)
@@ -16,7 +16,7 @@ session transcripts**. Status: MVP, single user, localhost.
 | --- | --- | --- |
 | Python | 3.11+ managed by **uv** | Never use pip directly; use `uv` / `uv run`. |
 | API | FastAPI + Pydantic | Request validation lives in Pydantic models in `app/main.py`. |
-| Storage | TinyDB (file `~/.oma-studio/data/platform.json`) | Metadata only. See invariants below. |
+| Storage | SQLModel + SQLite (file `~/.oma-studio/data/platform.sqlite3`) | Metadata only; legacy JSON is migrated once with backup. |
 | Agent runtime | Pi RPC subprocess | One short-lived Pi process per operation (send / stream / messages). |
 | Frontend | Plain static HTML/JS/CSS in `static/` | No bundler. Alpine.js + DaisyUI 5 + Tailwind browser build via CDN; Lucide is the required icon system for all UI icons. |
 | Markdown rendering | marked + DOMPurify + highlight.js + mermaid (CDN) | Sanitized HTML only; never inject raw model output. |
@@ -58,7 +58,7 @@ npm run build:css         # frontend/input.css -> static/typography.css (keep it
 app/
   config.py     Settings dataclass; env vars + a ~20-line built-in .env reader
   avatars.py    Agent avatar validation, persistent storage, and default-avatar seeding
-  store.py      TinyDB wrapper: agents/chats tables, BUILTIN_TOOLS, protected default agent
+  store.py      SQLModel/SQLite wrapper: metadata tables, BUILTIN_TOOLS, protected default agent
   pi_rpc.py     PiRpcClient (JSONL bridge) + PiRuntimeManager (process lifecycle, per-chat locks)
   observability.py Request IDs, JSONL logging, and request tracing middleware
   resources.py  Read-only discovery: extensions, skills, MCP servers, provider/model catalog
@@ -79,7 +79,7 @@ data/           Legacy runtime data (pre-normalization archive, gitignored, supe
 ## Architecture invariants (do not break)
 
 1. **Pi is the source of truth for messages.** Never store message bodies, tool results,
-   or transcripts in TinyDB. Chats carry metadata only (`id`, `session_id`, `agent_id`,
+   or transcripts in SQLite. Chats carry metadata only (`id`, `session_id`, `agent_id`,
    `title`, `status`, timestamps). A unit test (`test_chat_index_does_not_store_messages`)
    enforces this.
 2. **Chat id == Pi session id.** The UUID is shared deliberately; there is no mapping layer.
@@ -101,7 +101,7 @@ data/           Legacy runtime data (pre-normalization archive, gitignored, supe
 ## Development philosophy
 
 - **Don't reinvent wheels.** Prefer standard-library and community packages over
-  hand-rolled code: Pydantic for validation, TinyDB for storage, Alpine.js + DaisyUI for
+  hand-rolled code: Pydantic for validation, SQLModel for storage, Alpine.js + DaisyUI for
   UI, marked/DOMPurify/mermaid/highlight.js for rendering. Before writing a utility,
   check whether a small, well-maintained package already covers it.
   *Known deliberate exception:* the mini dotenv reader in `config.py` exists so that
@@ -112,7 +112,7 @@ data/           Legacy runtime data (pre-normalization archive, gitignored, supe
   capabilities (SandboxRunner, auth, durable datastore, Agent marketplace) live in the README
   Roadmap and the design spec — do not pre-create stubs, interfaces, or config for them.
 - **Pragmatism over purity.** Single process, one-file frontend JS, file-based storage,
-  plain dicts out of TinyDB (no ORM) are conscious MVP choices, not oversights. Make the
+  plain dicts at the Store boundary (SQLModel underneath) are conscious MVP choices, not oversights. Make the
   smallest change that satisfies the requirement; don't add layers (services,
   repositories, DI) until a concrete need appears. When you trade purity for simplicity,
   leave a one-line comment or note it in the design spec.
@@ -257,7 +257,7 @@ force-push it.
 ## Gotchas
 
 - Importing `app.main` has side effects: loads settings, creates `data/` dirs, opens
-  TinyDB, ensures the default agent. Don't add more import-time work, and don't import
+  SQLite, ensures the default agent. Don't add more import-time work, and don't import
   `app.main` from scripts casually.
 - `@app.on_event("shutdown")` is a deprecated FastAPI API. Don't build on it; if you must
   touch app lifecycle, prefer a lifespan handler — but don't refactor it speculatively.

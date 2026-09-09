@@ -6,7 +6,7 @@ OMA Studio explores a practical separation of concerns:
 
 - Pi owns agent execution, tool calls, streaming events, and durable session transcripts.
 - The platform owns agents, chat metadata, resource discovery, and the web experience.
-- TinyDB stores only platform metadata; it does not duplicate Pi message history.
+- SQLModel-backed SQLite stores only platform metadata; it does not duplicate Pi message history.
 
 > Status: MVP / active experiment. APIs, storage, and sandboxing integrations may change.
 
@@ -67,7 +67,7 @@ OMA Studio explores a practical separation of concerns:
 
 ## Design principles
 
-- **Pi is the source of truth for messages.** The platform does not copy message transcripts into TinyDB.
+- **Pi is the source of truth for messages.** The platform does not copy message transcripts into SQLite.
 - **One Agent per chat.** An Agent's instruction, Provider, Model, tool allowlist, extensions, skills, and MCP selection are fixed when a chat starts.
 - **Explicit capability selection.** Discovering a resource does not enable it. Agents must opt in to tools, extensions, skills, and MCP servers.
 - **Local-first, sandbox-ready.** The MVP runs locally for fast iteration, while its execution boundary is designed to move behind a future `SandboxRunner`.
@@ -79,7 +79,7 @@ Browser (Alpine.js + DaisyUI)
         │ HTTP / SSE
         ▼
 FastAPI
-  ├── TinyDB: agents + chat metadata
+  ├── SQLite: platform metadata
   ├── Pi resource discovery
   ├── JSONL logs + request tracing → host-mounted `PI_LOG_DIR`
   └── Pi RPC bridge
@@ -95,7 +95,7 @@ FastAPI
 
 ```text
 New chat
-  → TinyDB creates a chat record using the chat UUID as Pi session ID
+  → SQLite creates a chat record using the chat UUID as Pi session ID
   → first user message starts Pi RPC with that Agent configuration
   → FastAPI proxies JSONL events as SSE to the browser
   → Pi persists the transcript in its session directory
@@ -321,13 +321,13 @@ If the `pi-mcp-adapter` extension is selected, its `mcp` and `mcpScript` tools a
 
 | Data | Owner | Default location |
 | --- | --- | --- |
-| Agent definitions and chat metadata | OMA Studio / TinyDB | `~/.oma-studio/data/platform.json` |
+| Agent definitions and chat metadata | OMA Studio / SQLModel + SQLite | `~/.oma-studio/data/platform.sqlite3` (legacy JSON is migrated once and backed up) |
 | Pi session transcripts | Pi | `~/.oma-studio/data/pi-sessions` |
 | Agent working directory | Pi / platform | `~/.oma-studio/workspace` |
 | Chat uploads | OMA Studio metadata + workspace files | `~/.oma-studio/workspace/uploads/<chat-id>/` |
 | Pi configuration, extensions, skills, models | Pi | `~/.pi/agent` |
 
-TinyDB records chat identity, title, Agent binding, timestamps, status, and upload metadata only. It is intentionally not a second message or file-content store.
+SQLite records chat identity, title, Agent binding, timestamps, status, and upload metadata only. It is intentionally not a second message or file-content store. On first startup with legacy `platform.json`, OMA Studio validates and imports it once, then creates a timestamped `.bak` copy.
 
 Agents, Chats, Autopilots, Autopilot runs, and Shares carry an explicit `user_id`.
 Normal users can only see and modify their own records; administrators can see all
@@ -455,7 +455,7 @@ bin/ops.sh logs
 uv run pytest -q
 ```
 
-The test suite covers TinyDB persistence, Agent Provider/Model overrides, model catalog discovery, and basic API behavior. Browser screenshots in this README are captured with Playwright at 1600×1000.
+The test suite covers SQLite persistence and migration, Agent Provider/Model overrides, model catalog discovery, and basic API behavior. Browser screenshots in this README are captured with Playwright at 1600×1000.
 
 ### Troubleshooting
 
@@ -471,7 +471,7 @@ The test suite covers TinyDB persistence, Agent Provider/Model overrides, model 
 
 - [ ] OpenShell-backed `SandboxRunner` for policy-controlled Pi execution.
 - [ ] Project workspaces and per-project sandbox policies.
-- [ ] Durable production datastore beyond the current TinyDB-backed user auth.
+- [ ] Durable production datastore beyond the current SQLite-backed metadata store.
 - [ ] Agent marketplace, autopilots, and library modules.
 
 ## Contributing
