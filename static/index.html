@@ -2484,8 +2484,8 @@
                   <div>
                     <b x-text="skill.name"></b
                     ><small
-                      class="agent-skill-description"
-                      :title="skill.description || 'Ready to use in chat'"
+                      class="agent-skill-description tooltip tooltip-top"
+                      :data-tip="skill.description || 'Ready to use in chat'"
                       x-text="skill.description || 'Ready to use in chat'"
                     ></small>
                   </div>
