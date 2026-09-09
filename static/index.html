@@ -2641,7 +2641,7 @@
               ></textarea>
             </div>
             <div class="form-field agent-instruction-field">
-              <label for="new-agent-instruction">Instruction</label>
+              <label class="agent-section-label" for="new-agent-instruction">Instruction</label>
               <div class="instruction-textarea-wrap">
                 <textarea
                   id="new-agent-instruction"
@@ -2713,7 +2713,7 @@
             </div>
           </div>
           <div class="form-field">
-            <label>Built-in tools</label>
+            <label class="agent-section-label">Built-in tools</label>
             <div class="tool-group-grid">
               <template x-for="group in toolGroups" :key="group.id">
                 <label class="tool-group" :title="group.description">
@@ -2733,7 +2733,7 @@
             </div>
           </div>
           <div class="form-field">
-            <label>Extensions</label>
+            <label class="agent-section-label">Extensions</label>
             <div class="resource-check-grid">
               <template x-if="resources.extensions.length === 0"
                 ><span class="resource-empty">No extensions discovered</span></template
@@ -2750,7 +2750,7 @@
             </div>
           </div>
           <div class="form-field">
-            <label>Skills</label>
+            <label class="agent-section-label">Skills</label>
             <div class="resource-check-grid">
               <template x-if="resources.skills.length === 0"
                 ><span class="resource-empty">No skills discovered</span></template
@@ -2767,7 +2767,7 @@
             </div>
           </div>
           <div class="form-field">
-            <label>MCP servers</label>
+            <label class="agent-section-label">MCP servers</label>
             <div class="resource-check-grid mcp-check-grid">
               <template x-if="resources.mcp_servers.length === 0"
                 ><span class="resource-empty">No MCP servers discovered</span></template

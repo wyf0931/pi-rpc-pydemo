@@ -1040,6 +1040,12 @@ body {
  letter-spacing: 0.08em;
  margin-bottom: 8px;
 }
+.form-field .agent-section-label {
+ color: var(--color-primary);
+ font-size: 12px;
+ letter-spacing: 0.12em;
+ margin-bottom: 14px;
+}
 .form-field .input,
 .form-field .textarea {
  width: 100%;
