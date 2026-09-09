@@ -37,6 +37,9 @@ services:
       # Keep this equal to the cwd recorded in migrated Pi session files.
       # New installations can leave it at /workspace.
       PI_CWD: ${PI_DOCKER_CWD:-/workspace}
+      # Optional one-time mapping for sessions created before a host/container
+      # workspace path changed. Matching session headers are backed up first.
+      PI_LEGACY_CWD: ${PI_LEGACY_CWD:-}
       # Node 24 honors proxy env for outbound model-API calls. Set OMA_PROXY
       # in .env (e.g. http://192.168.5.2:7897 with Colima) when the host
       # reaches model providers through a VPN/proxy; empty means direct.

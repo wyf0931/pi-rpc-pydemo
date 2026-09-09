@@ -9,6 +9,7 @@ from ..avatars import seed_default_avatar
 from ..config import Settings, get_settings
 from ..observability import configure_logging, trace_request
 from ..pi_rpc import PiRuntimeManager
+from ..session_migration import migrate_session_cwds
 from ..store import Store
 
 
@@ -27,6 +28,12 @@ def create_context() -> ApplicationContext:
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     settings.pi_session_dir.mkdir(parents=True, exist_ok=True)
     configure_logging(settings.log_dir)
+
+    migrate_session_cwds(
+        settings.pi_session_dir,
+        settings.pi_legacy_cwd,
+        str(settings.pi_cwd),
+    )
 
     store = Store(settings.data_dir / "platform.sqlite3")
     default_agent = store.ensure_default_agent(list(settings.pi_default_tools))
