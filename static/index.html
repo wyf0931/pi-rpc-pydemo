@@ -69,7 +69,7 @@
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260908-agent-instruction-generator" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260909-agent-profile" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -783,6 +783,11 @@
                   <h3 x-text="agent.name"></h3>
                 </div>
                 <p class="agent-instruction" x-text="agent.instruction"></p>
+                <div class="agent-card-tags" x-show="agent.tags?.length">
+                  <template x-for="tag in agent.tags" :key="tag">
+                    <span class="badge badge-ghost" x-text="tag"></span>
+                  </template>
+                </div>
                 <div class="card-bottom">
                   <div class="agent-card-bottom-start">
                     <span x-text="chatCount(agent.id) + ' chats' "></span>
@@ -2434,43 +2439,61 @@
             </button>
           </div>
           <div class="detail-group">
-            <div class="detail-heading">Basics</div>
-            <div class="detail-row"><span>Name</span><b x-text="dialog.name"></b></div>
-            <div class="detail-row instruction-detail">
-              <span>Instruction</span
-              ><b class="detail-instruction" x-text="dialog.instruction" :title="dialog.instruction"></b>
+            <div class="agent-profile-identity">
+              <template x-if="avatarUrl(dialog)"
+                ><img
+                  class="agent-mark large agent-avatar-image"
+                  :src="avatarUrl(dialog)"
+                  :alt="dialog.name + ' avatar'"
+              /></template>
+              <template x-if="!avatarUrl(dialog)"
+                ><span class="agent-mark large" x-text="initials(dialog.name)"></span
+              ></template>
+              <div>
+                <h3 x-text="dialog.name"></h3>
+                <p x-text="dialog.description || 'Ready to help with your work.'"></p>
+              </div>
             </div>
-            <div class="detail-row">
-              <span>Provider</span><b x-text="providerName(dialog.provider) || 'Pi default'"></b>
+            <div class="agent-profile-tags" x-show="dialog.tags?.length">
+              <template x-for="tag in dialog.tags" :key="tag">
+                <span class="badge badge-ghost" x-text="tag"></span>
+              </template>
             </div>
-            <div class="detail-row">
-              <span>Model</span><b x-text="modelName(dialog.provider, dialog.model) || 'Pi default'"></b>
-            </div>
-            <div class="detail-row"><span>Created</span><b x-text="formatDate(dialog.created_at)"></b></div>
           </div>
           <div class="detail-group">
-            <div class="detail-heading">Extensions</div>
-            <div class="reserved-grid">
-              <div><span>Extensions</span><b x-text="resourceNames(dialog.extensions, 'extensions')"></b></div>
-              <div><span>Skills</span><b x-text="resourceNames(dialog.skills, 'skills')"></b></div>
-              <div class="agent-detail-tools">
-                <span>Tools</span>
-                <div class="agent-tool-groups" x-show="dialog.tools?.length">
-                  <template x-for="group in toolGroups" :key="group.id">
-                    <span
-                      class="agent-tool-group"
-                      :class="{'agent-tool-group-muted': dialogToolGroupState(group) === 'none'}"
-                    >
-                      <b x-text="group.label"></b>
-                      <small
-                        x-text="dialogToolGroupState(group) === 'all' ? 'Enabled' : dialogToolGroupState(group) === 'partial' ? 'Partly enabled' : 'Disabled'"
-                      ></small>
-                    </span>
-                  </template>
+            <div class="detail-heading">Try asking me</div>
+            <div class="agent-quickstarts" x-show="dialog.quickstarts?.length">
+              <template x-for="prompt in dialog.quickstarts" :key="prompt">
+                <button type="button" class="agent-quickstart" @click="startQuickstart(dialog, prompt)">
+                  <span x-text="prompt"></span><i data-lucide="arrow-right" aria-hidden="true"></i>
+                </button>
+              </template>
+            </div>
+            <p class="agent-detail-empty" x-show="!dialog.quickstarts?.length">
+              Start a new chat and describe what you want to accomplish.
+            </p>
+          </div>
+          <div class="detail-group">
+            <div class="detail-heading">Built-in skills</div>
+            <div class="agent-skill-list" x-show="agentSkills(dialog).length">
+              <template x-for="skill in agentSkills(dialog)" :key="skill.path">
+                <div class="agent-skill-row">
+                  <span class="agent-avatar skill-avatar" x-text="initials(skill.name)"></span>
+                  <div>
+                    <b x-text="skill.name"></b><small x-text="skill.description || 'Ready to use in chat'"></small>
+                  </div>
                 </div>
-                <b x-show="!dialog.tools?.length">Disabled</b>
-              </div>
-              <div><span>MCP servers</span><b>Not configured</b></div>
+              </template>
+            </div>
+            <p class="agent-detail-empty" x-show="!agentSkills(dialog).length">No additional skills configured.</p>
+          </div>
+          <div class="detail-group" x-show="authUser?.role === 'admin'">
+            <div class="detail-heading">Admin configuration</div>
+            <div class="reserved-grid">
+              <div><span>Provider</span><b x-text="providerName(dialog.provider) || 'Pi default'"></b></div>
+              <div><span>Model</span><b x-text="modelName(dialog.provider, dialog.model) || 'Pi default'"></b></div>
+              <div><span>Extensions</span><b x-text="resourceNames(dialog.extensions, 'extensions')"></b></div>
+              <div><span>Tools</span><b x-text="dialog.tools?.length ? dialog.tools.join(', ') : 'Disabled'"></b></div>
             </div>
           </div>
           <div class="dialog-actions">
@@ -2575,6 +2598,37 @@
                   maxlength="80"
                   placeholder="e.g. researcher"
                 />
+              </div>
+              <div class="form-field">
+                <label for="new-agent-description">What this Agent does</label>
+                <textarea
+                  id="new-agent-description"
+                  class="textarea textarea-bordered"
+                  x-model="newAgentDescription"
+                  maxlength="240"
+                  rows="2"
+                  placeholder="Describe the result this Agent helps users achieve…"
+                ></textarea>
+              </div>
+              <div class="form-field">
+                <label for="new-agent-tags">Strength tags <small>(up to 5, comma-separated)</small></label>
+                <input
+                  id="new-agent-tags"
+                  class="input input-bordered"
+                  x-model="newAgentTags"
+                  placeholder="e.g. Research, Writing, Strategy"
+                />
+              </div>
+              <div class="form-field">
+                <label for="new-agent-quickstarts">Try asking me <small>(one prompt per line, up to 5)</small></label>
+                <textarea
+                  id="new-agent-quickstarts"
+                  class="textarea textarea-bordered"
+                  x-model="newAgentQuickstarts"
+                  maxlength="1200"
+                  rows="3"
+                  placeholder="Help me…\nReview this…"
+                ></textarea>
               </div>
               <div class="agent-model-fields">
                 <div class="form-field">
@@ -2937,6 +2991,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260908-agent-draft-protect"></script>
+    <script src="/static/app.js?v=20260909-agent-profile"></script>
   </body>
 </html>

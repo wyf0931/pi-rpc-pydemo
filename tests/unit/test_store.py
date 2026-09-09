@@ -30,6 +30,22 @@ def test_default_agent_and_agent_crud(tmp_path: Path):
     assert store.delete_agent(default["id"]) is False
 
 
+def test_agent_user_profile_metadata_round_trips(tmp_path: Path):
+    store = Store(tmp_path / "db.json")
+    agent = store.create_agent(
+        "writer",
+        "Follow the internal writing rules.",
+        description="Turn rough ideas into clear drafts.",
+        tags=["Writing", "Editing"],
+        quickstarts=["Rewrite this clearly.", "Give me three titles."],
+    )
+    saved = store.get_agent(agent["id"])
+    assert saved is not None
+    assert saved["description"] == "Turn rough ideas into clear drafts."
+    assert saved["tags"] == ["Writing", "Editing"]
+    assert saved["quickstarts"] == ["Rewrite this clearly.", "Give me three titles."]
+
+
 def test_chat_index_does_not_store_messages(tmp_path: Path):
     store = Store(tmp_path / "db.json")
     agent = store.ensure_default_agent()

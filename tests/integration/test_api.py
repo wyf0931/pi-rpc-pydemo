@@ -123,6 +123,33 @@ def test_health_and_agents(client):
     assert any(agent["name"] == "assistant" for agent in agents)
 
 
+def test_agent_profile_metadata_is_validated_and_persisted(client, temporary_agent):
+    response = temporary_agent(
+        {
+            "name": "profile-agent",
+            "instruction": "Follow the internal runtime rules.",
+            "description": "Turn rough ideas into clear drafts.",
+            "tags": ["Writing", "Editing"],
+            "quickstarts": ["Rewrite this clearly.", "Give me three titles."],
+        }
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["description"] == "Turn rough ideas into clear drafts."
+    assert body["tags"] == ["Writing", "Editing"]
+    assert body["quickstarts"] == ["Rewrite this clearly.", "Give me three titles."]
+
+    too_many = client.post(
+        "/api/agents",
+        json={
+            "name": "too-many-tags",
+            "instruction": "Rules",
+            "tags": ["1", "2", "3", "4", "5", "6"],
+        },
+    )
+    assert too_many.status_code == 422
+
+
 def test_instruction_draft_uses_validated_selected_capabilities(client, monkeypatch):
     import app.main as main_module
     from app.api.routers import agents as agents_router
@@ -264,9 +291,9 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260908-agent-draft-protect" in Path(
-        "static/index.html"
-    ).read_text(encoding="utf-8")
+    assert "app.js?v=20260909-agent-profile" in Path("static/index.html").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_chat_viewport_and_composer_use_latest_message_and_seven_line_contract():
@@ -329,7 +356,8 @@ def test_agent_tools_use_product_capability_groups_with_safe_defaults():
     assert "Run scripts" in script
     assert 'group.id !== "run_scripts"' in script
     assert ".tool-group-grid" in styles
-    assert "dialogToolGroupState(group)" in html
+    assert "authUser?.role === 'admin'" in html
+    assert "Admin configuration" in html
     assert "Choose what this Agent can access." not in html
     assert "align-items: center" in styles
     assert ".form-field .tool-group" in styles
