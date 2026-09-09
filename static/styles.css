@@ -963,6 +963,14 @@ body {
  max-height: 2.9em;
  cursor: help;
 }
+.agent-skill-description.tooltip::before {
+ max-width: min(360px, calc(100vw - 48px));
+ white-space: normal;
+ text-align: left;
+ line-height: 1.45;
+ font-size: 11px;
+ font-weight: 400;
+}
 .agent-detail-empty {
  color: var(--muted);
  font-size: 13px;
