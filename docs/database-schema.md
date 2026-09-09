@@ -40,7 +40,7 @@ erDiagram
     SESSIONS {
         string id PK "UUID"
         string token_hash UK "token SHA-256 摘要"
-        string user_id IX "逻辑关联 users.id"
+        string user_id "逻辑关联 users.id"
         string created_at
         string expires_at
         string extra_json "扩展字段 JSON"
@@ -48,7 +48,7 @@ erDiagram
 
     AGENTS {
         string id PK "UUID"
-        string user_id IX "可为空，逻辑关联 users.id"
+        string user_id "可为空，逻辑关联 users.id"
         string name
         string instruction
         string provider "可为空"
@@ -72,9 +72,9 @@ erDiagram
 
     CHATS {
         string id PK "UUID，同时作为 Pi session id"
-        string user_id IX "可为空，逻辑关联 users.id"
+        string user_id "可为空，逻辑关联 users.id"
         string session_id "Pi session id"
-        string agent_id IX "逻辑关联 agents.id"
+        string agent_id "逻辑关联 agents.id"
         string title
         string status
         string created_at
@@ -85,10 +85,10 @@ erDiagram
 
     AUTOPILOTS {
         string id PK "UUID"
-        string user_id IX "可为空，逻辑关联 users.id"
+        string user_id "可为空，逻辑关联 users.id"
         string name
         string instruction
-        string agent_id IX "逻辑关联 agents.id"
+        string agent_id "逻辑关联 agents.id"
         string cron
         bool enabled
         string starts_at "可为空"
@@ -101,9 +101,9 @@ erDiagram
 
     AUTOPILOT_RUNS {
         string id PK "UUID"
-        string user_id IX "可为空，逻辑关联 users.id"
-        string autopilot_id IX "逻辑关联 autopilots.id"
-        string chat_id IX "逻辑关联 chats.id"
+        string user_id "可为空，逻辑关联 users.id"
+        string autopilot_id "逻辑关联 autopilots.id"
+        string chat_id "逻辑关联 chats.id"
         string session_id "Pi session id"
         string status
         string started_at
@@ -115,7 +115,7 @@ erDiagram
 
     SHARES {
         string token PK "不可预测的分享令牌"
-        string user_id IX "可为空，逻辑关联 users.id"
+        string user_id "可为空，逻辑关联 users.id"
         string chat_id UK "逻辑关联 chats.id，每个 Chat 一个"
         string created_at
         string extra_json "扩展字段 JSON"
@@ -123,15 +123,15 @@ erDiagram
 
     UPLOADS {
         string id PK "UUID"
-        string chat_id IX "逻辑关联 chats.id"
+        string chat_id "逻辑关联 chats.id"
         string created_at
         string extra_json "扩展字段 JSON"
     }
 
     AGENT_PUBLICATIONS {
         string id PK "发布资源 UUID"
-        string source_agent_id IX "逻辑关联 agents.id"
-        string owner_user_id IX "逻辑关联 users.id"
+        string source_agent_id "逻辑关联 agents.id"
+        string owner_user_id "逻辑关联 users.id"
         string name
         string description
         int install_count
@@ -142,7 +142,7 @@ erDiagram
 
     AGENT_PUBLICATION_VERSIONS {
         string id PK "版本 UUID"
-        string publication_id IX "逻辑关联 agent_publications.id"
+        string publication_id "逻辑关联 agent_publications.id"
         string version "SemVer"
         string version_sort_json "版本排序数组 JSON"
         string content_json "不可变 Agent 配置快照 JSON"
