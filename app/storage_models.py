@@ -42,6 +42,9 @@ class Agent(SQLModel, table=True):
     user_id: str | None = Field(default=None, index=True)
     name: str
     instruction: str
+    description: str | None = None
+    tags_json: str = "[]"
+    quickstarts_json: str = "[]"
     provider: str | None = None
     model: str | None = None
     thinking_level: str | None = None

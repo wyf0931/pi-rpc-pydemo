@@ -6,7 +6,7 @@ SQLite 是运行时唯一的元数据存储。旧的 `platform.json` 只用于�
 
 ## ER 图
 
-下面的连线表示应用层的逻辑关系。当前 SQLModel 字段使用 ID 约定和索引表达关联，数据库本身没有声明 `FOREIGN KEY` 约束；删除级联和跨表一致性由 `Store` 与业务路由维护。
+下面的连线表示应用层的逻辑关系。当前 SQLModel 字段使用 ID 约定和索引表达关联，数据库本身没有声明 `FOREIGN KEY` 约束；删除级联和跨表一致性由 `Store` 与业务路由维护。`schema_meta.version` 当前为 2，启动时会对已有 SQLite 执行增量列迁移。
 
 ```mermaid
 erDiagram
@@ -51,6 +51,9 @@ erDiagram
         string user_id "可为空，逻辑关联 users.id"
         string name
         string instruction
+        string description "用户侧能力说明，可为空"
+        string tags_json "擅长领域标签数组，最多 5 个"
+        string quickstarts_json "用户侧示例提问数组"
         string provider "可为空"
         string model "可为空"
         string thinking_level "可为空"
@@ -175,7 +178,7 @@ erDiagram
 
 ### `agents`
 
-保存 Agent 配置。`provider`、`model` 和 `thinking_level` 是 Pi 模型选择参数。`extensions_json`、`skills_json`、`tools_json` 和 `mcp_servers_json` 是 JSON 字符串列，Store 读写时转换为 Python 字符串数组。`content_hash` 和 `source_*` 用于 Agent 配置快照及 Marketplace 安装来源追踪。
+保存 Agent 配置与用户侧资料。`description` 面向普通用户，`tags_json` 保存最多 5 个擅长领域标签，`quickstarts_json` 保存可直接带入新 Chat 的示例提问。`provider`、`model` 和 `thinking_level` 是 Pi 模型选择参数。`extensions_json`、`skills_json`、`tools_json` 和 `mcp_servers_json` 是 JSON 字符串列，Store 读写时转换为 Python 字符串数组。`content_hash` 和 `source_*` 用于 Agent 配置快照及 Marketplace 安装来源追踪。
 
 系统会创建受保护的默认 Agent。`avatar_path` 只保存头像路径，头像文件保存在文件系统中，不存入 SQLite BLOB。
 

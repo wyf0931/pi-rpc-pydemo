@@ -156,6 +156,9 @@ function platform() {
     creating: false,
     generatingInstruction: false,
     newAgentName: "",
+    newAgentDescription: "",
+    newAgentTags: "",
+    newAgentQuickstarts: "",
     newAgentInstruction: "",
     newAgentAvatarFile: null,
     newAgentAvatarPreview: "",
@@ -2492,6 +2495,32 @@ function platform() {
         )
         .join(", ");
     },
+    profileTags(value) {
+      return value
+        .split(/[\n,]/)
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+        .slice(0, 5);
+    },
+    profileQuickstarts(value) {
+      return value
+        .split("\n")
+        .map((prompt) => prompt.trim())
+        .filter(Boolean)
+        .slice(0, 5);
+    },
+    agentSkills(agent) {
+      const enabled = agent?.skills || [];
+      return this.resources.skills.filter((skill) =>
+        enabled.some((path) => this.normalizeResourcePath(path) === this.normalizeResourcePath(skill.path)),
+      );
+    },
+    startQuickstart(agent, prompt) {
+      this.newChat();
+      this.selectedAgentId = agent.id;
+      this.draft = prompt;
+      this.$nextTick(() => document.getElementById("new-chat-message")?.focus());
+    },
     providerName(id) {
       return this.resources.providers.find((item) => item.id === id)?.name || id || "";
     },
@@ -2551,6 +2580,9 @@ function platform() {
     newAgent() {
       this.editingAgent = null;
       this.newAgentName = "";
+      this.newAgentDescription = "";
+      this.newAgentTags = "";
+      this.newAgentQuickstarts = "";
       this.newAgentInstruction = "";
       this.newAgentAvatarFile = null;
       this.newAgentAvatarPreview = "";
@@ -2655,6 +2687,9 @@ function platform() {
         const avatarFile = this.newAgentAvatarFile;
         const payload = {
           name: this.newAgentName,
+          description: this.newAgentDescription.trim() || null,
+          tags: this.profileTags(this.newAgentTags),
+          quickstarts: this.profileQuickstarts(this.newAgentQuickstarts),
           instruction: this.newAgentInstruction,
           provider: this.newAgentProvider,
           model: this.newAgentModel,
@@ -2859,6 +2894,9 @@ function platform() {
     editAgent(agent) {
       this.editingAgent = agent;
       this.newAgentName = agent.name;
+      this.newAgentDescription = agent.description || "";
+      this.newAgentTags = (agent.tags || []).join(", ");
+      this.newAgentQuickstarts = (agent.quickstarts || []).join("\n");
       this.newAgentInstruction = agent.instruction;
       this.newAgentAvatarFile = null;
       this.newAgentAvatarPreview = "";

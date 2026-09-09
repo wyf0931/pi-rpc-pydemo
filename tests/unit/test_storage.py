@@ -1,10 +1,11 @@
 import json
+import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
 
-from app.storage import migrate_tinydb
+from app.storage import create_sqlite_engine, migrate_tinydb
 from app.store import Store
 
 
@@ -113,3 +114,25 @@ def test_sqlite_allows_concurrent_writes(tmp_path: Path):
     assert len(set(ids)) == 32
     store = Store(path)
     assert len(store.list_users()) == 32
+
+
+def test_existing_sqlite_gets_agent_profile_columns(tmp_path: Path):
+    path = tmp_path / "platform.sqlite3"
+    connection = sqlite3.connect(path)
+    connection.execute(
+        "CREATE TABLE agents (id TEXT PRIMARY KEY, name TEXT, instruction TEXT, created_at TEXT, updated_at TEXT, extra_json TEXT)"
+    )
+    connection.commit()
+    connection.close()
+
+    engine = create_sqlite_engine(path)
+    with engine.connect() as connection:
+        columns = {
+            row[1] for row in connection.exec_driver_sql("PRAGMA table_info(agents)")
+        }
+        version = connection.exec_driver_sql(
+            "SELECT value FROM schema_meta WHERE key='version'"
+        ).scalar()
+    engine.dispose()
+    assert {"description", "tags_json", "quickstarts_json"} <= columns
+    assert version == "2"

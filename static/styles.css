@@ -799,6 +799,19 @@ body {
  height: 43px;
  min-height: 43px;
 }
+.agent-card-tags,
+.agent-profile-tags {
+ display: flex;
+ flex-wrap: wrap;
+ gap: 6px;
+}
+.agent-card-tags {
+ min-height: 24px;
+}
+.agent-card-tags .badge,
+.agent-profile-tags .badge {
+ font-size: 10px;
+}
 .agent-card .card-bottom {
  min-height: 43px;
  align-items: center;
@@ -867,6 +880,80 @@ body {
 .detail-group {
  padding: 23px 0;
  border-bottom: 1px solid var(--line);
+}
+.agent-profile-identity {
+ display: flex;
+ align-items: center;
+ gap: 14px;
+}
+.agent-profile-identity h3 {
+ margin: 0;
+ font-size: 23px;
+ letter-spacing: -0.04em;
+}
+.agent-profile-identity p {
+ margin: 5px 0 0;
+ color: var(--muted);
+ font-size: 13px;
+ line-height: 1.55;
+}
+.agent-quickstarts,
+.agent-skill-list {
+ display: grid;
+ gap: 8px;
+}
+.agent-quickstart {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ gap: 12px;
+ width: 100%;
+ padding: 12px 14px;
+ border: 1px solid var(--line);
+ border-radius: 8px;
+ background: var(--color-base-200);
+ color: var(--ink);
+ text-align: left;
+ cursor: pointer;
+ font: 13px/1.4 var(--font-sans);
+ transition: border-color 0.15s, background 0.15s;
+}
+.agent-quickstart:hover,
+.agent-quickstart:focus-visible {
+ border-color: var(--color-primary);
+ background: var(--color-base-100);
+}
+.agent-quickstart svg {
+ flex: none;
+ width: 16px;
+}
+.agent-skill-row {
+ display: flex;
+ align-items: center;
+ gap: 11px;
+ padding: 8px 0;
+}
+.skill-avatar {
+ width: 32px;
+ height: 32px;
+ background: color-mix(in srgb, var(--color-info) 14%, transparent);
+ color: var(--color-info);
+}
+.agent-skill-row b,
+.agent-skill-row small {
+ display: block;
+}
+.agent-skill-row b {
+ font-size: 13px;
+}
+.agent-skill-row small {
+ margin-top: 2px;
+ color: var(--muted);
+ font-size: 11px;
+}
+.agent-detail-empty {
+ color: var(--muted);
+ font-size: 13px;
 }
 .detail-heading {
  font: 10px "DM Mono";

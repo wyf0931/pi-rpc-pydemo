@@ -15,6 +15,9 @@ from ...store import SUPPORTED_TOOLS, Store
 class AgentCreate(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     instruction: str = Field(min_length=1, max_length=10000)
+    description: str | None = Field(default=None, max_length=240)
+    tags: list[str] = Field(default_factory=list, max_length=5)
+    quickstarts: list[str] = Field(default_factory=list, max_length=5)
     provider: str | None = None
     model: str | None = None
     thinking_level: str | None = None
@@ -27,6 +30,9 @@ class AgentCreate(BaseModel):
 class AgentUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=80)
     instruction: str | None = Field(default=None, min_length=1, max_length=10000)
+    description: str | None = Field(default=None, max_length=240)
+    tags: list[str] | None = Field(default=None, max_length=5)
+    quickstarts: list[str] | None = Field(default=None, max_length=5)
     provider: str | None = None
     model: str | None = None
     thinking_level: str | None = None
@@ -39,6 +45,9 @@ class AgentUpdate(BaseModel):
 class AgentInstructionDraft(BaseModel):
     name: str = Field(default="", max_length=80)
     instruction: str = Field(default="", max_length=10000)
+    description: str | None = Field(default=None, max_length=240)
+    tags: list[str] = Field(default_factory=list, max_length=5)
+    quickstarts: list[str] = Field(default_factory=list, max_length=5)
     provider: str | None = None
     model: str | None = None
     thinking_level: str | None = None
@@ -90,6 +99,17 @@ def create_router(
         if any(name not in allowed_servers for name in mcp_servers):
             raise HTTPException(400, "Unsupported MCP server")
 
+    def validate_profile(tags: list[str], quickstarts: list[str]) -> None:
+        clean_tags = [tag.strip() for tag in tags]
+        if len(set(clean_tags)) != len(clean_tags):
+            raise HTTPException(422, "Agent tags must be unique")
+        if any(not tag or len(tag) > 32 for tag in clean_tags):
+            raise HTTPException(422, "Agent tags must be 1-32 characters")
+        if any(
+            not prompt.strip() or len(prompt.strip()) > 240 for prompt in quickstarts
+        ):
+            raise HTTPException(422, "Quickstart prompts must be 1-240 characters")
+
     def normalize_agent_version(version: str) -> str:
         value = version.strip()
         if not re.fullmatch(r"v?\d+\.\d+\.\d+", value):
@@ -105,6 +125,9 @@ def create_router(
             "id": publication["id"],
             "name": latest["content"]["name"],
             "instruction": latest["content"]["instruction"],
+            "description": latest["content"].get("description"),
+            "tags": latest["content"].get("tags", []),
+            "quickstarts": latest["content"].get("quickstarts", []),
             "provider": latest["content"].get("provider"),
             "model": latest["content"].get("model"),
             "thinking_level": latest["content"].get("thinking_level"),
@@ -145,11 +168,15 @@ def create_router(
             payload.mcp_servers or [],
             resource_catalog,
         )
+        validate_profile(payload.tags, payload.quickstarts)
         validate_model_selection(payload.provider, payload.model, resource_catalog)
         validate_thinking_level(payload.thinking_level)
         return store.create_agent(
             payload.name,
             payload.instruction,
+            payload.description,
+            payload.tags,
+            payload.quickstarts,
             payload.provider,
             payload.model,
             tools,
@@ -170,6 +197,7 @@ def create_router(
             payload.mcp_servers,
             resource_catalog,
         )
+        validate_profile(payload.tags or [], payload.quickstarts or [])
         validate_model_selection(payload.provider, payload.model, resource_catalog)
         validate_thinking_level(payload.thinking_level)
         skill_by_path = {item["path"]: item for item in resource_catalog["skills"]}

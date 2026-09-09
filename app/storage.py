@@ -14,13 +14,22 @@ from sqlmodel import Session, SQLModel, create_engine, select
 
 from .storage_models import TABLE_MODELS
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+SCHEMA_ALTERS = {
+    "agents": {
+        "description": "TEXT",
+        "tags_json": "TEXT NOT NULL DEFAULT '[]'",
+        "quickstarts_json": "TEXT NOT NULL DEFAULT '[]'",
+    }
+}
 T = TypeVar("T", bound=SQLModel)
 JSON_FIELDS = {
     "extensions": "extensions_json",
     "skills": "skills_json",
     "tools": "tools_json",
     "mcp_servers": "mcp_servers_json",
+    "tags": "tags_json",
+    "quickstarts": "quickstarts_json",
     "version_sort": "version_sort_json",
     "content": "content_json",
 }
@@ -48,8 +57,19 @@ def create_sqlite_engine(path: Path):
             "CREATE TABLE IF NOT EXISTS schema_meta "
             "(key TEXT PRIMARY KEY, value TEXT NOT NULL)"
         )
+        for table, columns in SCHEMA_ALTERS.items():
+            existing = {
+                row[1]
+                for row in connection.exec_driver_sql(f"PRAGMA table_info({table})")
+            }
+            for column, definition in columns.items():
+                if column not in existing:
+                    connection.exec_driver_sql(
+                        f"ALTER TABLE {table} ADD COLUMN {column} {definition}"
+                    )
         connection.exec_driver_sql(
-            "INSERT OR IGNORE INTO schema_meta(key, value) VALUES ('version', ?)",
+            "INSERT INTO schema_meta(key, value) VALUES ('version', ?) "
+            "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
             (str(SCHEMA_VERSION),),
         )
     return engine
