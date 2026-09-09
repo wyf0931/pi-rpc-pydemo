@@ -1104,6 +1104,24 @@ function platform() {
         input.style.overflowY = "hidden";
       });
     },
+    resizeAgentTextarea(target) {
+      const textarea = target?.target || target;
+      if (!textarea) return;
+      const styles = window.getComputedStyle(textarea);
+      const lineHeight = Number.parseFloat(styles.lineHeight) || 20;
+      const verticalPadding =
+        (Number.parseFloat(styles.paddingTop) || 0) + (Number.parseFloat(styles.paddingBottom) || 0);
+      const maxHeight = lineHeight * 5 + verticalPadding;
+      textarea.style.height = "auto";
+      textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
+      textarea.style.overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden";
+    },
+    resizeAgentTextareas() {
+      ["new-agent-description", "new-agent-quickstarts", "new-agent-instruction"].forEach((id) => {
+        const textarea = document.getElementById(id);
+        if (textarea) this.resizeAgentTextarea(textarea);
+      });
+    },
     scrollMessagesToLatest() {
       this.$nextTick(() => {
         requestAnimationFrame(() => {
@@ -2919,6 +2937,7 @@ function platform() {
       this.newAgentMcpServers = [...(agent.mcp_servers || [])];
       this.dialog = null;
       this.createDialog = true;
+      this.$nextTick(() => this.resizeAgentTextareas());
     },
     async routeFromUrl() {
       this.syncModeFromUrl();

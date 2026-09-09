@@ -76,7 +76,7 @@
       disabled
     />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260910-agent-native-title" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260910-agent-textarea-autosize" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -2624,8 +2624,9 @@
                 id="new-agent-description"
                 class="textarea textarea-bordered"
                 x-model="newAgentDescription"
+                @input="resizeAgentTextarea($event)"
                 maxlength="240"
-                rows="2"
+                rows="1"
                 placeholder="Describe the result this Agent helps users achieve…"
               ></textarea>
             </div>
@@ -2635,8 +2636,9 @@
                 id="new-agent-quickstarts"
                 class="textarea textarea-bordered"
                 x-model="newAgentQuickstarts"
+                @input="resizeAgentTextarea($event)"
                 maxlength="1200"
-                rows="3"
+                rows="1"
                 placeholder="Help me…\nReview this…"
               ></textarea>
             </div>
@@ -2647,8 +2649,10 @@
                   id="new-agent-instruction"
                   class="textarea textarea-bordered"
                   x-model="newAgentInstruction"
+                  @input="resizeAgentTextarea($event)"
                   required
                   maxlength="10000"
+                  rows="1"
                   placeholder="Tell this agent how it should behave…"
                 ></textarea>
                 <button
@@ -3000,6 +3004,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260909-agent-profile-v2"></script>
+    <script src="/static/app.js?v=20260910-agent-textarea-autosize"></script>
   </body>
 </html>

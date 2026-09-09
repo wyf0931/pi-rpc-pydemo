@@ -2164,7 +2164,12 @@ body {
  margin-top: 20px;
 }
 .agent-instruction-field .textarea {
- min-height: 150px;
+ min-height: 0;
+ resize: vertical;
+}
+.agent-form-content .textarea {
+ resize: vertical;
+ overflow-y: hidden;
 }
 .instruction-textarea-wrap {
  position: relative;

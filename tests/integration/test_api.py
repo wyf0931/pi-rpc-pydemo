@@ -309,9 +309,9 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260909-agent-profile-v2" in Path("static/index.html").read_text(
-        encoding="utf-8"
-    )
+    assert "app.js?v=20260910-agent-textarea-autosize" in Path(
+        "static/index.html"
+    ).read_text(encoding="utf-8")
 
 
 def test_chat_viewport_and_composer_use_latest_message_and_seven_line_contract():
@@ -402,6 +402,18 @@ def test_agent_profile_detail_contract_is_user_facing():
     assert '<label for="new-agent-description">description' in html
     assert 'for="new-agent-tags">tags' in html
     assert 'for="new-agent-quickstarts">shortcuts' in html
+
+
+def test_agent_profile_textareas_auto_resize_from_one_row():
+    html = Path("static/index.html").read_text(encoding="utf-8")
+    script = Path("static/app.js").read_text(encoding="utf-8")
+    assert html.count('rows="1"') >= 3
+    assert html.count('@input="resizeAgentTextarea($event)"') == 3
+    assert "resizeAgentTextareas()" in script
+    assert "textarea.scrollHeight" in script
+    assert "lineHeight * 5" in script
+    assert 'overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden"' in script
+    assert "resize: vertical" in Path("static/styles.css").read_text(encoding="utf-8")
 
 
 def test_agent_save_refreshes_list_without_opening_detail_dialog():
