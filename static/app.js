@@ -1332,7 +1332,14 @@ function platform() {
       const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
       this.theme = this.themePreference === "system" ? (prefersDark ? "dark" : "light") : this.themePreference;
       document.documentElement.dataset.theme = this.theme;
+      this.syncHighlightTheme();
       localStorage.setItem("oma-theme-preference", this.themePreference);
+    },
+    syncHighlightTheme() {
+      const lightTheme = document.getElementById("highlightjs-light-theme");
+      const darkTheme = document.getElementById("highlightjs-dark-theme");
+      if (lightTheme) lightTheme.disabled = this.theme === "dark";
+      if (darkTheme) darkTheme.disabled = this.theme !== "dark";
     },
     async openSettings() {
       this.settingsTab = "general";
@@ -2443,7 +2450,7 @@ function platform() {
     renderCodeFile(source, extension) {
       const language = this.normalizeCodeLanguage(extension);
       const highlighted = this.highlightCode(String(source || ""), language);
-      return `<div class="mockup-code overflow-x-auto w-full"><pre><code class="language-${this.escape(language)}">${highlighted}</code></pre></div>`;
+      return `<div class="mockup-code overflow-x-auto w-full"><pre><code class="hljs language-${this.escape(language)}">${highlighted}</code></pre></div>`;
     },
     renderFilePreview() {
       const path = this.fileViewer?.path || "";
