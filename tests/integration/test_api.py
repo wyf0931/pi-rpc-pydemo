@@ -264,7 +264,7 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260908-agent-draft-protect" in Path(
+    assert "app.js?v=20260908-file-preview-syntax-theme" in Path(
         "static/index.html"
     ).read_text(encoding="utf-8")
 
@@ -353,12 +353,18 @@ def test_agent_save_refreshes_list_without_opening_detail_dialog():
 def test_structured_file_preview_uses_csv_table_and_code_renderer():
     html = Path("static/index.html").read_text(encoding="utf-8")
     script = Path("static/app.js").read_text(encoding="utf-8")
+    styles = Path("static/styles.css").read_text(encoding="utf-8")
 
     assert 'x-html="renderFilePreview()"' in html
     assert "parseCsv(source)" in script
     assert "isCsvFile(path)" in script
     assert 'class="table table-zebra csv-table"' in script
     assert 'class="mockup-code overflow-x-auto w-full"' in script
+    assert 'class="hljs language-${this.escape(language)}"' in script
+    assert "syncHighlightTheme()" in script
+    assert "github-dark.min.css" in html
+    assert "--code-surface: #0d1117" in styles
+    assert "--code-ink: #e6edf3" in styles
     assert "jsonl" in script
     assert "renderMarkdown(content)" in script
 

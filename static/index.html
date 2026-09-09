@@ -65,11 +65,18 @@
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
     <link
+      id="highlightjs-light-theme"
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github.min.css"
     />
+    <link
+      id="highlightjs-dark-theme"
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/github-dark.min.css"
+      disabled
+    />
     <link rel="stylesheet" href="/static/typography.css?v=20260908" />
-    <link rel="stylesheet" href="/static/styles.css?v=20260908-agent-instruction-generator" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260908-file-preview-syntax-theme" />
   </head>
   <body x-data="platform()" @keydown.escape="dialog = null" @click="closeDrawersOutside($event)">
     <div class="app-boot" x-show="!appReady" role="status" aria-live="polite">
@@ -2937,6 +2944,6 @@
         ></template>
       </div>
     </dialog>
-    <script src="/static/app.js?v=20260908-agent-draft-protect"></script>
+    <script src="/static/app.js?v=20260908-file-preview-syntax-theme"></script>
   </body>
 </html>
