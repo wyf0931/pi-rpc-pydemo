@@ -2481,11 +2481,13 @@
             <div class="agent-skill-list" x-show="agentSkills(dialog).length">
               <template x-for="skill in agentSkills(dialog)" :key="skill.path">
                 <div class="agent-skill-row">
-                  <div>
+                  <div
+                    class="agent-skill-copy tooltip tooltip-top"
+                    :data-tip="skill.description || 'Ready to use in chat'"
+                  >
                     <b x-text="skill.name"></b
                     ><small
-                      class="agent-skill-description tooltip tooltip-top"
-                      :data-tip="skill.description || 'Ready to use in chat'"
+                      class="agent-skill-description"
                       x-text="skill.description || 'Ready to use in chat'"
                     ></small>
                   </div>

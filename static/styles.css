@@ -942,6 +942,11 @@ body {
  gap: 11px;
  padding: 8px 0;
 }
+.agent-skill-copy {
+ min-width: 0;
+ position: relative;
+ z-index: 1;
+}
 .agent-skill-row b,
 .agent-skill-row small {
  display: block;
@@ -963,13 +968,14 @@ body {
  max-height: 2.9em;
  cursor: help;
 }
-.agent-skill-description.tooltip::before {
+.agent-skill-copy.tooltip::before {
  max-width: min(360px, calc(100vw - 48px));
  white-space: normal;
  text-align: left;
  line-height: 1.45;
  font-size: 11px;
  font-weight: 400;
+ z-index: 2000;
 }
 .agent-detail-empty {
  color: var(--muted);
