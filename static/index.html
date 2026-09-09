@@ -2572,7 +2572,7 @@
           </button>
         </div>
         <form @submit.prevent="submitAgent">
-          <div class="agent-form-layout">
+          <div class="agent-form-intro">
             <div class="avatar-upload-panel">
               <input
                 id="new-agent-avatar"
@@ -2607,17 +2607,6 @@
                 />
               </div>
               <div class="form-field">
-                <label for="new-agent-description">What this Agent does</label>
-                <textarea
-                  id="new-agent-description"
-                  class="textarea textarea-bordered"
-                  x-model="newAgentDescription"
-                  maxlength="240"
-                  rows="2"
-                  placeholder="Describe the result this Agent helps users achieve…"
-                ></textarea>
-              </div>
-              <div class="form-field">
                 <label for="new-agent-tags">Strength tags <small>(up to 5, comma-separated)</small></label>
                 <input
                   id="new-agent-tags"
@@ -2626,88 +2615,101 @@
                   placeholder="e.g. Research, Writing, Strategy"
                 />
               </div>
-              <div class="form-field">
-                <label for="new-agent-quickstarts">Try asking me <small>(3-5 prompts, one per line)</small></label>
-                <textarea
-                  id="new-agent-quickstarts"
-                  class="textarea textarea-bordered"
-                  x-model="newAgentQuickstarts"
-                  maxlength="1200"
-                  rows="3"
-                  placeholder="Help me…\nReview this…"
-                ></textarea>
-              </div>
-              <div class="agent-model-fields">
-                <div class="form-field">
-                  <label for="new-agent-provider">Provider</label
-                  ><select
-                    id="new-agent-provider"
-                    class="select select-bordered"
-                    x-model="newAgentProvider"
-                    @change="changeAgentProvider()"
-                    required
-                  >
-                    <template x-for="provider in resources.providers" :key="provider.id"
-                      ><option :value="provider.id" x-text="provider.name"></option
-                    ></template>
-                  </select>
-                </div>
-                <div class="form-field">
-                  <label for="new-agent-model">Model</label
-                  ><select
-                    id="new-agent-model"
-                    class="select select-bordered"
-                    x-model="newAgentModel"
-                    @change="changeAgentModel()"
-                    required
-                  >
-                    <template x-for="model in modelsFor()" :key="model.id"
-                      ><option :value="model.id" x-text="model.name"></option
-                    ></template>
-                  </select>
-                </div>
-                <div class="form-field">
-                  <label for="new-agent-thinking">Thinking effort</label
-                  ><select
-                    id="new-agent-thinking"
-                    class="select select-bordered"
-                    x-model="newAgentThinkingLevel"
-                    required
-                  >
-                    <template x-for="level in thinkingLevelsFor()" :key="level"
-                      ><option :value="level" x-text="level"></option
-                    ></template>
-                  </select>
-                </div>
-              </div>
             </div>
           </div>
-          <div class="form-field agent-instruction-field">
-            <label for="new-agent-instruction">Instruction</label>
-            <div class="instruction-textarea-wrap">
+          <div class="agent-form-content">
+            <div class="form-field">
+              <label for="new-agent-description">What this Agent does</label>
               <textarea
-                id="new-agent-instruction"
+                id="new-agent-description"
                 class="textarea textarea-bordered"
-                x-model="newAgentInstruction"
-                required
-                maxlength="10000"
-                placeholder="Tell this agent how it should behave…"
+                x-model="newAgentDescription"
+                maxlength="240"
+                rows="2"
+                placeholder="Describe the result this Agent helps users achieve…"
               ></textarea>
-              <button
-                type="button"
-                class="btn btn-ghost btn-sm btn-square instruction-generate-button"
-                :disabled="generatingInstruction"
-                @click="generateAgentInstruction"
-                title="Generate specialist instruction"
-                aria-label="Generate specialist instruction"
-              >
-                <i x-show="!generatingInstruction" data-lucide="pencil-sparkles" aria-hidden="true"></i>
-                <span
-                  x-show="generatingInstruction"
-                  class="loading loading-spinner loading-xs"
-                  aria-hidden="true"
-                ></span>
-              </button>
+            </div>
+            <div class="form-field">
+              <label for="new-agent-quickstarts">Try asking me <small>(3-5 prompts, one per line)</small></label>
+              <textarea
+                id="new-agent-quickstarts"
+                class="textarea textarea-bordered"
+                x-model="newAgentQuickstarts"
+                maxlength="1200"
+                rows="3"
+                placeholder="Help me…\nReview this…"
+              ></textarea>
+            </div>
+            <div class="form-field agent-instruction-field">
+              <label for="new-agent-instruction">Instruction</label>
+              <div class="instruction-textarea-wrap">
+                <textarea
+                  id="new-agent-instruction"
+                  class="textarea textarea-bordered"
+                  x-model="newAgentInstruction"
+                  required
+                  maxlength="10000"
+                  placeholder="Tell this agent how it should behave…"
+                ></textarea>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-sm btn-square instruction-generate-button"
+                  :disabled="generatingInstruction"
+                  @click="generateAgentInstruction"
+                  title="Generate specialist instruction"
+                  aria-label="Generate specialist instruction"
+                >
+                  <i x-show="!generatingInstruction" data-lucide="pencil-sparkles" aria-hidden="true"></i>
+                  <span
+                    x-show="generatingInstruction"
+                    class="loading loading-spinner loading-xs"
+                    aria-hidden="true"
+                  ></span>
+                </button>
+              </div>
+            </div>
+            <div class="agent-model-fields">
+              <div class="form-field">
+                <label for="new-agent-provider">Provider</label
+                ><select
+                  id="new-agent-provider"
+                  class="select select-bordered"
+                  x-model="newAgentProvider"
+                  @change="changeAgentProvider()"
+                  required
+                >
+                  <template x-for="provider in resources.providers" :key="provider.id"
+                    ><option :value="provider.id" x-text="provider.name"></option
+                  ></template>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="new-agent-model">Model</label
+                ><select
+                  id="new-agent-model"
+                  class="select select-bordered"
+                  x-model="newAgentModel"
+                  @change="changeAgentModel()"
+                  required
+                >
+                  <template x-for="model in modelsFor()" :key="model.id"
+                    ><option :value="model.id" x-text="model.name"></option
+                  ></template>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="new-agent-thinking">Thinking effort</label
+                ><select
+                  id="new-agent-thinking"
+                  class="select select-bordered"
+                  x-model="newAgentThinkingLevel"
+                  required
+                >
+                  <template x-for="level in thinkingLevelsFor()" :key="level"
+                    ><option :value="level" x-text="level"></option
+                  ></template>
+                </select>
+              </div>
             </div>
           </div>
           <div class="form-field">

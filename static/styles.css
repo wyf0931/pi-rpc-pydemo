@@ -2071,12 +2071,18 @@ body {
  object-fit: cover;
  overflow: hidden;
 }
-.agent-form-layout {
+.agent-form-intro {
  display: grid;
  grid-template-columns: 112px minmax(0, 1fr);
  gap: 20px;
  padding-top: 16px;
  align-items: start;
+}
+.agent-form-content {
+ margin-top: 20px;
+}
+.agent-form-content > .form-field:first-child {
+ margin-top: 0;
 }
 .avatar-upload-panel {
  display: flex;
@@ -5273,8 +5279,8 @@ body > .link-drawer {
  }
 }
 @media (max-width: 800px) {
- .agent-form-layout {
-  grid-template-columns: 1fr;
+ .agent-form-intro {
+ grid-template-columns: 1fr;
  }
  .avatar-upload-panel {
   padding-top: 0;
