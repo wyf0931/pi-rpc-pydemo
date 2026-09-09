@@ -30,6 +30,7 @@ class Settings:
     pi_cli_path: str
     pi_session_dir: Path
     pi_cwd: Path
+    pi_legacy_cwd: str | None
     pi_provider: str | None
     pi_model: str | None
     pi_tools: str | None
@@ -84,6 +85,7 @@ def get_settings() -> Settings:
             or str(data_dir / "pi-sessions")
         ).expanduser(),
         pi_cwd=Path(value("PI_CWD", str(Path.cwd())) or str(Path.cwd())).expanduser(),
+        pi_legacy_cwd=value("PI_LEGACY_CWD") or None,
         pi_provider=value("PI_PROVIDER") or None,
         pi_model=value("PI_MODEL") or None,
         pi_tools=value("PI_TOOLS") or None,
