@@ -1,6 +1,7 @@
 """SQLite engine configuration and one-time TinyDB JSON migration."""
 
 import json
+import os
 import shutil
 import sqlite3
 import warnings
@@ -36,8 +37,51 @@ JSON_FIELDS = {
 MODEL_FIELDS = {name: set(model.model_fields) for name, model in TABLE_MODELS.items()}
 
 
+def _schema_needs_upgrade(path: Path) -> bool:
+    if not path.exists():
+        return False
+    connection = sqlite3.connect(path)
+    try:
+        try:
+            version = int(
+                connection.execute(
+                    "SELECT value FROM schema_meta WHERE key='version'"
+                ).fetchone()[0]
+            )
+        except (TypeError, ValueError, sqlite3.OperationalError):
+            version = 0
+        existing = {row[1] for row in connection.execute("PRAGMA table_info(agents)")}
+        return version < SCHEMA_VERSION or any(
+            column not in existing for column in SCHEMA_ALTERS["agents"]
+        )
+    finally:
+        connection.close()
+
+
+def _backup_before_schema_upgrade(path: Path) -> Path:
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    backup = path.with_name(f"{path.name}.schema-v{SCHEMA_VERSION}.{stamp}.bak")
+    if backup.exists():
+        backup = path.with_name(
+            f"{path.name}.schema-v{SCHEMA_VERSION}.{stamp}.{uuid4().hex}.bak"
+        )
+    temporary = path.with_name(f".{backup.name}.{uuid4().hex}.tmp")
+    source = sqlite3.connect(path)
+    destination = sqlite3.connect(temporary)
+    try:
+        source.backup(destination)
+        destination.commit()
+    finally:
+        destination.close()
+        source.close()
+    os.replace(temporary, backup)
+    return backup
+
+
 def create_sqlite_engine(path: Path):
     path.parent.mkdir(parents=True, exist_ok=True)
+    if _schema_needs_upgrade(path):
+        _backup_before_schema_upgrade(path)
     engine = create_engine(
         f"sqlite:///{path}",
         connect_args={"check_same_thread": False, "timeout": 30},

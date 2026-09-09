@@ -130,14 +130,32 @@ def test_agent_profile_metadata_is_validated_and_persisted(client, temporary_age
             "instruction": "Follow the internal runtime rules.",
             "description": "Turn rough ideas into clear drafts.",
             "tags": ["Writing", "Editing"],
-            "quickstarts": ["Rewrite this clearly.", "Give me three titles."],
+            "quickstarts": [
+                "Rewrite this clearly.",
+                "Give me three titles.",
+                "Summarize this in five bullets.",
+            ],
         }
     )
     assert response.status_code == 201
     body = response.json()
     assert body["description"] == "Turn rough ideas into clear drafts."
     assert body["tags"] == ["Writing", "Editing"]
-    assert body["quickstarts"] == ["Rewrite this clearly.", "Give me three titles."]
+    assert body["quickstarts"] == [
+        "Rewrite this clearly.",
+        "Give me three titles.",
+        "Summarize this in five bullets.",
+    ]
+
+    too_few_quickstarts = client.post(
+        "/api/agents",
+        json={
+            "name": "too-few-quickstarts",
+            "instruction": "Rules",
+            "quickstarts": ["Only one example."],
+        },
+    )
+    assert too_few_quickstarts.status_code == 422
 
     too_many = client.post(
         "/api/agents",
@@ -291,7 +309,7 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260909-agent-profile" in Path("static/index.html").read_text(
+    assert "app.js?v=20260909-agent-profile-v2" in Path("static/index.html").read_text(
         encoding="utf-8"
     )
 
