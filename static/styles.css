@@ -2182,7 +2182,8 @@ body {
 .instruction-generate-button {
  position: absolute;
  right: 8px;
- bottom: 8px;
+ top: 50%;
+ transform: translateY(-50%);
  color: var(--muted);
 }
 .instruction-generate-button:hover {
