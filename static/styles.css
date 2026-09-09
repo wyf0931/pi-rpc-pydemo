@@ -2090,10 +2090,21 @@ body {
  grid-template-columns: 112px minmax(0, 1fr);
  gap: 20px;
  padding-top: 16px;
+ padding-bottom: 23px;
+ border-bottom: 1px solid var(--line);
  align-items: start;
 }
 .agent-form-content {
  margin-top: 20px;
+}
+.agent-form-content > .form-field,
+.agent-form-content > .agent-model-fields,
+.agent-dialog-box form > .form-field {
+ padding-bottom: 23px;
+ border-bottom: 1px solid var(--line);
+}
+.agent-dialog-box form > .form-field:last-of-type {
+ border-bottom: 0;
 }
 .agent-form-content > .form-field:first-child {
  margin-top: 0;
