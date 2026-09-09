@@ -369,6 +369,19 @@ def test_agent_tools_use_product_capability_groups_with_safe_defaults():
     assert 'class="modal-box agent-dialog-box"' in html
 
 
+def test_agent_profile_detail_contract_is_user_facing():
+    html = Path("static/index.html").read_text(encoding="utf-8")
+    script = Path("static/app.js").read_text(encoding="utf-8")
+    assert 'class="agent-card-tags"' in html
+    assert 'class="badge badge-ghost"' in html
+    assert "Try asking me" in html
+    assert "Built-in skills" in html
+    assert "agent-quickstart" in html
+    assert "agent-skill-row" in html
+    assert "startQuickstart(agent, prompt)" in script
+    assert "this.draft = prompt" in script
+
+
 def test_agent_save_refreshes_list_without_opening_detail_dialog():
     script = Path("static/app.js").read_text(encoding="utf-8")
 
