@@ -118,7 +118,7 @@ def discover_models(pi_home: Path) -> list[dict]:
             level_map = model.get("thinkingLevelMap")
             levels = (
                 [level for level in default_levels if level_map.get(level) is not None]
-                if isinstance(level_map, dict)
+                if isinstance(level_map, dict) and level_map
                 else (default_levels[1:] if model.get("reasoning") else ["off"])
             )
             models.append(

@@ -2611,9 +2611,9 @@ function platform() {
       this.newAgentInstruction = "";
       this.newAgentAvatarFile = null;
       this.newAgentAvatarPreview = "";
-      this.newAgentProvider = this.resources.default_provider || this.resources.providers[0]?.id || "";
-      this.newAgentModel = this.defaultModelFor(this.newAgentProvider);
-      this.newAgentThinkingLevel = this.defaultThinkingLevel();
+      this.newAgentProvider = "";
+      this.newAgentModel = "";
+      this.newAgentThinkingLevel = "";
       this.newAgentTools = this.defaultAgentTools();
       this.newAgentExtensions = this.defaultResources("extensions");
       this.newAgentSkills = this.defaultResources("skills");
@@ -2635,9 +2635,7 @@ function platform() {
           body: JSON.stringify({
             name: this.newAgentName,
             instruction: this.newAgentInstruction,
-            provider: this.newAgentProvider,
-            model: this.newAgentModel,
-            thinking_level: this.newAgentThinkingLevel,
+            ...this.agentModelConfigPayload(),
             tools: this.newAgentTools,
             extensions: this.newAgentExtensions,
             skills: this.newAgentSkills,
@@ -2656,17 +2654,9 @@ function platform() {
       return this.resources.providers.find((item) => item.id === providerId)?.models || [];
     },
     thinkingLevelsFor() {
-      return (
-        this.modelsFor().find((item) => item.id === this.newAgentModel)?.thinking_levels || [
-          "off",
-          "minimal",
-          "low",
-          "medium",
-          "high",
-          "xhigh",
-          "max",
-        ]
-      );
+      if (!this.newAgentProvider || !this.newAgentModel) return [];
+      const levels = this.modelsFor().find((item) => item.id === this.newAgentModel)?.thinking_levels || [];
+      return levels.length ? levels : ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
     },
     defaultThinkingLevel() {
       const levels = this.thinkingLevelsFor();
@@ -2690,22 +2680,42 @@ function platform() {
       return models[0]?.id || "";
     },
     changeAgentProvider() {
+      if (!this.newAgentProvider) {
+        this.newAgentModel = "";
+        this.newAgentThinkingLevel = "";
+        return;
+      }
       this.newAgentModel = this.defaultModelFor(this.newAgentProvider);
       this.newAgentThinkingLevel = this.defaultThinkingLevel();
     },
     changeAgentModel() {
+      if (!this.newAgentModel) {
+        this.newAgentThinkingLevel = "";
+        return;
+      }
       if (!this.thinkingLevelsFor().includes(this.newAgentThinkingLevel))
         this.newAgentThinkingLevel = this.defaultThinkingLevel();
     },
+    agentModelConfigPayload() {
+      return {
+        provider: this.newAgentProvider || null,
+        model: this.newAgentModel || null,
+        thinking_level: this.newAgentThinkingLevel || null,
+      };
+    },
+    usesAutoModelConfig() {
+      return !this.newAgentProvider && !this.newAgentModel && !this.newAgentThinkingLevel;
+    },
+    autoModelConfigLabel() {
+      const provider = this.resources.default_provider || "not configured";
+      const model = this.resources.default_model || "not configured";
+      const thinking = this.resources.default_thinking_level || "not configured";
+      return `${this.providerName(provider) || provider} / ${this.modelName(provider, model) || model} / ${thinking}`;
+    },
     async submitAgent() {
-      if (
-        !this.newAgentName.trim() ||
-        !this.newAgentInstruction.trim() ||
-        !this.newAgentProvider ||
-        !this.newAgentModel ||
-        !this.newAgentThinkingLevel
-      )
-        return;
+      const validModelConfig =
+        this.usesAutoModelConfig() || (this.newAgentProvider && this.newAgentModel && this.newAgentThinkingLevel);
+      if (!this.newAgentName.trim() || !this.newAgentInstruction.trim() || !validModelConfig) return;
       this.creating = true;
       try {
         const editing = Boolean(this.editingAgent);
@@ -2716,9 +2726,7 @@ function platform() {
           tags: this.profileTags(this.newAgentTags),
           quickstarts: this.profileQuickstarts(this.newAgentQuickstarts),
           instruction: this.newAgentInstruction,
-          provider: this.newAgentProvider,
-          model: this.newAgentModel,
-          thinking_level: this.newAgentThinkingLevel,
+          ...this.agentModelConfigPayload(),
           tools: this.newAgentTools,
           extensions: this.newAgentExtensions,
           skills: this.newAgentSkills,
@@ -2925,10 +2933,9 @@ function platform() {
       this.newAgentInstruction = agent.instruction;
       this.newAgentAvatarFile = null;
       this.newAgentAvatarPreview = "";
-      this.newAgentProvider =
-        agent.provider || this.resources.default_provider || this.resources.providers[0]?.id || "";
-      this.newAgentModel = agent.model || this.defaultModelFor(this.newAgentProvider);
-      this.newAgentThinkingLevel = agent.thinking_level || this.defaultThinkingLevel();
+      this.newAgentProvider = agent.provider || "";
+      this.newAgentModel = agent.model || "";
+      this.newAgentThinkingLevel = agent.thinking_level || "";
       this.newAgentTools = [...(agent.tools || [])];
       this.newAgentExtensions = (agent.extensions || [])
         .map((path) => this.resourcePath("extensions", path))

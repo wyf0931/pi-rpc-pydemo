@@ -9,7 +9,7 @@ def test_agent_provider_and_model_override_global_defaults():
         pi_cli_path="pi",
         pi_session_dir="sessions",
         pi_provider="deepseek",
-        pi_model="deepseek-v4-pro",
+        pi_model="deepseek-flash",
         pi_thinking_level="low",
     )
     runtime = PiRuntimeManager(settings, store=None)
@@ -36,7 +36,7 @@ def test_platform_tools_load_the_first_party_extension():
         pi_cli_path="pi",
         pi_session_dir="sessions",
         pi_provider="deepseek",
-        pi_model="deepseek-v4-pro",
+        pi_model="deepseek-flash",
         pi_thinking_level="low",
     )
     runtime = PiRuntimeManager(settings, store=None)
@@ -55,6 +55,9 @@ def test_platform_tools_load_the_first_party_extension():
 
     assert "--extension" in command
     assert command[command.index("--tools") + 1] == "read,web_fetch,web_search"
+    assert command[command.index("--provider") + 1] == "deepseek"
+    assert command[command.index("--model") + 1] == "deepseek-flash"
+    assert command[command.index("--thinking") + 1] == "low"
 
 
 def test_publish_artifact_loads_the_first_party_extension():

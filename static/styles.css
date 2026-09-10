@@ -1466,6 +1466,11 @@ body {
  background: var(--color-base-100);
  color: var(--ink);
 }
+.agent-model-auto-note {
+ margin: 10px 0 0;
+ color: var(--muted);
+ font: 11px var(--font-mono);
+}
 @media (max-width: 720px) {
  .agent-model-fields {
   grid-template-columns: 1fr;
