@@ -259,6 +259,8 @@ OMA_TIMEZONE=Asia/Shanghai
 PI_HOST_HOME=/absolute/path/to/.oma-studio/pi-home/agent
 PI_HOST_AGENTS_HOME=/absolute/path/to/.oma-studio/.agents
 PI_PROVIDER=deepseek
+PI_MODEL=deepseek-flash
+PI_THINKING_LEVEL=low
 PI_MODE=production
 JINA_API_KEY=
 BAIDU_SEARCH_API_KEY=
@@ -271,7 +273,7 @@ OMA_DEFAULT_USER_PASSWORD=replace-with-a-temporary-user-password
 
 ### Providers and models
 
-Provider, model, and supported thinking levels are discovered from `~/.pi/agent/models.json`. An Agent can override the global `PI_PROVIDER`, `PI_MODEL`, and `PI_THINKING_LEVEL` defaults. The platform validates that the selected model belongs to the selected provider before starting Pi. Pi starts with `--thinking <level>`; the default level is `low`.
+Provider, model, and supported thinking levels are discovered from `~/.pi/agent/models.json`. Configure the global `PI_PROVIDER`, `PI_MODEL`, and `PI_THINKING_LEVEL` defaults in `.env`. An Agent can either use the linked Auto mode, which resolves all three defaults whenever a new Pi RPC session starts, or override all three values explicitly. The platform rejects partial Auto configurations and validates that an explicit model belongs to its Provider. Pi starts with `--thinking <level>`; the default level is `low`.
 
 The Agent dialog presents a Provider select and a filtered Model select. Only names are shown in the UI; the stable Provider and Model IDs are retained in Agent metadata and passed to Pi as `--provider` and `--model`.
 

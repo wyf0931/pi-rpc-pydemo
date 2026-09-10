@@ -2680,8 +2680,8 @@
                   class="select select-bordered"
                   x-model="newAgentProvider"
                   @change="changeAgentProvider()"
-                  required
                 >
+                  <option value="">Auto (system default)</option>
                   <template x-for="provider in resources.providers" :key="provider.id"
                     ><option :value="provider.id" x-text="provider.name"></option
                   ></template>
@@ -2694,8 +2694,9 @@
                   class="select select-bordered"
                   x-model="newAgentModel"
                   @change="changeAgentModel()"
-                  required
+                  :disabled="!newAgentProvider"
                 >
+                  <option value="">Auto</option>
                   <template x-for="model in modelsFor()" :key="model.id"
                     ><option :value="model.id" x-text="model.name"></option
                   ></template>
@@ -2707,14 +2708,20 @@
                   id="new-agent-thinking"
                   class="select select-bordered"
                   x-model="newAgentThinkingLevel"
-                  required
+                  :disabled="!newAgentProvider || !newAgentModel"
                 >
+                  <option value="">Auto</option>
                   <template x-for="level in thinkingLevelsFor()" :key="level"
                     ><option :value="level" x-text="level"></option
                   ></template>
                 </select>
               </div>
             </div>
+            <p
+              class="agent-model-auto-note"
+              x-show="usesAutoModelConfig()"
+              x-text="'Auto uses: ' + autoModelConfigLabel()"
+            ></p>
           </div>
           <div class="form-field">
             <label class="agent-section-label">Built-in tools</label>

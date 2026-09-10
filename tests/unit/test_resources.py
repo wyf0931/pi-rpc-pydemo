@@ -55,6 +55,32 @@ def test_discovers_pi_model_catalog(tmp_path: Path):
     ]
 
 
+def test_empty_thinking_map_uses_reasoning_levels_for_pi_auto_adaptation(
+    tmp_path: Path,
+):
+    (tmp_path / "models.json").write_text(
+        json.dumps(
+            {
+                "providers": {
+                    "deepseek": {
+                        "models": [
+                            {
+                                "id": "deepseek-flash",
+                                "reasoning": True,
+                                "thinkingLevelMap": {},
+                            }
+                        ]
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    levels = discover_models(tmp_path)[0]["models"][0]["thinking_levels"]
+    assert levels == ["minimal", "low", "medium", "high", "xhigh", "max"]
+
+
 def test_reads_agent_defaults_from_dotenv(tmp_path: Path, monkeypatch):
     (tmp_path / ".env").write_text(
         "PI_DEFAULT_TOOLS=read,write\nPI_DEFAULT_EXTENSIONS=pi-mcp-adapter\n"

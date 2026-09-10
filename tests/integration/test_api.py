@@ -2,6 +2,10 @@ import json
 from pathlib import Path
 from uuid import uuid4
 
+import pytest
+from fastapi import HTTPException
+
+from app.api.routers.agents import validate_model_configuration
 from app.api.routers.chats import visible_messages
 from app.store import pi_terminal_failure
 
@@ -168,6 +172,28 @@ def test_agent_profile_metadata_is_validated_and_persisted(client, temporary_age
     assert too_many.status_code == 422
 
 
+def test_agent_auto_model_configuration_requires_all_three_values():
+    catalog = {
+        "providers": [
+            {
+                "id": "deepseek",
+                "models": [
+                    {
+                        "id": "deepseek-flash",
+                        "thinking_levels": ["minimal", "low", "medium"],
+                    }
+                ],
+            }
+        ]
+    }
+
+    validate_model_configuration(None, None, None, catalog)
+    validate_model_configuration("deepseek", "deepseek-flash", "low", catalog)
+    with pytest.raises(HTTPException) as error:
+        validate_model_configuration(None, "deepseek-flash", "low", catalog)
+    assert error.value.status_code == 422
+
+
 def test_instruction_draft_uses_validated_selected_capabilities(client, monkeypatch):
     import app.main as main_module
     from app.api.routers import agents as agents_router
@@ -250,6 +276,9 @@ def test_agent_instruction_generator_control_is_present():
     assert '@click="generateAgentInstruction"' in html
     assert "async generateAgentInstruction()" in script
     assert '"/api/agents/instruction-draft"' in script
+    assert "Auto (system default)" in html
+    assert "agentModelConfigPayload()" in script
+    assert "usesAutoModelConfig()" in script
 
 
 def test_agent_editor_keeps_nonempty_draft_open_on_backdrop_click():

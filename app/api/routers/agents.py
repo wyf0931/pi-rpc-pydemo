@@ -171,8 +171,12 @@ def create_router(
             resource_catalog,
         )
         validate_profile(payload.tags, payload.quickstarts)
-        validate_model_selection(payload.provider, payload.model, resource_catalog)
-        validate_thinking_level(payload.thinking_level)
+        validate_model_configuration(
+            payload.provider,
+            payload.model,
+            payload.thinking_level,
+            resource_catalog,
+        )
         return store.create_agent(
             payload.name,
             payload.instruction,
@@ -200,8 +204,12 @@ def create_router(
             resource_catalog,
         )
         validate_profile(payload.tags or [], payload.quickstarts or [])
-        validate_model_selection(payload.provider, payload.model, resource_catalog)
-        validate_thinking_level(payload.thinking_level)
+        validate_model_configuration(
+            payload.provider,
+            payload.model,
+            payload.thinking_level,
+            resource_catalog,
+        )
         skill_by_path = {item["path"]: item for item in resource_catalog["skills"]}
         extension_by_path = {
             item["path"]: item for item in resource_catalog["extensions"]
@@ -325,19 +333,17 @@ def create_router(
             resource_catalog,
         )
         existing = visible_or_404(store.get_agent(agent_id), request, "Agent")
-        validate_model_selection(
+        validate_model_configuration(
             payload.provider
             if "provider" in payload.model_fields_set
             else existing.get("provider"),
             payload.model
             if "model" in payload.model_fields_set
             else existing.get("model"),
-            resource_catalog,
-        )
-        validate_thinking_level(
             payload.thinking_level
             if "thinking_level" in payload.model_fields_set
-            else existing.get("thinking_level")
+            else existing.get("thinking_level"),
+            resource_catalog,
         )
         agent = store.update_agent(agent_id, payload.model_dump(exclude_unset=True))
         if not agent:
@@ -358,8 +364,12 @@ def create_router(
 def validate_model_selection(
     provider: str | None, model: str | None, catalog: dict
 ) -> None:
-    if not provider and not model:
+    if provider is None and model is None:
         return
+    if provider is None or model is None:
+        raise HTTPException(
+            422, "Provider and model must both use Auto or both use explicit values"
+        )
     selected = next(
         (item for item in catalog["providers"] if item["id"] == provider), None
     )
@@ -369,7 +379,12 @@ def validate_model_selection(
         raise HTTPException(400, "Unsupported model for provider")
 
 
-def validate_thinking_level(level: str | None) -> None:
+def validate_thinking_level(
+    level: str | None,
+    provider: str | None = None,
+    model: str | None = None,
+    catalog: dict | None = None,
+) -> None:
     if level and level not in {
         "off",
         "minimal",
@@ -380,3 +395,32 @@ def validate_thinking_level(level: str | None) -> None:
         "max",
     }:
         raise HTTPException(400, "Unsupported thinking level")
+    if not level or not provider or not model or not catalog:
+        return
+    selected = next(
+        (item for item in catalog["providers"] if item["id"] == provider), None
+    )
+    selected_model = next(
+        (item for item in (selected or {}).get("models", []) if item["id"] == model),
+        None,
+    )
+    levels = selected_model.get("thinking_levels") if selected_model else None
+    if levels and level not in levels:
+        raise HTTPException(400, "Unsupported thinking level for model")
+
+
+def validate_model_configuration(
+    provider: str | None,
+    model: str | None,
+    thinking_level: str | None,
+    catalog: dict,
+) -> None:
+    if provider is None and model is None and thinking_level is None:
+        return
+    if provider is None or model is None or thinking_level is None:
+        raise HTTPException(
+            422,
+            "Provider, model, and thinking level must all use Auto or all use explicit values",
+        )
+    validate_model_selection(provider, model, catalog)
+    validate_thinking_level(thinking_level, provider, model, catalog)
