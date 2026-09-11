@@ -218,6 +218,12 @@ function platform() {
         description: "Execute shell commands in the workspace.",
         tools: ["bash"],
       },
+      {
+        id: "image_creation",
+        label: "Image creation",
+        description: "Generate and edit images with the configured automatic image provider.",
+        tools: ["generate_image", "edit_image"],
+      },
     ],
     theme: "light",
     systemThemeQuery: null,
@@ -2169,7 +2175,12 @@ function platform() {
         }
       };
       for (const [index, message] of messages.entries()) {
-        if (message.role === "toolResult" && this.mode !== "development") continue;
+        if (
+          message.role === "toolResult" &&
+          this.mode !== "development" &&
+          !["generate_image", "edit_image"].includes(message.toolName)
+        )
+          continue;
         if (message.role === "user") {
           flushAssistant();
           archived.push({
@@ -2229,7 +2240,10 @@ function platform() {
       const role = message.role || "message";
       const parts = message.content || [];
       if (role === "user") return this.renderUserMessage(message, parts);
-      if (role === "toolResult") return this.mode === "development" ? this.renderToolResult(message) : "";
+      if (role === "toolResult")
+        return this.mode === "development" || ["generate_image", "edit_image"].includes(message.toolName)
+          ? this.renderToolResult(message)
+          : "";
       if (role === "assistant") {
         const text = this.partsText(parts);
         const reasoning = this.renderReasoning(message._reasoningParts || [], message._key, message._streaming);
@@ -2266,7 +2280,8 @@ function platform() {
       return this.renderPart(part);
     },
     messageVisible(message) {
-      if (message.role === "toolResult") return this.mode === "development";
+      if (message.role === "toolResult")
+        return this.mode === "development" || ["generate_image", "edit_image"].includes(message.toolName);
       if (this.mode !== "production" || message.role !== "assistant") return true;
       if (message._streaming) return true;
       return [...(message._reasoningParts || []), ...(message.content || [])].some(
@@ -2488,7 +2503,13 @@ function platform() {
     renderToolResult(message) {
       const content = this.partsText(message.content || []);
       const label = message.toolName || "Tool result";
-      return `<details class="tool-result"><summary><i class="process-chevron" data-lucide="chevron-right" aria-hidden="true"></i><span class="tool-kicker">Tool result</span><b>${this.escape(label)}</b><span class="tool-id">${this.escape(message.toolCallId || "")}</span></summary><pre>${this.escape(content)}</pre></details>`;
+      const image = (message.content || []).find(
+        (part) => part.type === "image" && typeof part.data === "string" && typeof part.mimeType === "string",
+      );
+      const preview = image
+        ? `<img class="tool-result-image" src="data:${this.escape(image.mimeType)};base64,${image.data}" alt="Generated image" />`
+        : "";
+      return `<details class="tool-result" ${image ? "open" : ""}><summary><i class="process-chevron" data-lucide="chevron-right" aria-hidden="true"></i><span class="tool-kicker">Tool result</span><b>${this.escape(label)}</b><span class="tool-id">${this.escape(message.toolCallId || "")}</span></summary>${preview}<pre>${this.escape(content)}</pre></details>`;
     },
     escape(text) {
       const div = document.createElement("div");

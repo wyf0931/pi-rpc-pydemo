@@ -60,17 +60,34 @@ def discover_chat_files(messages: list[dict], workspace: Path) -> list[dict]:
     root = workspace.expanduser().resolve()
     files: dict[str, dict] = {}
     for message in messages:
-        if message.get("role") != "assistant":
-            continue
-        for part in message.get("content") or []:
-            if part.get("type") != "toolCall" or part.get("name") not in {
-                "write",
-                "edit",
-                "publish_artifact",
-            }:
-                continue
-            arguments = _tool_arguments(part)
-            raw_path = arguments.get("path") or arguments.get("file_path")
+        candidates: list[tuple[str, object]] = []
+        if message.get("role") == "assistant":
+            for part in message.get("content") or []:
+                if part.get("type") != "toolCall" or part.get("name") not in {
+                    "write",
+                    "edit",
+                    "publish_artifact",
+                }:
+                    continue
+                arguments = _tool_arguments(part)
+                candidates.append(
+                    (
+                        part.get("name", ""),
+                        arguments.get("path") or arguments.get("file_path"),
+                    )
+                )
+        elif message.get("role") == "toolResult" and message.get("toolName") in {
+            "generate_image",
+            "edit_image",
+        }:
+            details = message.get("details")
+            candidates.append(
+                (
+                    message.get("toolName", ""),
+                    details.get("path") if isinstance(details, dict) else None,
+                )
+            )
+        for _tool_name, raw_path in candidates:
             if not isinstance(raw_path, str) or not raw_path.strip():
                 continue
             candidate = Path(raw_path).expanduser()

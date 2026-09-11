@@ -80,6 +80,29 @@ def test_discovers_files_explicitly_published_by_chat(tmp_path: Path):
     assert discover_chat_files(messages, tmp_path)[0]["path"] == "anthropic_news.csv"
 
 
+def test_discovers_images_created_by_image_tools(tmp_path: Path):
+    image = tmp_path / "generated" / "chat-1" / "image.png"
+    image.parent.mkdir(parents=True)
+    image.write_bytes(b"png")
+    messages = [
+        {
+            "role": "toolResult",
+            "toolName": "generate_image",
+            "timestamp": 1700000000000,
+            "details": {"path": "generated/chat-1/image.png"},
+        }
+    ]
+
+    assert (
+        discover_chat_files(messages, tmp_path)[0]["path"]
+        == "generated/chat-1/image.png"
+    )
+    assert (
+        resolve_chat_file(messages, tmp_path, "generated/chat-1/image.png")
+        == image.resolve()
+    )
+
+
 def test_discovers_files_from_session_jsonl_without_starting_pi(tmp_path: Path):
     report = tmp_path / "report.md"
     report.write_text("# Report", encoding="utf-8")

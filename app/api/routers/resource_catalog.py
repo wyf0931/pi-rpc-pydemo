@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from ...config import Settings
 from ...resources import discover_resources
-from ...store import SUPPORTED_TOOLS
+from ...store import IMAGE_TOOLS, SUPPORTED_TOOLS, WEB_TOOLS
 
 
 def catalog_response(settings: Settings) -> dict:
@@ -15,14 +15,12 @@ def catalog_response(settings: Settings) -> dict:
     catalog["tools"] = [
         {
             "name": name,
-            "description": "Platform artifact tool"
-            if name == "publish_artifact"
+            "description": "Platform image tool"
+            if name in IMAGE_TOOLS
             else "Platform web tool"
-            if name in {"web_fetch", "web_search"}
+            if name in WEB_TOOLS
             else "Pi built-in tool",
-            "source": "platform"
-            if name in {"web_fetch", "web_search", "publish_artifact"}
-            else "builtin",
+            "source": "platform" if name in IMAGE_TOOLS + WEB_TOOLS else "builtin",
         }
         for name in SUPPORTED_TOOLS
     ]

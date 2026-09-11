@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .resources import discover_resources
-from .store import PLATFORM_TOOLS, pi_terminal_failure
+from .store import IMAGE_TOOLS, WEB_TOOLS, pi_terminal_failure
 
 logger = logging.getLogger(__name__)
 
@@ -202,9 +202,14 @@ class PiRpcClient:
             raise PiRpcError(response.get("error", f"Pi rejected {command}"))
         return response
 
-    async def prompt(self, message: str) -> dict:
+    async def prompt(self, message: str, images: list[dict] | None = None) -> dict:
         result = {"text": "", "tools": [], "event": None}
-        async for event in self.stream_prompt(message):
+        stream = (
+            self.stream_prompt(message, images)
+            if images
+            else self.stream_prompt(message)
+        )
+        async for event in stream:
             if event["type"] == "delta":
                 result["text"] += event["delta"]
             elif event["type"] == "tool":
@@ -213,8 +218,10 @@ class PiRpcClient:
                 result["event"] = event.get("event")
         return result
 
-    async def stream_prompt(self, message: str) -> AsyncIterator[dict[str, Any]]:
-        await self.request("prompt", message=message)
+    async def stream_prompt(
+        self, message: str, images: list[dict] | None = None
+    ) -> AsyncIterator[dict[str, Any]]:
+        await self.request("prompt", message=message, images=images or [])
         agent_finished = False
         while True:
             event = await asyncio.wait_for(
@@ -321,8 +328,13 @@ class PiRuntimeManager:
         ]
         command += ["--no-tools"]
         tools = list(agent.get("tools") or [])
-        if any(tool in tools for tool in PLATFORM_TOOLS):
+        if any(tool in tools for tool in WEB_TOOLS):
             extension = Path(__file__).parent.parent / "extensions" / "oma-web-tools.ts"
+            command += ["--extension", str(extension)]
+        if any(tool in tools for tool in IMAGE_TOOLS):
+            extension = (
+                Path(__file__).parent.parent / "extensions" / "oma-image-tools.ts"
+            )
             command += ["--extension", str(extension)]
         extension_paths = [
             self._resource_path(path) for path in agent.get("extensions", [])
@@ -419,6 +431,17 @@ class PiRuntimeManager:
             "BAIDU_SEARCH_BASE_URL": getattr(
                 self.settings, "baidu_search_base_url", None
             ),
+            "SENSENOVA_API_KEY": getattr(self.settings, "sensenova_api_key", None),
+            "SENSENOVA_BASE_URL": getattr(self.settings, "sensenova_base_url", None),
+            "SENSENOVA_IMAGE_MODEL": getattr(
+                self.settings, "sensenova_image_model", None
+            ),
+            "SENSENOVA_WATERMARK": str(
+                getattr(self.settings, "sensenova_watermark", True)
+            ).lower(),
+            "SENSENOVA_PROMPT_EXTEND": str(
+                getattr(self.settings, "sensenova_prompt_extend", True)
+            ).lower(),
         }.items():
             if value:
                 environment[name] = value
@@ -472,19 +495,27 @@ class PiRuntimeManager:
             self.store.update_chat(chat["id"], {"session_id": actual_id})
         return client
 
-    async def send(self, chat: dict, message: str) -> dict:
+    async def send(
+        self, chat: dict, message: str, images: list[dict] | None = None
+    ) -> dict:
         client = await self._start(chat, create=True)
         lock = self.locks.setdefault(chat["id"], asyncio.Lock())
         if lock.locked():
             raise PiRpcError("Chat is busy")
         async with lock:
             try:
-                return await client.prompt(message)
+                return await client.prompt(message, images)
             finally:
                 await client.close()
                 self.clients.pop(chat["id"], None)
 
-    async def stream(self, chat: dict, message: str, session_name: str | None = None):
+    async def stream(
+        self,
+        chat: dict,
+        message: str,
+        session_name: str | None = None,
+        images: list[dict] | None = None,
+    ):
         client = await self._start(chat, create=True)
         lock = self.locks.setdefault(chat["id"], asyncio.Lock())
         if lock.locked():
@@ -493,7 +524,12 @@ class PiRuntimeManager:
             try:
                 if session_name:
                     await client.request("set_session_name", name=session_name)
-                async for event in client.stream_prompt(message):
+                stream = (
+                    client.stream_prompt(message, images)
+                    if images
+                    else client.stream_prompt(message)
+                )
+                async for event in stream:
                     yield event
             finally:
                 await client.close()
@@ -513,7 +549,11 @@ class PiRuntimeManager:
         return self.turns.get(chat_id)
 
     def start_turn(
-        self, chat: dict, message: str, session_name: str | None = None
+        self,
+        chat: dict,
+        message: str,
+        session_name: str | None = None,
+        images: list[dict] | None = None,
     ) -> ActiveTurn:
         chat_id = chat["id"]
         lock = self.locks.setdefault(chat_id, asyncio.Lock())
@@ -523,7 +563,7 @@ class PiRuntimeManager:
         turn = ActiveTurn(chat_id)
         self.turns[chat_id] = turn
         turn.task = asyncio.create_task(
-            self._run_turn(turn, chat, message, session_name, lock)
+            self._run_turn(turn, chat, message, session_name, lock, images)
         )
         return turn
 
@@ -534,6 +574,7 @@ class PiRuntimeManager:
         message: str,
         session_name: str | None,
         lock: asyncio.Lock,
+        images: list[dict] | None,
     ) -> None:
         chat_id = chat["id"]
         await lock.acquire()
@@ -542,7 +583,12 @@ class PiRuntimeManager:
             try:
                 if session_name:
                     await client.request("set_session_name", name=session_name)
-                async for event in client.stream_prompt(message):
+                stream = (
+                    client.stream_prompt(message, images)
+                    if images
+                    else client.stream_prompt(message)
+                )
+                async for event in stream:
                     turn.record(event)
             finally:
                 await client.close()
