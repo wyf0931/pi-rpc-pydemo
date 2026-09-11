@@ -338,7 +338,7 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260912-browser-image-files" in Path(
+    assert "app.js?v=20260912-chat-image-artifacts" in Path(
         "static/index.html"
     ).read_text(encoding="utf-8")
 
@@ -416,6 +416,20 @@ def test_agent_tools_use_product_capability_groups_with_safe_defaults():
     assert "color: var(--ink)" in styles
     assert 'class="modal modal-middle agent-dialog"' in html
     assert 'class="modal-box agent-dialog-box"' in html
+
+
+def test_generated_images_render_as_responsive_file_artifacts_and_refresh_files():
+    script = Path("static/app.js").read_text(encoding="utf-8")
+    styles = Path("static/styles.css").read_text(encoding="utf-8")
+
+    assert "imageArtifactMessage(message, index)" in script
+    assert 'role: "image_artifact"' in script
+    assert "renderImageArtifact(message)" in script
+    assert "refreshOpenFiles(chatId)" in script
+    assert "if (this.filesOpen && this.activeChat)" in script
+    assert ".chat-image-artifact img" in styles
+    assert "max-height: min(68vh, 720px)" in styles
+    assert "max-height: 62svh" in styles
 
 
 def test_agent_profile_detail_contract_is_user_facing():

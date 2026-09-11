@@ -17,6 +17,20 @@ output path. Chat Files and Library discover that path from the Pi tool result;
 the browser-native file endpoint opens images instead of embedding previews in
 the transcript.
 
+## Chat presentation and refresh
+
+The production chat view turns successful image-tool results into a minimal
+image artifact at the same chronological position: after the reasoning/tool
+phase and before the final answer. It uses the authorized browser file URL,
+shows no tool metadata, and opens the original in a new tab on click. The image
+keeps its aspect ratio and is bounded by the message width and viewport height
+on desktop, tablet, and mobile layouts.
+
+The Files drawer refreshes whenever it is opened and after a completed turn if
+it is already open. This is intentionally independent of tool names, so normal
+write/edit/publish artifacts and image outputs stay in sync through the same
+path.
+
 The API key and SenseNova defaults are process configuration. They are copied
 into Pi's child-process environment, never returned by APIs, persisted to
 SQLite, or logged.

@@ -600,6 +600,23 @@ body {
 .message.user {
  margin-left: auto;
 }
+.message.image_artifact {
+ max-width: min(88%, 840px);
+}
+.chat-image-artifact {
+ display: block;
+ width: fit-content;
+ max-width: 100%;
+ cursor: zoom-in;
+}
+.chat-image-artifact img {
+ display: block;
+ width: auto;
+ max-width: 100%;
+ height: auto;
+ max-height: min(68vh, 720px);
+ object-fit: contain;
+}
 .message-body {
  font-size: 14px;
  line-height: 1.75;
@@ -4723,6 +4740,12 @@ pre,
  .message {
   width: 100%;
   max-width: none;
+ }
+ .message.image_artifact {
+  max-width: 100%;
+ }
+ .chat-image-artifact img {
+  max-height: 62svh;
  }
  .message.user .message-body {
   max-width: 100%;

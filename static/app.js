@@ -825,10 +825,15 @@ function platform() {
     async toggleFiles() {
       this.filesOpen = !this.filesOpen;
       if (this.filesOpen) this.linkDrawerOpen = false;
-      if (this.filesOpen && this.activeChat && !this.files.length) {
+      if (this.filesOpen && this.activeChat) {
         if (this.sharedMode) await this.loadSharedFiles();
         else await this.loadChatFiles();
       }
+    },
+    async refreshOpenFiles(chatId = this.activeChat?.id) {
+      if (!this.filesOpen || !chatId || this.activeChat?.id !== chatId) return;
+      if (this.sharedMode) await this.loadSharedFiles();
+      else await this.loadChatFiles();
     },
     async loadSharedFiles() {
       this.filesLoading = true;
@@ -1832,6 +1837,7 @@ function platform() {
                     _streaming: false,
                   });
                 this.messages.splice(i, 1, ...normalized);
+                void this.refreshOpenFiles(chatId);
               }
             } else if (event.type === "error") {
               throw new Error(event.error);
@@ -1977,6 +1983,7 @@ function platform() {
         const found = this.chats.find((c) => c.id === chatId);
         if (found) Object.assign(found, chat);
         this.loading = false;
+        await this.refreshOpenFiles(chatId);
       } catch (e) {
         if (viewToken === this.chatViewToken && this.activeChat?.id === chatId) this.showError(e);
       }
@@ -2003,6 +2010,7 @@ function platform() {
             if (found) Object.assign(found, chat);
             this.loading = false;
             this.stopPolling();
+            await this.refreshOpenFiles(chatId);
             return;
           }
           const data = await this.api(`/api/chats/${chatId}/messages?mode=${this.mode}`);
@@ -2012,6 +2020,7 @@ function platform() {
           if (last?.role === "assistant" && !last._streaming) {
             this.loading = false;
             this.stopPolling();
+            await this.refreshOpenFiles(chatId);
           }
         } catch {}
       }, 3000);
@@ -2175,7 +2184,6 @@ function platform() {
         }
       };
       for (const [index, message] of messages.entries()) {
-        if (message.role === "toolResult" && this.mode !== "development") continue;
         if (message.role === "user") {
           flushAssistant();
           archived.push({
@@ -2186,6 +2194,8 @@ function platform() {
         }
         if (message.role === "toolResult") {
           flushAssistant();
+          const artifact = this.imageArtifactMessage(message, index);
+          if (artifact) archived.push(artifact);
           archived.push({
             ...message,
             _key: this.stableMessageKey(message, index),
@@ -2235,6 +2245,7 @@ function platform() {
       const role = message.role || "message";
       const parts = message.content || [];
       if (role === "user") return this.renderUserMessage(message, parts);
+      if (role === "image_artifact") return this.renderImageArtifact(message);
       if (role === "toolResult") return this.mode === "development" ? this.renderToolResult(message) : "";
       if (role === "assistant") {
         const text = this.partsText(parts);
@@ -2264,6 +2275,25 @@ function platform() {
         .join("");
       return attachments ? `<div class="message-attachments">${attachments}</div>${body}` : body;
     },
+    imageArtifactMessage(message, index) {
+      if (!["generate_image", "edit_image"].includes(message.toolName)) return null;
+      const path = message.details?.path;
+      if (typeof path !== "string" || !this.opensInNativeBrowser({ extension: this.fileExtension(path) })) return null;
+      return {
+        _key: `image:${message.toolCallId || this.stableMessageKey(message, index)}`,
+        role: "image_artifact",
+        path,
+      };
+    },
+    imageArtifactUrl(path) {
+      return this.sharedMode
+        ? `/api/share/${encodeURIComponent(this.sharedToken)}/files/view?path=${encodeURIComponent(path)}`
+        : this.browserViewUrl(this.activeChat?.id || "", path);
+    },
+    renderImageArtifact(message) {
+      const url = this.imageArtifactUrl(message.path);
+      return `<a class="chat-image-artifact" href="${this.escape(url)}" target="_blank" rel="noopener"><img src="${this.escape(url)}" alt="Generated image" /></a>`;
+    },
     renderReasoningPart(part) {
       if (part.type === "thinking")
         return `<div class="reasoning-text markdown-part">${this.renderMarkdown(part.thinking || "")}</div>`;
@@ -2272,6 +2302,7 @@ function platform() {
       return this.renderPart(part);
     },
     messageVisible(message) {
+      if (message.role === "image_artifact") return true;
       if (message.role === "toolResult") return this.mode === "development";
       if (this.mode !== "production" || message.role !== "assistant") return true;
       if (message._streaming) return true;
