@@ -232,6 +232,7 @@ function platform() {
     async init() {
       window.omaPlatform = this;
       this.observeIcons();
+      this.observeImageArtifacts();
       this.sharedMode =
         window.location.pathname.startsWith("/share/") ||
         window.location.pathname === "/file-view" ||
@@ -290,6 +291,32 @@ function platform() {
       // even while observing, which silently killed icon conversion after init.
       this._iconObserver = observer;
       observer.observe(document.body, { childList: true, subtree: true });
+    },
+    observeImageArtifacts() {
+      const artifactFor = (target) =>
+        target instanceof HTMLImageElement && target.matches(".chat-image-artifact img")
+          ? target.closest(".chat-image-artifact")
+          : null;
+      document.addEventListener(
+        "load",
+        (event) => {
+          const artifact = artifactFor(event.target);
+          if (!artifact) return;
+          artifact.classList.remove("skeleton");
+          artifact.classList.add("is-loaded");
+        },
+        true,
+      );
+      document.addEventListener(
+        "error",
+        (event) => {
+          const artifact = artifactFor(event.target);
+          if (!artifact) return;
+          artifact.classList.remove("skeleton");
+          artifact.classList.add("is-error");
+        },
+        true,
+      );
     },
     async api(path, options = {}) {
       const requestPath = path.includes("/messages") && !path.includes("?") ? `${path}?mode=${this.mode}` : path;
@@ -2299,7 +2326,7 @@ function platform() {
     },
     renderImageArtifact(message) {
       const url = this.imageArtifactUrl(message.path);
-      return `<a class="chat-image-artifact" href="${this.escape(url)}" target="_blank" rel="noopener"><img src="${this.escape(url)}" alt="Generated image" /></a>`;
+      return `<a class="chat-image-artifact skeleton" href="${this.escape(url)}" target="_blank" rel="noopener"><img src="${this.escape(url)}" alt="Generated image" loading="lazy" decoding="async" /></a>`;
     },
     renderReasoningPart(part) {
       if (part.type === "thinking")

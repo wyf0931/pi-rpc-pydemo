@@ -365,9 +365,9 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260912-thought-image-order" in Path(
-        "static/index.html"
-    ).read_text(encoding="utf-8")
+    assert "app.js?v=20260912-image-skeleton" in Path("static/index.html").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_chat_viewport_and_composer_use_latest_message_and_seven_line_contract():
@@ -458,6 +458,19 @@ def test_generated_images_render_as_responsive_file_artifacts_and_refresh_files(
     assert "margin: 24px 0 30px" in styles
     assert "max-height: min(68vh, 720px)" in styles
     assert "max-height: 62svh" in styles
+
+
+def test_chat_image_artifacts_use_daisyui_skeleton_loading_state():
+    script = Path("static/app.js").read_text(encoding="utf-8")
+    styles = Path("static/styles.css").read_text(encoding="utf-8")
+
+    assert 'class="chat-image-artifact skeleton"' in script
+    assert 'loading="lazy"' in script
+    assert 'decoding="async"' in script
+    assert 'document.addEventListener(\n        "load"' in script
+    assert 'artifact.classList.remove("skeleton")' in script
+    assert ".chat-image-artifact.skeleton" in styles
+    assert ".chat-image-artifact.is-loaded" in styles
 
 
 def test_agent_profile_detail_contract_is_user_facing():
