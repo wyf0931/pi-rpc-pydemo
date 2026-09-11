@@ -31,6 +31,15 @@ it is already open. This is intentionally independent of tool names, so normal
 write/edit/publish artifacts and image outputs stay in sync through the same
 path.
 
+## Image loading state
+
+Chat image artifacts begin as daisyUI `skeleton` components with a bounded,
+responsive 4:3 placeholder. The real image uses lazy loading and asynchronous
+decoding; a delegated capture-phase load handler removes the skeleton and lets
+the image fade in. The same handler marks an unavailable original as a compact
+clickable fallback. This works for HTML injected through Alpine `x-html` without
+embedding event attributes in rendered markup.
+
 The API key and SenseNova defaults are process configuration. They are copied
 into Pi's child-process environment, never returned by APIs, persisted to
 SQLite, or logged.
