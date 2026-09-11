@@ -83,6 +83,30 @@ def test_publish_artifact_loads_the_first_party_extension():
     assert "oma-web-tools.ts" in " ".join(command)
 
 
+def test_image_tools_load_the_first_party_image_extension():
+    settings = SimpleNamespace(
+        pi_cli_path="pi",
+        pi_session_dir="sessions",
+        pi_provider=None,
+        pi_model=None,
+        pi_thinking_level="low",
+    )
+    runtime = PiRuntimeManager(settings, store=None)
+
+    command = runtime._command(
+        {
+            "instruction": "Create images.",
+            "tools": ["generate_image", "edit_image"],
+            "extensions": [],
+            "skills": [],
+        },
+        "chat-1",
+        create=True,
+    )
+
+    assert "oma-image-tools.ts" in " ".join(command)
+
+
 def test_container_maps_host_pi_home_resource_paths():
     settings = SimpleNamespace(
         pi_cli_path="pi",
@@ -202,4 +226,33 @@ def test_stream_prompt_emits_assistant_message_boundaries():
     assert [event["text"] for event in streamed if event["type"] == "final"] == [
         "",
         "answer",
+    ]
+
+
+def test_stream_prompt_forwards_vision_attachments_to_pi():
+    client = PiRpcClient(["pi"], ".")
+    captured = {}
+    events = [{"type": "agent_end", "messages": []}, {"type": "agent_settled"}]
+
+    async def fake_request(_command, **payload):
+        captured.update(payload)
+        return {"success": True}
+
+    client.request = fake_request  # type: ignore[method-assign]
+    client.events = asyncio.Queue()
+
+    async def collect():
+        for event in events:
+            await client.events.put(event)
+        return [
+            event
+            async for event in client.stream_prompt(
+                "describe this",
+                [{"type": "image", "mimeType": "image/png", "data": "abc"}],
+            )
+        ]
+
+    asyncio.run(collect())
+    assert captured["images"] == [
+        {"type": "image", "mimeType": "image/png", "data": "abc"}
     ]

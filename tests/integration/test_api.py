@@ -78,6 +78,33 @@ def test_visible_messages_attaches_web_results_to_calls():
     assert "_webResult" in visible[0]["content"][0]["arguments"]
 
 
+def test_visible_messages_keeps_image_artifact_provenance_without_base64():
+    visible = visible_messages(
+        [
+            {
+                "role": "toolResult",
+                "toolCallId": "call-image",
+                "toolName": "generate_image",
+                "timestamp": 1700000000000,
+                "details": {"path": "generated/chat/image.png"},
+                "content": [
+                    {"type": "image", "mimeType": "image/png", "data": "base64"}
+                ],
+            }
+        ]
+    )
+
+    assert visible == [
+        {
+            "role": "toolResult",
+            "toolCallId": "call-image",
+            "toolName": "generate_image",
+            "timestamp": 1700000000000,
+            "details": {"path": "generated/chat/image.png"},
+        }
+    ]
+
+
 def test_visible_messages_compacts_pi_skill_invocation():
     messages = [
         {
@@ -338,7 +365,7 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260910-agent-textarea-autosize" in Path(
+    assert "app.js?v=20260912-thought-image-order" in Path(
         "static/index.html"
     ).read_text(encoding="utf-8")
 
@@ -401,6 +428,8 @@ def test_agent_tools_use_product_capability_groups_with_safe_defaults():
     assert "Write files" in script
     assert "Web access" in script
     assert "Run scripts" in script
+    assert "Image creation" in script
+    assert "generate_image" in script
     assert 'group.id !== "run_scripts"' in script
     assert ".tool-group-grid" in styles
     assert "authUser?.role === 'admin'" in html
@@ -414,6 +443,21 @@ def test_agent_tools_use_product_capability_groups_with_safe_defaults():
     assert "color: var(--ink)" in styles
     assert 'class="modal modal-middle agent-dialog"' in html
     assert 'class="modal-box agent-dialog-box"' in html
+
+
+def test_generated_images_render_as_responsive_file_artifacts_and_refresh_files():
+    script = Path("static/app.js").read_text(encoding="utf-8")
+    styles = Path("static/styles.css").read_text(encoding="utf-8")
+
+    assert "imageArtifactMessage(message, index)" in script
+    assert "assistantGroup._imageArtifacts.push(artifact)" in script
+    assert "renderImageArtifact(message)" in script
+    assert "refreshOpenFiles(chatId)" in script
+    assert "if (this.filesOpen && this.activeChat)" in script
+    assert ".chat-image-artifact img" in styles
+    assert "margin: 24px 0 30px" in styles
+    assert "max-height: min(68vh, 720px)" in styles
+    assert "max-height: 62svh" in styles
 
 
 def test_agent_profile_detail_contract_is_user_facing():
@@ -929,6 +973,37 @@ def test_chat_uploads_are_staged_before_the_first_pi_session(client, temporary_a
     assert path.is_file()
     assert client.delete(f"/api/chats/{chat['id']}").status_code == 200
     assert not path.exists()
+
+
+def test_image_uploads_are_forwarded_as_pi_vision_attachments(
+    client, temporary_agent, monkeypatch
+):
+    import app.main as main_module
+    from app.pi_rpc import PiRpcError
+
+    agent_id = temporary_agent({"name": "vision", "instruction": "x"}).json()["id"]
+    chat = client.post("/api/chats", json={"agent_id": agent_id}).json()
+    upload = client.post(
+        f"/api/chats/{chat['id']}/uploads",
+        content=b"image-bytes",
+        headers={"X-Upload-Filename": "source.png", "content-type": "image/png"},
+    ).json()
+    captured = {}
+
+    def capture_start(*_args, **kwargs):
+        captured.update(kwargs)
+        raise PiRpcError("Chat is busy")
+
+    monkeypatch.setattr(main_module.runtime, "start_turn", capture_start)
+    response = client.post(
+        f"/api/chats/{chat['id']}/messages",
+        json={"content": "Describe this image", "upload_ids": [upload["id"]]},
+    )
+
+    assert response.status_code == 503
+    assert captured["images"] == [
+        {"type": "image", "mimeType": "image/png", "data": "aW1hZ2UtYnl0ZXM="}
+    ]
 
 
 def test_attachment_blocks_restore_clean_user_content_and_file_labels():

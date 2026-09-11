@@ -265,6 +265,11 @@ PI_MODE=production
 JINA_API_KEY=
 BAIDU_SEARCH_API_KEY=
 BAIDU_SEARCH_BASE_URL=https://qianfan.baidubce.com
+SENSENOVA_API_KEY=
+SENSENOVA_BASE_URL=https://token.sensenova.cn
+SENSENOVA_IMAGE_MODEL=sensenova-u1.5-lite
+SENSENOVA_WATERMARK=false
+SENSENOVA_PROMPT_EXTEND=true
 OMA_ADMIN_PASSWORD=replace-with-a-local-admin-password
 OMA_DEFAULT_USER_PASSWORD=replace-with-a-temporary-user-password
 ```
@@ -314,8 +319,18 @@ OMA Studio also provides platform tools through `extensions/oma-web-tools.ts`:
 | `web_fetch` | Fetch a URL as readable Markdown through Jina Reader |
 | `web_search` | Search the web through the Baidu Qianfan Search API |
 | `publish_artifact` | Publish an existing workspace file to Chat Files and Library |
+| `generate_image` | Generate a durable image with the configured automatic image provider |
+| `edit_image` | Edit a current-Chat upload or image previously generated in that Chat |
 
 Set `JINA_API_KEY` and `BAIDU_SEARCH_API_KEY` in `.env` when enabling the corresponding tools. `BAIDU_SEARCH_BASE_URL` defaults to `https://qianfan.baidubce.com`. In development mode, their tool calls and results are retained in the chat transcript; production mode keeps the quieter process view.
+
+### Image tools
+
+The Image creation tool group exposes stable `generate_image` and `edit_image` tools. Their `provider` parameter defaults to `auto`, which currently resolves to SenseNova U1.5 Lite; future image providers can implement the same two operations without changing Agent tool selection or Skill instructions. Configure `SENSENOVA_API_KEY` plus the optional base URL, model, watermark, and prompt-extension values in `.env`.
+
+Generated and edited images are written to `generated/<chat-id>/` in `PI_CWD` and discovered by Chat Files and Library. Image files open through the browser-native file endpoint rather than an inline chat preview. `edit_image` only reads an image uploaded to the active Chat or one previously generated in that same Chat. Existing visual Chat models receive user-authorized image uploads through Pi RPC's native image payload; no separate `describe_image` tool is needed.
+
+Pi persists image payloads as Base64 in session history. OMA deliberately keeps the first release simple; [Issue #131](https://github.com/wyf0931/pi-rpc-pydemo/issues/131) tracks a bounded image-context strategy before image-heavy workflows become the default.
 
 If the `pi-mcp-adapter` extension is selected, its `mcp` and `mcpScript` tools are added to the Pi allowlist so enabled MCP servers can be called.
 

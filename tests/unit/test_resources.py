@@ -123,6 +123,13 @@ def test_storage_paths_expand_home(tmp_path: Path, monkeypatch):
     assert settings.pi_cwd == home / ".oma-studio" / "workspace"
 
 
+def test_sensenova_watermark_defaults_to_false(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("SENSENOVA_WATERMARK", raising=False)
+
+    assert get_settings().sensenova_watermark is False
+
+
 def test_agent_neutral_skills_path_uses_host_setting(tmp_path: Path, monkeypatch):
     agents_home = tmp_path / ".agents"
     (tmp_path / ".env").write_text(

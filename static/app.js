@@ -218,6 +218,12 @@ function platform() {
         description: "Execute shell commands in the workspace.",
         tools: ["bash"],
       },
+      {
+        id: "image_creation",
+        label: "Image creation",
+        description: "Generate and edit images with the configured automatic image provider.",
+        tools: ["generate_image", "edit_image"],
+      },
     ],
     theme: "light",
     systemThemeQuery: null,
@@ -819,10 +825,15 @@ function platform() {
     async toggleFiles() {
       this.filesOpen = !this.filesOpen;
       if (this.filesOpen) this.linkDrawerOpen = false;
-      if (this.filesOpen && this.activeChat && !this.files.length) {
+      if (this.filesOpen && this.activeChat) {
         if (this.sharedMode) await this.loadSharedFiles();
         else await this.loadChatFiles();
       }
+    },
+    async refreshOpenFiles(chatId = this.activeChat?.id) {
+      if (!this.filesOpen || !chatId || this.activeChat?.id !== chatId) return;
+      if (this.sharedMode) await this.loadSharedFiles();
+      else await this.loadChatFiles();
     },
     async loadSharedFiles() {
       this.filesLoading = true;
@@ -1826,6 +1837,7 @@ function platform() {
                     _streaming: false,
                   });
                 this.messages.splice(i, 1, ...normalized);
+                void this.refreshOpenFiles(chatId);
               }
             } else if (event.type === "error") {
               throw new Error(event.error);
@@ -1971,6 +1983,7 @@ function platform() {
         const found = this.chats.find((c) => c.id === chatId);
         if (found) Object.assign(found, chat);
         this.loading = false;
+        await this.refreshOpenFiles(chatId);
       } catch (e) {
         if (viewToken === this.chatViewToken && this.activeChat?.id === chatId) this.showError(e);
       }
@@ -1997,6 +2010,7 @@ function platform() {
             if (found) Object.assign(found, chat);
             this.loading = false;
             this.stopPolling();
+            await this.refreshOpenFiles(chatId);
             return;
           }
           const data = await this.api(`/api/chats/${chatId}/messages?mode=${this.mode}`);
@@ -2006,6 +2020,7 @@ function platform() {
           if (last?.role === "assistant" && !last._streaming) {
             this.loading = false;
             this.stopPolling();
+            await this.refreshOpenFiles(chatId);
           }
         } catch {}
       }, 3000);
@@ -2163,13 +2178,17 @@ function platform() {
       let assistantGroup = null;
       const flushAssistant = () => {
         if (assistantGroup) {
-          if (assistantGroup._reasoningParts.length || assistantGroup.content.length || assistantGroup._streaming)
+          if (
+            assistantGroup._reasoningParts.length ||
+            assistantGroup._imageArtifacts.length ||
+            assistantGroup.content.length ||
+            assistantGroup._streaming
+          )
             archived.push(assistantGroup);
           assistantGroup = null;
         }
       };
       for (const [index, message] of messages.entries()) {
-        if (message.role === "toolResult" && this.mode !== "development") continue;
         if (message.role === "user") {
           flushAssistant();
           archived.push({
@@ -2179,11 +2198,15 @@ function platform() {
           continue;
         }
         if (message.role === "toolResult") {
-          flushAssistant();
-          archived.push({
-            ...message,
-            _key: this.stableMessageKey(message, index),
-          });
+          const artifact = this.imageArtifactMessage(message, index);
+          if (artifact && assistantGroup) assistantGroup._imageArtifacts.push(artifact);
+          if (this.mode === "development") {
+            flushAssistant();
+            archived.push({
+              ...message,
+              _key: this.stableMessageKey(message, index),
+            });
+          }
           continue;
         }
         if (message.role === "assistant") {
@@ -2193,6 +2216,7 @@ function platform() {
               role: "assistant",
               content: [],
               _reasoningParts: [],
+              _imageArtifacts: [],
               _streaming: false,
             };
           const hasToolCall =
@@ -2233,10 +2257,14 @@ function platform() {
       if (role === "assistant") {
         const text = this.partsText(parts);
         const reasoning = this.renderReasoning(message._reasoningParts || [], message._key, message._streaming);
+        const artifacts = (message._imageArtifacts || [])
+          .map((artifact) => this.renderImageArtifact(artifact))
+          .join("");
         if (message._streaming && !text)
           return reasoning || '<span class="loading loading-dots loading-xs" aria-label="Waiting for response"></span>';
         return (
           reasoning +
+          artifacts +
           parts.map((part) => (part.type === "text" ? this.renderFinalMarkdown(part) : this.renderPart(part))).join("")
         );
       }
@@ -2257,6 +2285,21 @@ function platform() {
         )
         .join("");
       return attachments ? `<div class="message-attachments">${attachments}</div>${body}` : body;
+    },
+    imageArtifactMessage(message, index) {
+      if (!["generate_image", "edit_image"].includes(message.toolName)) return null;
+      const path = message.details?.path;
+      if (typeof path !== "string" || !this.opensInNativeBrowser({ extension: this.fileExtension(path) })) return null;
+      return { path };
+    },
+    imageArtifactUrl(path) {
+      return this.sharedMode
+        ? `/api/share/${encodeURIComponent(this.sharedToken)}/files/view?path=${encodeURIComponent(path)}`
+        : this.browserViewUrl(this.activeChat?.id || "", path);
+    },
+    renderImageArtifact(message) {
+      const url = this.imageArtifactUrl(message.path);
+      return `<a class="chat-image-artifact" href="${this.escape(url)}" target="_blank" rel="noopener"><img src="${this.escape(url)}" alt="Generated image" /></a>`;
     },
     renderReasoningPart(part) {
       if (part.type === "thinking")

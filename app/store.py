@@ -15,7 +15,9 @@ from .storage_models import TABLE_MODELS
 
 DEFAULT_TOOLS = ["read", "write", "edit", "bash"]
 BUILTIN_TOOLS = DEFAULT_TOOLS + ["grep", "find", "ls"]
-PLATFORM_TOOLS = ["web_fetch", "web_search", "publish_artifact"]
+WEB_TOOLS = ["web_fetch", "web_search", "publish_artifact"]
+IMAGE_TOOLS = ["generate_image", "edit_image"]
+PLATFORM_TOOLS = WEB_TOOLS + IMAGE_TOOLS
 SUPPORTED_TOOLS = BUILTIN_TOOLS + PLATFORM_TOOLS
 
 

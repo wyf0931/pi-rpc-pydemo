@@ -45,6 +45,11 @@ class Settings:
     jina_api_key: str | None
     baidu_search_api_key: str | None
     baidu_search_base_url: str
+    sensenova_api_key: str | None
+    sensenova_base_url: str
+    sensenova_image_model: str
+    sensenova_watermark: bool
+    sensenova_prompt_extend: bool
     admin_password: str | None
     default_user_password: str | None
     system_timezone: str
@@ -55,6 +60,14 @@ def get_settings() -> Settings:
 
     def value(name: str, default: str | None = None) -> str | None:
         return os.environ.get(name, dotenv.get(name, default))
+
+    def boolean(name: str, default: bool) -> bool:
+        raw = value(name)
+        return (
+            default
+            if raw is None
+            else raw.strip().lower() in {"1", "true", "yes", "on"}
+        )
 
     data_dir = Path(value("PI_PLATFORM_DATA_DIR", "data") or "data").expanduser()
     mode = (value("PI_MODE", "production") or "production").lower()
@@ -112,6 +125,13 @@ def get_settings() -> Settings:
             "BAIDU_SEARCH_BASE_URL", "https://qianfan.baidubce.com"
         )
         or "https://qianfan.baidubce.com",
+        sensenova_api_key=value("SENSENOVA_API_KEY") or None,
+        sensenova_base_url=value("SENSENOVA_BASE_URL", "https://token.sensenova.cn")
+        or "https://token.sensenova.cn",
+        sensenova_image_model=value("SENSENOVA_IMAGE_MODEL", "sensenova-u1.5-lite")
+        or "sensenova-u1.5-lite",
+        sensenova_watermark=boolean("SENSENOVA_WATERMARK", False),
+        sensenova_prompt_extend=boolean("SENSENOVA_PROMPT_EXTEND", True),
         admin_password=value("OMA_ADMIN_PASSWORD"),
         default_user_password=value("OMA_DEFAULT_USER_PASSWORD"),
         system_timezone=system_timezone,
