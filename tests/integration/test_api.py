@@ -455,6 +455,7 @@ def test_generated_images_render_as_responsive_file_artifacts_and_refresh_files(
     assert "refreshOpenFiles(chatId)" in script
     assert "if (this.filesOpen && this.activeChat)" in script
     assert ".chat-image-artifact img" in styles
+    assert "margin: 24px 0 30px" in styles
     assert "max-height: min(68vh, 720px)" in styles
     assert "max-height: 62svh" in styles
 
