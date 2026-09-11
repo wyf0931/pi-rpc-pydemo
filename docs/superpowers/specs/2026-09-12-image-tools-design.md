@@ -19,12 +19,12 @@ the transcript.
 
 ## Chat presentation and refresh
 
-The production chat view turns successful image-tool results into a minimal
-image artifact at the same chronological position: after the reasoning/tool
-phase and before the final answer. It uses the authorized browser file URL,
-shows no tool metadata, and opens the original in a new tab on click. The image
-keeps its aspect ratio and is bounded by the message width and viewport height
-on desktop, tablet, and mobile layouts.
+The production chat view accumulates successful image-tool outputs while the
+turn is reasoning, then renders them after the complete reasoning/tool phase
+and before the final answer. It uses the authorized browser file URL, shows no
+tool metadata, and opens the original in a new tab on click. The image keeps its
+aspect ratio and is bounded by the message width and viewport height on desktop,
+tablet, and mobile layouts.
 
 The Files drawer refreshes whenever it is opened and after a completed turn if
 it is already open. This is intentionally independent of tool names, so normal

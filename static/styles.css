@@ -600,9 +600,6 @@ body {
 .message.user {
  margin-left: auto;
 }
-.message.image_artifact {
- max-width: min(88%, 840px);
-}
 .chat-image-artifact {
  display: block;
  width: fit-content;
@@ -4740,9 +4737,6 @@ pre,
  .message {
   width: 100%;
   max-width: none;
- }
- .message.image_artifact {
-  max-width: 100%;
  }
  .chat-image-artifact img {
   max-height: 62svh;

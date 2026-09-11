@@ -2178,7 +2178,12 @@ function platform() {
       let assistantGroup = null;
       const flushAssistant = () => {
         if (assistantGroup) {
-          if (assistantGroup._reasoningParts.length || assistantGroup.content.length || assistantGroup._streaming)
+          if (
+            assistantGroup._reasoningParts.length ||
+            assistantGroup._imageArtifacts.length ||
+            assistantGroup.content.length ||
+            assistantGroup._streaming
+          )
             archived.push(assistantGroup);
           assistantGroup = null;
         }
@@ -2193,13 +2198,15 @@ function platform() {
           continue;
         }
         if (message.role === "toolResult") {
-          flushAssistant();
           const artifact = this.imageArtifactMessage(message, index);
-          if (artifact) archived.push(artifact);
-          archived.push({
-            ...message,
-            _key: this.stableMessageKey(message, index),
-          });
+          if (artifact && assistantGroup) assistantGroup._imageArtifacts.push(artifact);
+          if (this.mode === "development") {
+            flushAssistant();
+            archived.push({
+              ...message,
+              _key: this.stableMessageKey(message, index),
+            });
+          }
           continue;
         }
         if (message.role === "assistant") {
@@ -2209,6 +2216,7 @@ function platform() {
               role: "assistant",
               content: [],
               _reasoningParts: [],
+              _imageArtifacts: [],
               _streaming: false,
             };
           const hasToolCall =
@@ -2245,15 +2253,18 @@ function platform() {
       const role = message.role || "message";
       const parts = message.content || [];
       if (role === "user") return this.renderUserMessage(message, parts);
-      if (role === "image_artifact") return this.renderImageArtifact(message);
       if (role === "toolResult") return this.mode === "development" ? this.renderToolResult(message) : "";
       if (role === "assistant") {
         const text = this.partsText(parts);
         const reasoning = this.renderReasoning(message._reasoningParts || [], message._key, message._streaming);
+        const artifacts = (message._imageArtifacts || [])
+          .map((artifact) => this.renderImageArtifact(artifact))
+          .join("");
         if (message._streaming && !text)
           return reasoning || '<span class="loading loading-dots loading-xs" aria-label="Waiting for response"></span>';
         return (
           reasoning +
+          artifacts +
           parts.map((part) => (part.type === "text" ? this.renderFinalMarkdown(part) : this.renderPart(part))).join("")
         );
       }
@@ -2279,11 +2290,7 @@ function platform() {
       if (!["generate_image", "edit_image"].includes(message.toolName)) return null;
       const path = message.details?.path;
       if (typeof path !== "string" || !this.opensInNativeBrowser({ extension: this.fileExtension(path) })) return null;
-      return {
-        _key: `image:${message.toolCallId || this.stableMessageKey(message, index)}`,
-        role: "image_artifact",
-        path,
-      };
+      return { path };
     },
     imageArtifactUrl(path) {
       return this.sharedMode
@@ -2302,7 +2309,6 @@ function platform() {
       return this.renderPart(part);
     },
     messageVisible(message) {
-      if (message.role === "image_artifact") return true;
       if (message.role === "toolResult") return this.mode === "development";
       if (this.mode !== "production" || message.role !== "assistant") return true;
       if (message._streaming) return true;

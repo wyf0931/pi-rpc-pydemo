@@ -365,7 +365,7 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260912-chat-image-artifacts" in Path(
+    assert "app.js?v=20260912-thought-image-order" in Path(
         "static/index.html"
     ).read_text(encoding="utf-8")
 
@@ -450,7 +450,7 @@ def test_generated_images_render_as_responsive_file_artifacts_and_refresh_files(
     styles = Path("static/styles.css").read_text(encoding="utf-8")
 
     assert "imageArtifactMessage(message, index)" in script
-    assert 'role: "image_artifact"' in script
+    assert "assistantGroup._imageArtifacts.push(artifact)" in script
     assert "renderImageArtifact(message)" in script
     assert "refreshOpenFiles(chatId)" in script
     assert "if (this.filesOpen && this.activeChat)" in script
