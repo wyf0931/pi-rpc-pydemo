@@ -78,6 +78,33 @@ def test_visible_messages_attaches_web_results_to_calls():
     assert "_webResult" in visible[0]["content"][0]["arguments"]
 
 
+def test_visible_messages_keeps_image_artifact_provenance_without_base64():
+    visible = visible_messages(
+        [
+            {
+                "role": "toolResult",
+                "toolCallId": "call-image",
+                "toolName": "generate_image",
+                "timestamp": 1700000000000,
+                "details": {"path": "generated/chat/image.png"},
+                "content": [
+                    {"type": "image", "mimeType": "image/png", "data": "base64"}
+                ],
+            }
+        ]
+    )
+
+    assert visible == [
+        {
+            "role": "toolResult",
+            "toolCallId": "call-image",
+            "toolName": "generate_image",
+            "timestamp": 1700000000000,
+            "details": {"path": "generated/chat/image.png"},
+        }
+    ]
+
+
 def test_visible_messages_compacts_pi_skill_invocation():
     messages = [
         {

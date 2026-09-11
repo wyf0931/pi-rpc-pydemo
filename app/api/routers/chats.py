@@ -39,6 +39,7 @@ PROMPT_IMAGE_MEDIA_TYPES = {
     "image/png",
     "image/webp",
 }
+IMAGE_ARTIFACT_TOOLS = {"generate_image", "edit_image"}
 
 
 class ChatCreate(BaseModel):
@@ -199,7 +200,15 @@ def visible_messages(messages: list[dict], mode: str = "production") -> list[dic
         _compact_attachments(message)
         _compact_skill_invocation(message)
         if mode != "development" and message.get("role") == "toolResult":
-            continue
+            if message.get("toolName") not in IMAGE_ARTIFACT_TOOLS:
+                continue
+            # The chat renderer needs only provenance metadata to reconstruct a
+            # browser-backed image artifact. Do not send legacy Base64 blocks.
+            message = {
+                key: message[key]
+                for key in ("role", "toolCallId", "toolName", "details", "timestamp")
+                if key in message
+            }
         visible.append(message)
     return visible
 
