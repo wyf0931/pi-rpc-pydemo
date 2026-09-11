@@ -3,7 +3,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from xml.etree import ElementTree
 
-MAX_VIEW_BYTES = 5 * 1024 * 1024
+# Keep browser-viewable artifacts aligned with the per-upload cap. Image outputs
+# can exceed 5 MiB at high resolution, while serving remains authorized by chat
+# tool provenance and constrained to PI_CWD.
+MAX_VIEW_BYTES = 20 * 1024 * 1024
 
 NATIVE_BROWSER_MEDIA_TYPES = {
     ".avif": "image/avif",

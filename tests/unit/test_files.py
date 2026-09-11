@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from app.files import (
+    MAX_VIEW_BYTES,
     delete_chat_files,
     discover_chat_files,
     discover_session_files,
@@ -99,6 +100,27 @@ def test_discovers_images_created_by_image_tools(tmp_path: Path):
     )
     assert (
         resolve_chat_file(messages, tmp_path, "generated/chat-1/image.png")
+        == image.resolve()
+    )
+
+
+def test_resolves_high_resolution_image_within_browser_artifact_limit(
+    tmp_path: Path,
+):
+    image = tmp_path / "generated" / "chat-1" / "large.png"
+    image.parent.mkdir(parents=True)
+    image.write_bytes(b"0" * (6 * 1024 * 1024))
+    messages = [
+        {
+            "role": "toolResult",
+            "toolName": "generate_image",
+            "details": {"path": "generated/chat-1/large.png"},
+        }
+    ]
+
+    assert image.stat().st_size < MAX_VIEW_BYTES
+    assert (
+        resolve_chat_file(messages, tmp_path, "generated/chat-1/large.png")
         == image.resolve()
     )
 

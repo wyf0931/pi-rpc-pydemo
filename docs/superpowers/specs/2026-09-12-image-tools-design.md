@@ -12,9 +12,10 @@ the same two operations behind the registry.
 `PiRuntimeManager` loads `oma-image-tools.ts` only when an Agent selects an
 image tool. The extension owns a small provider registry and resolves
 `provider=auto` to SenseNova. It always requests Base64 from SenseNova, writes
-the durable file to `PI_CWD/generated/<chat-id>/`, and returns the image plus a
-structured output path. Chat Files and Library discover that path from the Pi
-tool result.
+the durable file to `PI_CWD/generated/<chat-id>/`, and returns a structured
+output path. Chat Files and Library discover that path from the Pi tool result;
+the browser-native file endpoint opens images instead of embedding previews in
+the transcript.
 
 The API key and SenseNova defaults are process configuration. They are copied
 into Pi's child-process environment, never returned by APIs, persisted to
@@ -37,6 +38,7 @@ tool is introduced.
 
 ## Known limit
 
-Pi persists image blocks as Base64 in session history. The first release returns
-an inline preview to satisfy Chat rendering. Issue #131 tracks a bounded,
-non-destructive image-context policy before high-volume image workflows.
+Pi persists user-image blocks as Base64 in session history. Generated-image tool
+results intentionally return a file reference rather than Base64. Issue #131
+tracks a bounded, non-destructive image-context policy before high-volume image
+workflows.

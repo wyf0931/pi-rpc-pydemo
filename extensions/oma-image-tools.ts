@@ -153,10 +153,9 @@ export default function (pi: ExtensionAPI) {
 
 function imageToolResult(path: string, output: ImageOutput) {
   return {
-    content: [
-      { type: "text", text: `Saved image: ${path}` },
-      { type: "image", data: output.data, mimeType: output.mimeType },
-    ],
+    // The durable file is the UI handoff. Avoid persisting image Base64 in Pi
+    // history just to render an inline preview; Files and Library open it natively.
+    content: [{ type: "text", text: `Saved image: ${path}` }],
     details: { path, provider: output.provider, model: output.model, mimeType: output.mimeType },
   };
 }

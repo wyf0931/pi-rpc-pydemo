@@ -328,7 +328,7 @@ Set `JINA_API_KEY` and `BAIDU_SEARCH_API_KEY` in `.env` when enabling the corres
 
 The Image creation tool group exposes stable `generate_image` and `edit_image` tools. Their `provider` parameter defaults to `auto`, which currently resolves to SenseNova U1.5 Lite; future image providers can implement the same two operations without changing Agent tool selection or Skill instructions. Configure `SENSENOVA_API_KEY` plus the optional base URL, model, watermark, and prompt-extension values in `.env`.
 
-Generated and edited images are written to `generated/<chat-id>/` in `PI_CWD`, rendered in the Chat result, and discovered by Chat Files and Library. `edit_image` only reads an image uploaded to the active Chat or one previously generated in that same Chat. Existing visual Chat models receive user-authorized image uploads through Pi RPC's native image payload; no separate `describe_image` tool is needed.
+Generated and edited images are written to `generated/<chat-id>/` in `PI_CWD` and discovered by Chat Files and Library. Image files open through the browser-native file endpoint rather than an inline chat preview. `edit_image` only reads an image uploaded to the active Chat or one previously generated in that same Chat. Existing visual Chat models receive user-authorized image uploads through Pi RPC's native image payload; no separate `describe_image` tool is needed.
 
 Pi persists image payloads as Base64 in session history. OMA deliberately keeps the first release simple; [Issue #131](https://github.com/wyf0931/pi-rpc-pydemo/issues/131) tracks a bounded image-context strategy before image-heavy workflows become the default.
 
