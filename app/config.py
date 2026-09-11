@@ -130,7 +130,7 @@ def get_settings() -> Settings:
         or "https://token.sensenova.cn",
         sensenova_image_model=value("SENSENOVA_IMAGE_MODEL", "sensenova-u1.5-lite")
         or "sensenova-u1.5-lite",
-        sensenova_watermark=boolean("SENSENOVA_WATERMARK", True),
+        sensenova_watermark=boolean("SENSENOVA_WATERMARK", False),
         sensenova_prompt_extend=boolean("SENSENOVA_PROMPT_EXTEND", True),
         admin_password=value("OMA_ADMIN_PASSWORD"),
         default_user_password=value("OMA_DEFAULT_USER_PASSWORD"),

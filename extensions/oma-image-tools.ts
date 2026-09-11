@@ -78,7 +78,7 @@ class SenseNovaImageProvider implements ImageProvider {
           size: request.size || "auto",
           output_format: request.output_format || "png",
           response_format: "b64_json",
-          watermark: request.watermark ?? environmentBoolean("SENSENOVA_WATERMARK", true),
+          watermark: request.watermark ?? environmentBoolean("SENSENOVA_WATERMARK", false),
           prompt_extend: request.prompt_extend ?? environmentBoolean("SENSENOVA_PROMPT_EXTEND", true),
           ...(endpoint.endsWith("/edits") ? { images: request.images } : {}),
         }),

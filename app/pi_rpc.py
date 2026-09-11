@@ -437,7 +437,7 @@ class PiRuntimeManager:
                 self.settings, "sensenova_image_model", None
             ),
             "SENSENOVA_WATERMARK": str(
-                getattr(self.settings, "sensenova_watermark", True)
+                getattr(self.settings, "sensenova_watermark", False)
             ).lower(),
             "SENSENOVA_PROMPT_EXTEND": str(
                 getattr(self.settings, "sensenova_prompt_extend", True)
