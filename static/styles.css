@@ -2696,6 +2696,8 @@ pre,
  display: flex;
  align-items: baseline;
  gap: 10px;
+ min-width: 0;
+ max-width: 100%;
 }
 .process-label {
  color: var(--color-primary);
@@ -2739,7 +2741,9 @@ pre,
  transform: rotate(90deg);
 }
 .process-preview {
+ flex: 1 1 0;
  min-width: 0;
+ max-width: 100%;
  overflow: hidden;
  text-overflow: ellipsis;
  white-space: nowrap;
@@ -4644,6 +4648,8 @@ pre,
  .workspace {
   width: 100%;
   min-width: 0;
+  height: 100dvh;
+  min-height: 100dvh;
  }
  .workspace {
   display: block;
@@ -4708,14 +4714,15 @@ pre,
  .content-panel {
   display: block;
   width: 100%;
-  height: 100vh;
-  min-height: 100vh;
+  height: 100dvh;
+  min-height: 100dvh;
   overflow-y: auto;
   padding: 70px 14px 20px;
  }
  .content-panel:has(.conversation) {
   padding-left: 14px;
   padding-right: 14px;
+  padding-bottom: calc(7.5rem + env(safe-area-inset-bottom));
  }
  .chat-empty {
   width: 100%;
@@ -4759,7 +4766,7 @@ pre,
   width: 100%;
   max-width: none;
   min-height: 100%;
-  padding-bottom: 8px;
+  padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
  }
  .conversation-toolbar {
   min-height: 28px;
@@ -4779,13 +4786,15 @@ pre,
   overflow-wrap: anywhere;
  }
  .composer {
-  position: sticky;
-  bottom: 8px;
-  width: 100%;
+  position: fixed;
+  right: 14px;
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  left: 14px;
+  width: auto;
   max-width: none;
-  margin: 20px 0 0;
+  margin: 0;
   padding: 9px;
-  z-index: 10;
+  z-index: 45;
  }
  .composer textarea {
   min-height: calc(1.5em + 20px);

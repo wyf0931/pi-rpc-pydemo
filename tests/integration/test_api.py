@@ -365,9 +365,9 @@ def test_thought_blocks_open_by_default_and_label_streaming_state():
     )
     assert "renderReasoning(parts, messageKey, isStreaming = false)" in script
     assert 'const label = isStreaming ? "Thinking"' in script
-    assert "app.js?v=20260912-image-skeleton" in Path("static/index.html").read_text(
-        encoding="utf-8"
-    )
+    assert "app.js?v=20260912-mobile-chat-layout" in Path(
+        "static/index.html"
+    ).read_text(encoding="utf-8")
 
 
 def test_chat_viewport_and_composer_use_latest_message_and_seven_line_contract():
@@ -471,6 +471,21 @@ def test_chat_image_artifacts_use_daisyui_skeleton_loading_state():
     assert 'artifact.classList.remove("skeleton")' in script
     assert ".chat-image-artifact.skeleton" in styles
     assert ".chat-image-artifact.is-loaded" in styles
+
+
+def test_mobile_chat_truncates_tool_paths_and_keeps_composer_in_safe_area():
+    html = Path("static/index.html").read_text(encoding="utf-8")
+    script = Path("static/app.js").read_text(encoding="utf-8")
+    styles = Path("static/styles.css").read_text(encoding="utf-8")
+
+    assert "viewport-fit=cover" in html
+    assert "processFileName(path)" in script
+    assert 'this.processLine("Read", this.processFileName(args.path))' in script
+    assert 'title="${this.escape(fullValue)}"' in script
+    assert "flex: 1 1 0" in styles
+    assert "height: 100dvh" in styles
+    assert "safe-area-inset-bottom" in styles
+    assert "position: fixed" in styles
 
 
 def test_agent_profile_detail_contract_is_user_facing():
