@@ -2371,7 +2371,14 @@ function platform() {
       return `<div class="markdown-part prose${invert} max-w-none">${this.renderMarkdown(part.text || "")}</div>`;
     },
     processLine(label, value) {
-      return `<div class="process-line"><span class="process-label">${this.escape(label)}</span><span class="process-preview">${this.escape(String(value).replace(/\s+/g, " ").trim())}</span></div>`;
+      const fullValue = String(value).replace(/\s+/g, " ").trim();
+      return `<div class="process-line"><span class="process-label">${this.escape(label)}</span><span class="process-preview" title="${this.escape(fullValue)}">${this.escape(fullValue)}</span></div>`;
+    },
+    processFileName(path) {
+      const normalized = String(path || "")
+        .trim()
+        .replaceAll("\\", "/");
+      return normalized.split("/").filter(Boolean).pop() || normalized;
     },
     processDisclosure(label, value, detail, kind = "", showPreview = false) {
       return `<details class="process-disclosure ${kind ? `${kind}-disclosure` : ""}"><summary><i class="process-chevron" data-lucide="chevron-right" aria-hidden="true"></i><span class="process-label">${this.escape(label)}</span>${showPreview ? `<span class="process-preview">${this.escape(String(value).replace(/\s+/g, " ").trim())}</span>` : ""}</summary><pre class="process-detail-code ${kind ? `${kind}-code` : ""}">${detail}</pre></details>`;
@@ -3240,12 +3247,12 @@ function platform() {
     renderProcessToolCall(name, args) {
       if (name === "web_search" || name === "web_fetch") return this.renderWebActivity(name, args);
       const renderers = {
-        read: () => (args.path ? this.processLine("Read", args.path) : ""),
-        write: () => (args.path ? this.processLine("Write", args.path) : ""),
-        ls: () => (args.path ? this.processLine("List", args.path) : ""),
+        read: () => (args.path ? this.processLine("Read", this.processFileName(args.path)) : ""),
+        write: () => (args.path ? this.processLine("Write", this.processFileName(args.path)) : ""),
+        ls: () => (args.path ? this.processLine("List", this.processFileName(args.path)) : ""),
         find: () => (args.pattern && args.path ? this.processLine("Find", `${args.pattern} in ${args.path}`) : ""),
         grep: () => (args.pattern && args.path ? this.processLine("Grep", `${args.pattern} in ${args.path}`) : ""),
-        edit: () => (args.path ? this.processLine("Edit", args.path) : ""),
+        edit: () => (args.path ? this.processLine("Edit", this.processFileName(args.path)) : ""),
         mcp: () => (args.tool ? this.processLine("Use", args.tool) : ""),
         bash: () =>
           args.command
