@@ -486,6 +486,8 @@ def test_mobile_chat_truncates_tool_paths_and_keeps_composer_in_safe_area():
     assert "height: 100dvh" in styles
     assert "safe-area-inset-bottom" in styles
     assert "position: fixed" in styles
+    assert "padding-bottom: 0" in styles
+    assert "bottom: calc(16px + env(safe-area-inset-bottom))" in styles
     assert "padding-top: 88px" in styles
 
 

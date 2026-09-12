@@ -4722,7 +4722,8 @@ pre,
  .content-panel:has(.conversation) {
   padding-left: 14px;
   padding-right: 14px;
-  padding-bottom: calc(7.5rem + env(safe-area-inset-bottom));
+  /* The panel alone reserves enough space for the fixed composer. */
+  padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
  }
  .chat-empty {
   width: 100%;
@@ -4766,7 +4767,7 @@ pre,
   width: 100%;
   max-width: none;
   min-height: 100%;
-  padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
+  padding-bottom: 0;
  }
  .conversation-toolbar {
   min-height: 28px;
@@ -4788,7 +4789,7 @@ pre,
  .composer {
   position: fixed;
   right: 14px;
-  bottom: calc(8px + env(safe-area-inset-bottom));
+  bottom: calc(16px + env(safe-area-inset-bottom));
   left: 14px;
   width: auto;
   max-width: none;
