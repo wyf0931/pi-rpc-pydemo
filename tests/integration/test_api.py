@@ -486,6 +486,7 @@ def test_mobile_chat_truncates_tool_paths_and_keeps_composer_in_safe_area():
     assert "height: 100dvh" in styles
     assert "safe-area-inset-bottom" in styles
     assert "position: fixed" in styles
+    assert "padding-top: 88px" in styles
 
 
 def test_agent_profile_detail_contract_is_user_facing():

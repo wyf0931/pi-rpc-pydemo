@@ -5361,7 +5361,8 @@ body > .link-drawer {
   padding: 4px 14px;
  }
  .content-panel:has(.conversation) .message-list {
-  padding-top: 68px;
+  /* Leave a clear gap below the fixed mobile chat title. */
+  padding-top: 88px;
  }
  .content-panel:has(.conversation) .message-list:has(.chat-loading) {
   padding: 0 3px;
